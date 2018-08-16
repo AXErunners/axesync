@@ -11,10 +11,10 @@ Pod::Spec.new do |s|
   s.summary          = 'Axe Sync is a light and configurable blockchain client that you can embed into your iOS Application.'
   s.description      = 'Axe Sync is a light blockchain client that you can embed into your iOS Application.  It is fully customizable to make the type of node you are interested in.'
 
-  s.homepage         = 'https://github.com/axeevo/axesync-ios.git'
+  s.homepage         = 'https://github.com/axerunners/axesync-ios.git'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
   s.author           = { 'quantumexplorer' => 'quantum@axe.org' }
-  s.source           = { :git => 'https://github.com/axeevo/axesync-iOS.git', :tag => s.version.to_s }
+  s.source           = { :git => 'https://github.com/axerunners/axesync-iOS.git', :tag => s.version.to_s }
 
   s.platform = :ios
   s.ios.deployment_target = '10.0'
