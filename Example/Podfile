@@ -1,0 +1,13 @@
+platform :ios, '10.0'
+
+target 'AxeSync_Example' do
+  pod 'AxeSync', :path => '../'
+  
+  pod 'KVO-MVVM', '0.5.1'
+
+  target 'AxeSync_Tests' do
+    inherit! :search_paths
+
+    
+  end
+end

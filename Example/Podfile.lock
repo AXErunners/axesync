@@ -1,0 +1,27 @@
+PODS:
+  - AxeSync (0.1.0):
+    - secp256k1_axe (= 0.1.0)
+  - KVO-MVVM (0.5.1)
+  - secp256k1_axe (0.1.0)
+
+DEPENDENCIES:
+  - AxeSync (from `../`)
+  - KVO-MVVM (= 0.5.1)
+
+SPEC REPOS:
+  https://github.com/cocoapods/specs.git:
+    - KVO-MVVM
+    - secp256k1_axe
+
+EXTERNAL SOURCES:
+  AxeSync:
+    :path: "../"
+
+SPEC CHECKSUMS:
+  AxeSync: 7fa2798a0cb2ad8d6c7bc3d68a2f0b75c10e991e
+  KVO-MVVM: 4df3afd1f7ebcb69735458b85db59c4271ada7c6
+  secp256k1_axe: 16bc4c20423f88dc264db75d5611c9c6a5fd1f77
+
+PODFILE CHECKSUM: c40d8522a997b638bb70f699771c1d9d90e9e71e
+
+COCOAPODS: 1.5.3
