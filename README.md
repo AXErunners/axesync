@@ -22,7 +22,7 @@ pod 'AxeSyncPod'
 
 ## Author
 
-quantumexplorer, quantum@axe.org
+AXErunners, info@axerunners.com
 
 ## License
 
