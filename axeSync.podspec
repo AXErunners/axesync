@@ -13,7 +13,7 @@ Pod::Spec.new do |s|
 
   s.homepage         = 'https://github.com/axerunners/axesync-ios.git'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
-  s.author           = { 'quantumexplorer' => 'quantum@axe.org' }
+  s.author           = { 'axerunners' => 'info@axerunners.com' }
   s.source           = { :git => 'https://github.com/axerunners/axesync-iOS.git', :tag => s.version.to_s }
 
   s.platform = :ios
@@ -25,10 +25,9 @@ Pod::Spec.new do |s|
   s.requires_arc = true
 
   s.resource_bundles = {'AxeSync' => ['AxeSync/*.xcdatamodeld', 'AxeSync/*.plist', 'AxeSync/*.lproj/*.plist']}
-  
+
   s.framework = 'Foundation', 'UIKit', 'SystemConfiguration', 'CoreData'
   s.compiler_flags = '-Wno-comma'
   s.dependency 'secp256k1_axe', '0.1.0'
-  
-end
 
+end
