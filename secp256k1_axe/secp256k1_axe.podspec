@@ -24,7 +24,7 @@ Configured with following defines: `USE_BASIC_CONFIG`, `ENABLE_MODULE_RECOVERY`,
 
   s.homepage         = 'https://github.com/axerunners/axesync-iOS'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
-  s.author           = { 'Andrew Podkovyrin' => 'podkovyrin@gmail.com' }
+  s.author           = { 'AXErunners' => 'info@axerunners.com' }
   s.source           = { :git => 'https://github.com/bitcoin-core/secp256k1.git', :commit => '84973d393ac240a90b2e1a6538c5368202bc2224' }
 
   s.ios.deployment_target = '9.0'
