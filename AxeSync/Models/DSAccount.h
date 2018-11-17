@@ -29,7 +29,7 @@
 #import "NSData+Bitcoin.h"
 #import "DSDerivationPath.h"
 
-@class DSDerivationPath,DSWallet;
+@class DSDerivationPath,DSWallet,DSBlockchainUserRegistrationTransaction,DSBlockchainUserResetTransaction;
 
 @interface DSAccount : NSObject
 
@@ -92,6 +92,9 @@
 // true if the address is controlled by the wallet
 - (BOOL)containsAddress:(NSString *)address;
 
+// the high level (hardened) derivation path containing the address
+-(DSDerivationPath*)derivationPathContainingAddress:(NSString *)address;
+
 // true if the address was previously used as an input or output in any wallet transaction
 - (BOOL)addressIsUsed:(NSString *)address;
 
@@ -103,10 +106,12 @@
                                    toOutputScripts:(NSArray * _Nonnull)scripts withFee:(BOOL)fee;
 
 // returns an unsigned transaction that sends the specified amounts from the wallet to the specified output scripts
-- (DSTransaction * _Nullable)transactionForAmounts:(NSArray * _Nonnull)amounts toOutputScripts:(NSArray * _Nonnull)scripts withFee:(BOOL)fee  isInstant:(BOOL)isInstant;
+- (DSTransaction * _Nullable)transactionForAmounts:(NSArray * _Nonnull)amounts toOutputScripts:(NSArray * _Nonnull)scripts withFee:(BOOL)fee isInstant:(BOOL)isInstant;
 
 // returns an unsigned transaction that sends the specified amounts from the wallet to the specified output scripts
 - (DSTransaction * _Nullable)transactionForAmounts:(NSArray * _Nonnull)amounts toOutputScripts:(NSArray * _Nonnull)scripts withFee:(BOOL)fee isInstant:(BOOL)isInstant toShapeshiftAddress:(NSString* _Nullable)shapeshiftAddress;
+
+- (DSTransaction *)updateTransaction:(DSTransaction* _Nonnull)transaction forAmounts:(NSArray * _Nonnull)amounts toOutputScripts:(NSArray * _Nonnull)scripts withFee:(BOOL)fee isInstant:(BOOL)isInstant toShapeshiftAddress:(NSString* _Nullable)shapeshiftAddress;
 
 // sign any inputs in the given transaction that can be signed using private keys from the wallet
 - (void)signTransaction:(DSTransaction * _Nonnull)transaction withPrompt:(NSString * _Nonnull)authprompt completion:(_Nonnull TransactionValidityCompletionBlock)completion;
@@ -155,6 +160,12 @@
 // This loads transactions once the account is set to a wallet
 - (void)loadTransactions;
 
+// This gets a blockchain user registration transaction that has a specific public key hash (will change to BLS pub key)
+- (DSBlockchainUserRegistrationTransaction*)registrationTransactionForPublicKeyHash:(UInt160)publicKeyHash;
+
+// This gets a blockchain user reset transaction that has a specific public key hash (will change to BLS pub key)
+- (DSBlockchainUserResetTransaction*)resetTransactionForPublicKeyHash:(UInt160)publicKeyHash;
+
 //This removes all transactions from the account
 - (void)wipeBlockchainInfo;
 
@@ -165,5 +176,9 @@
 // transaction that will sweep the balance into wallet (doesn't publish the tx)
 - (void)sweepPrivateKey:(NSString * _Nonnull)privKey withFee:(BOOL)fee
              completion:(void (^ _Nonnull)(DSTransaction * _Nonnull tx, uint64_t fee, NSError * _Null_unspecified error))completion;
+
+- (NSArray*)subscriptionTransactionsForRegistrationTransactionHash:(UInt256)blockchainUserRegistrationTransactionHash;
+
+- (UInt256)lastSubscriptionTransactionHashForRegistrationTransactionHash:(UInt256)blockchainUserRegistrationTransactionHash;
 
 @end

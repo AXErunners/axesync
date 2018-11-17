@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "IntTypes.h"
+#import "BigIntTypes.h"
 
 @class DSChain,DSPeer,DSGovernanceVote,DSGovernanceObjectEntity,DSTransaction,DSAccount;
 
@@ -64,6 +64,8 @@ typedef NS_ENUM(uint32_t, DSGovernanceObjectType) {
 -(void)registerCollateralTransaction:(DSTransaction* _Nonnull)transaction;
 
 -(NSData*)dataMessage;
+
+-(NSData*)proposalInfo;
 
 @end
 

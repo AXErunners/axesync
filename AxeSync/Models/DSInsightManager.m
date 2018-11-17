@@ -79,7 +79,7 @@
                                              NSLog(@"Error decoding response %@",[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
                                              completion(nil, nil, nil,
                                                         [NSError errorWithDomain:@"AxeWallet" code:417 userInfo:@{NSLocalizedDescriptionKey:
-                                                                                                                       [NSString stringWithFormat:NSLocalizedString(@"unexpected response from %@", nil),
+                                                                                                                       [NSString stringWithFormat:DSLocalizedString(@"unexpected response from %@", nil),
                                                                                                                         req.URL.host]}]);
                                              return;
                                          }
@@ -102,10 +102,10 @@
                                                  ! [utxo[@"vout"] isKindOfClass:[NSNumber class]] ||
                                                  ! [utxo[@"scriptPubKey"] isKindOfClass:[NSString class]] ||
                                                  ! [utxo[@"scriptPubKey"] hexToData] ||
-                                                 (! [utxo[@"duffs"] isKindOfClass:[NSNumber class]] && ! [utxo[@"satoshis"] isKindOfClass:[NSNumber class]] && !amount)) {
+                                                 (! [utxo[@"haks"] isKindOfClass:[NSNumber class]] && ! [utxo[@"satoshis"] isKindOfClass:[NSNumber class]] && !amount)) {
                                                  completion(nil, nil, nil,
                                                             [NSError errorWithDomain:@"AxeWallet" code:417 userInfo:@{NSLocalizedDescriptionKey:
-                                                                                                                           [NSString stringWithFormat:NSLocalizedString(@"unexpected response from %@", nil),
+                                                                                                                           [NSString stringWithFormat:DSLocalizedString(@"unexpected response from %@", nil),
                                                                                                                             req.URL.host]}]);
                                                  return;
                                              }
@@ -115,8 +115,8 @@
                                              [utxos addObject:dsutxo_obj(o)];
                                              if (amount) {
                                                  [amounts addObject:[amount decimalNumberByMultiplyingByPowerOf10:8]];
-                                             } else if (utxo[@"duffs"]) {
-                                                 [amounts addObject:utxo[@"duffs"]];
+                                             } else if (utxo[@"haks"]) {
+                                                 [amounts addObject:utxo[@"haks"]];
                                              }  else if (utxo[@"satoshis"]) {
                                                  [amounts addObject:utxo[@"satoshis"]];
                                              }

@@ -2,8 +2,9 @@
 //  DSChainPeerManager.h
 //  AxeSync
 //
-//  Created by Aaron Voisine on 10/6/13.
+//  Created by Aaron Voisine for BreadWallet on 10/6/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
+//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -42,6 +43,8 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSChainPeerManagerSyncFinishedNotific
 FOUNDATION_EXPORT NSString* _Nonnull const DSChainPeerManagerSyncFailedNotification;
 FOUNDATION_EXPORT NSString* _Nonnull const DSChainPeerManagerTxStatusNotification;
 FOUNDATION_EXPORT NSString* _Nonnull const DSChainPeerManagerNewBlockNotification;
+FOUNDATION_EXPORT NSString* _Nonnull const DSChainPeerManagerPeersDidChangeNotification;
+FOUNDATION_EXPORT NSString* _Nonnull const DSChainPeerManagerConnectedPeersDidChangeNotification;
 FOUNDATION_EXPORT NSString* _Nonnull const DSChainPeerManagerNotificationChainKey;
 
 #define PEER_MAX_CONNECTIONS 3
@@ -51,19 +54,21 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSChainPeerManagerNotificationChainKe
 #define LAST_SYNCED_GOVERANCE_OBJECTS @"LAST_SYNCED_GOVERANCE_OBJECTS"
 #define LAST_SYNCED_MASTERNODE_LIST @"LAST_SYNCED_MASTERNODE_LIST"
 
-@class DSTransaction,DSGovernanceSyncManager,DSMasternodeManager,DSSporkManager,DSPeer,DSGovernanceVote;
+@class DSTransaction,DSGovernanceSyncManager,DSMasternodeManager,DSSporkManager,DSPeer,DSGovernanceVote,DSDAPIPeerManager;
 
 @interface DSChainPeerManager : NSObject <DSPeerDelegate, DSChainDelegate, UIAlertViewDelegate>
 
 @property (nonatomic, readonly) BOOL connected;
 @property (nonatomic, readonly) double syncProgress;
-@property (nonatomic, readonly) NSUInteger peerCount; // number of connected peers
+@property (nonatomic, readonly) NSUInteger peerCount;
+@property (nonatomic, readonly) NSUInteger connectedPeerCount; // number of connected peers
 @property (nonatomic, readonly) NSString * _Nullable downloadPeerName;
 @property (nonatomic, readonly) DSChain * chain;
 @property (nonatomic, readonly) DSPeer * downloadPeer, *fixedPeer;
 @property (nonatomic, readonly) DSSporkManager * sporkManager;
 @property (nonatomic, readonly) DSMasternodeManager * masternodeManager;
 @property (nonatomic, readonly) DSGovernanceSyncManager * governanceSyncManager;
+@property (nonatomic, readonly) DSDAPIPeerManager * DAPIPeerManager;
 @property (nonatomic, readonly) NSArray* registeredDevnetPeers;
 @property (nonatomic, readonly) NSArray* registeredDevnetPeerServices;
 
@@ -84,8 +89,12 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSChainPeerManagerNotificationChainKe
 -(void)setCount:(uint32_t)count forSyncCountInfo:(DSSyncCountInfo)masternodeSyncCountInfo;
 
 -(void)clearRegisteredPeers;
--(void)registerPeerAtLocation:(UInt128)IPAddress port:(uint32_t)port;
+-(void)registerPeerAtLocation:(UInt128)IPAddress port:(uint32_t)port dapiPort:(uint32_t)dapiPort;
 
 -(void)getSporks;
+-(DSPeerStatus)statusForLocation:(UInt128)IPAddress port:(uint32_t)port;
+-(DSPeerType)typeForLocation:(UInt128)IPAddress port:(uint32_t)port;
+-(void)setTrustedPeerHost:(NSString*)host;
+-(void)removeTrustedPeerHost;
 
 @end

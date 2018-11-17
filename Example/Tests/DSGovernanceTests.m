@@ -12,6 +12,7 @@
 #import "DSChain.h"
 #import "DSGovernanceObject.h"
 #import "NSData+Bitcoin.h"
+#import "NSData+Axe.h"
 
 @interface DSGovernanceTests : XCTestCase
 
@@ -49,6 +50,46 @@
     
     XCTAssertTrue(uint256_eq(hash, govObject.governanceObjectHash),
                   @"DSGovernanceObject governanceObjectHash");
+}
+
+-(void)testThis {
+    DSChain * mainnet = [DSChain mainnet];
+    //[["proposal",{"end_epoch":1544752686,"name":"b2b-b2c-axe-payment-system","payment_address":"XkjzBbMdNttG8X1bBYiZQeuW86418KJ6aK","payment_amount":288,"start_epoch":1529299806,"type":1,"url":"https://www.axecentral.org/p/b2b-b2c-axe-payment-system"}]]
+    NSString * name = @"b2b-b2c-axe-payment-system";
+    NSString * address = @"XkjzBbMdNttG8X1bBYiZQeuW86418KJ6aK";
+    NSUInteger amount = 28800000000;
+    NSString * url = @"https://www.axecentral.org/p/b2b-b2c-axe-payment-system";
+    DSGovernanceObject * governanceObject = [[DSGovernanceObject alloc] initWithType:DSGovernanceObjectType_Proposal parentHash:UINT256_ZERO revision:1 timestamp:1528441570 signature:nil collateralHash:UINT256_ZERO governanceObjectHash:UINT256_ZERO identifier:name amount:amount startEpoch:1529299806 endEpoch:1544752686 paymentAddress:address url:url onChain:mainnet];
+    UInt256 checkHash = governanceObject.governanceObjectHash;
+    NSData * hash = @"efcc74ab35b11bf6585fbdd457a246dce6b6aa3b8fd1c9200115e8540ec70f72".hexToData;
+    XCTAssertEqualObjects(hash.hexString, [NSData dataWithUInt256:checkHash].hexString);
+}
+
+-(void)testFind {
+    NSArray * names = @[@""];
+    NSArray * addressArray = @[@""];
+    
+    UInt256 hash = *(UInt256 *)@"20499001e2b0c5dd34b9214a5475be07afad2f68f8d02e5f52be79280500f7d7ff".hexToData.bytes;
+    UInt256 reversedHash = *(UInt256 *)@"20499001e2b0c5dd34b9214a5475be07afad2f68f8d02e5f52be79280500f7d7ff".hexToData.reverse.bytes;
+    
+    for (NSString * name in names) {
+        for (NSString * address in addressArray) {
+            NSString * url = [NSString stringWithFormat:@"https://www.axecentral.org/p/%@",name];
+            
+            DSGovernanceObject * governanceObject = [[DSGovernanceObject alloc] initWithType:DSGovernanceObjectType_Proposal parentHash:UINT256_ZERO revision:1 timestamp:0 signature:nil collateralHash:UINT256_ZERO governanceObjectHash:UINT256_ZERO identifier:name amount:7900000000 startEpoch:1539779982 endEpoch:1544930942 paymentAddress:address url:url onChain:nil];
+            NSLog(@"%@",[NSData dataWithUInt256:[governanceObject.proposalInfo SHA256_2]]);
+            UInt256 checkHash = [governanceObject.proposalInfo SHA256_2];
+            if (uint256_eq(checkHash, hash))  {
+                NSLog(@"We found it");
+            } else if (uint256_eq(checkHash, reversedHash))  {
+                NSLog(@"We found it");
+            }
+        }
+    }
+    
+
+    
+    
 }
 
 @end

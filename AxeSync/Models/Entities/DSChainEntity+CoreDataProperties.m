@@ -33,6 +33,7 @@
 @dynamic checkpoints;
 @dynamic devnetIdentifier;
 @dynamic standardPort;
+@dynamic standardDapiPort;
 @dynamic type;
 @dynamic peers;
 @dynamic transactionHashes;
@@ -40,7 +41,6 @@
 @dynamic derivationPaths;
 @dynamic totalMasternodeCount;
 @dynamic totalGovernanceObjectsCount;
-@dynamic masternodeBroadcastHashes;
 @dynamic simplifiedMasternodeEntries;
 @dynamic baseBlockHash;
 

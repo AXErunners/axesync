@@ -2,8 +2,9 @@
 //  NSData+Bitcoin.m
 //  AxeSync
 //
-//  Created by Aaron Voisine on 10/09/13.
+//  Created by Aaron Voisine for BreadWallet on 10/09/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
+//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -28,9 +29,11 @@
 #import "NSData+Bitcoin.h"
 #import "NSString+Bitcoin.h"
 #import "NSMutableData+Axe.h"
+#import "NSData+Axe.h"
 
 BOOL setKeychainData(NSData *data, NSString *key, BOOL authenticated)
 {
+    NSCParameterAssert(key);
     if (! key) return NO;
     
     id accessible = (authenticated) ? (__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly
@@ -76,6 +79,9 @@ BOOL setKeychainData(NSData *data, NSString *key, BOOL authenticated)
 
 BOOL hasKeychainData(NSString *key, NSError **error)
 {
+    NSCParameterAssert(key);
+    if (! key) return NO;
+
     NSDictionary *query = @{(__bridge id)kSecClass:(__bridge id)kSecClassGenericPassword,
                             (__bridge id)kSecAttrService:SEC_ATTR_SERVICE,
                             (__bridge id)kSecAttrAccount:key,
@@ -956,6 +962,21 @@ UInt256 uInt256MultiplyUInt32 (UInt256 a,uint32_t b)
 
 @implementation NSData (Bitcoin)
 
++ (instancetype)dataWithUInt768:(UInt768)n
+{
+    return [NSData dataWithBytes:&n length:sizeof(n)];
+}
+
++ (instancetype)dataWithUInt512:(UInt512)n
+{
+    return [NSData dataWithBytes:&n length:sizeof(n)];
+}
+
++ (instancetype)dataWithUInt384:(UInt384)n
+{
+    return [NSData dataWithBytes:&n length:sizeof(n)];
+}
+
 + (instancetype)dataWithUInt256:(UInt256)n
 {
     return [NSData dataWithBytes:&n length:sizeof(n)];
@@ -1110,6 +1131,42 @@ UInt256 uInt256MultiplyUInt32 (UInt256 a,uint32_t b)
     return *(UInt256 *)(self.bytes);
 }
 
+- (UInt384)UInt384AtOffset:(NSUInteger)offset
+{
+    if (self.length < offset + sizeof(UInt384)) return UINT384_ZERO;
+    return *(UInt384 *)(self.bytes + offset);
+}
+
+- (UInt384)UInt384
+{
+    if (self.length < sizeof(UInt384)) return UINT384_ZERO;
+    return *(UInt384 *)(self.bytes);
+}
+
+- (UInt512)UInt512AtOffset:(NSUInteger)offset
+{
+    if (self.length < offset + sizeof(UInt512)) return UINT512_ZERO;
+    return *(UInt512 *)(self.bytes + offset);
+}
+
+- (UInt512)UInt512
+{
+    if (self.length < sizeof(UInt512)) return UINT512_ZERO;
+    return *(UInt512 *)(self.bytes);
+}
+
+- (UInt768)UInt768AtOffset:(NSUInteger)offset
+{
+    if (self.length < offset + sizeof(UInt768)) return UINT768_ZERO;
+    return *(UInt768 *)(self.bytes + offset);
+}
+
+- (UInt768)UInt768
+{
+    if (self.length < sizeof(UInt768)) return UINT768_ZERO;
+    return *(UInt768 *)(self.bytes);
+}
+
 - (uint64_t)varIntAtOffset:(NSUInteger)offset length:(NSNumber **)length
 {
     uint8_t h = [self UInt8AtOffset:offset];
@@ -1145,7 +1202,7 @@ UInt256 uInt256MultiplyUInt32 (UInt256 a,uint32_t b)
     NSUInteger l = (NSUInteger)[self varIntAtOffset:offset length:&ll];
     
     if (length) *length = @(ll.unsignedIntegerValue + l);
-    if (ll == 0 || self.length < offset + ll.unsignedIntegerValue + l) return nil;
+    if (ll == nil || self.length < offset + ll.unsignedIntegerValue + l) return nil;
     return [[NSString alloc] initWithBytes:(const char *)self.bytes + offset + ll.unsignedIntegerValue length:l
             encoding:NSUTF8StringEncoding];
 }
@@ -1156,7 +1213,7 @@ UInt256 uInt256MultiplyUInt32 (UInt256 a,uint32_t b)
     NSUInteger l = (NSUInteger)[self varIntAtOffset:offset length:&ll];
     
     if (length) *length = @(ll.unsignedIntegerValue + l);
-    if (ll == 0 || self.length < offset + ll.unsignedIntegerValue + l) return nil;
+    if (ll == nil || self.length < offset + ll.unsignedIntegerValue + l) return nil;
     return [self subdataWithRange:NSMakeRange(offset + ll.unsignedIntegerValue, l)];
 }
 
@@ -1241,6 +1298,40 @@ UInt256 uInt256MultiplyUInt32 (UInt256 a,uint32_t b)
 - (NSString *)hexString
 {
     return [NSString hexWithData:self];
+}
+
++(NSData*)opReturnScript {
+    NSMutableData * opReturnScript = [NSMutableData data];
+    [opReturnScript appendUInt8:OP_RETURN];
+    return [opReturnScript copy];
+}
+    
++(NSData*)merkleRootFromHashes:(NSArray*)hashes {
+    NSMutableArray * higherLevel = [NSMutableArray array];
+    NSArray * level = hashes;
+    if (hashes.count == 1) return [hashes objectAtIndex:0];
+    if (hashes.count == 0) return nil;
+    while (level.count != 1) {
+        for (int i = 0; i < level.count;i+=2) {
+            if ([level count] - i > 1) {
+                NSData * left = [level objectAtIndex:i + 0];
+                NSData * right = [level objectAtIndex:i + 1];
+                NSMutableData * combined = [NSMutableData data];
+                [combined appendData:left];
+                [combined appendData:right];
+                [higherLevel addObject:[NSData dataWithUInt256:combined.SHA256_2]];
+            } else {
+                NSData * left = [level objectAtIndex:i];
+                NSMutableData * combined = [NSMutableData data];
+                [combined appendData:left];
+                [combined appendData:left];
+                [higherLevel addObject:[NSData dataWithUInt256:combined.SHA256_2]];
+            }
+        }
+        level = [higherLevel copy];
+        higherLevel = [NSMutableArray array];
+    }
+    return [level objectAtIndex:0];
 }
 
 

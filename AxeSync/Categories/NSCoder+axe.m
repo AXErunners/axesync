@@ -6,7 +6,7 @@
 //
 
 #import "NSCoder+Axe.h"
-#import "IntTypes.h"
+#import "BigIntTypes.h"
 #import "NSData+Bitcoin.h"
 
 @implementation NSCoder (Axe)

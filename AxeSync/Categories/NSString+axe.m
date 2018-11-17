@@ -2,8 +2,9 @@
 //  NSString+Axe.m
 //  AxeSync
 //
-//  Created by Aaron Voisine on 5/13/13.
+//  Created by Aaron Voisine for BreadWallet on 5/13/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
+//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -262,29 +263,28 @@
 // MARK: time
 
 +(NSString*)waitTimeFromNow:(NSTimeInterval)wait {
-    NSString * unit = nil;
     NSUInteger seconds = wait;
     NSUInteger hours = seconds / 360;
     seconds %= 360;
     NSUInteger minutes = seconds /60;
     seconds %=60;
     
-    NSString * hoursUnit = hours!=1?NSLocalizedString(@"hours",nil):NSLocalizedString(@"hour",nil);
-    NSString * minutesUnit = minutes!=1?NSLocalizedString(@"minutes",nil):NSLocalizedString(@"minute",nil);
-    NSString * secondsUnit = seconds!=1?NSLocalizedString(@"seconds",nil):NSLocalizedString(@"second",nil);
+    NSString * hoursUnit = hours!=1?DSLocalizedString(@"hours",nil):DSLocalizedString(@"hour",nil);
+    NSString * minutesUnit = minutes!=1?DSLocalizedString(@"minutes",nil):DSLocalizedString(@"minute",nil);
+    NSString * secondsUnit = seconds!=1?DSLocalizedString(@"seconds",nil):DSLocalizedString(@"second",nil);
     NSMutableString * tryAgainTime = [@"" mutableCopy];
     if (hours) {
         [tryAgainTime appendString:[NSString stringWithFormat:@"%ld %@",(unsigned long)hours,hoursUnit]];
         if (minutes && seconds) {
-            [tryAgainTime appendString:NSLocalizedString(@", ",nil)];
+            [tryAgainTime appendString:DSLocalizedString(@", ",nil)];
         } else if (minutes || seconds) {
-            [tryAgainTime appendString:NSLocalizedString(@" and ",nil)];
+            [tryAgainTime appendString:DSLocalizedString(@" and ",nil)];
         }
     }
     if (minutes) {
         [tryAgainTime appendString:[NSString stringWithFormat:@"%ld %@",(unsigned long)minutes,minutesUnit]];
         if (seconds) {
-            [tryAgainTime appendString:NSLocalizedString(@" and ",nil)];
+            [tryAgainTime appendString:DSLocalizedString(@" and ",nil)];
         }
     }
     if (seconds) {

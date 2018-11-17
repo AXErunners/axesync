@@ -11,7 +11,7 @@
 #import "DSAddressTableViewCell.h"
 #import <AxeSync/AxeSync.h>
 
-@interface DSStandaloneAddressesViewController ()
+@interface DSStandaloneAddressesViewController () <NSFetchedResultsControllerDelegate>
 
 @end
 

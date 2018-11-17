@@ -2,8 +2,9 @@
 //  DSPeer.h
 //  AxeSync
 //
-//  Created by Aaron Voisine on 10/9/13.
+//  Created by Aaron Voisine for BreadWallet on 10/9/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
+//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -27,7 +28,7 @@
 
 #import <Foundation/Foundation.h>
 #import "DSChain.h"
-#import "IntTypes.h"
+#import "BigIntTypes.h"
 
 typedef NS_ENUM(uint32_t,DSInvType) {
     DSInvType_Error = 0,
@@ -145,7 +146,7 @@ typedef NS_ENUM(uint32_t, DSGovernanceRequestState) {
 
 typedef NS_ENUM(uint32_t, DSSyncCountInfo);
 
-@class DSPeer, DSTransaction, DSMerkleBlock, DSChain,DSSpork,DSMasternodeBroadcast,DSMasternodePing,DSGovernanceObject,DSGovernanceVote;
+@class DSPeer, DSTransaction, DSMerkleBlock, DSChain,DSSpork,DSGovernanceObject,DSGovernanceVote;
 
 @protocol DSPeerDelegate<NSObject>
 @required
@@ -161,7 +162,7 @@ typedef NS_ENUM(uint32_t, DSSyncCountInfo);
 - (void)peer:(DSPeer *)peer relayedBlock:(DSMerkleBlock *)block;
 
 - (void)peer:(DSPeer *)peer notfoundTxHashes:(NSArray *)txHashes andBlockHashes:(NSArray *)blockhashes;
-- (void)peer:(DSPeer *)peer setFeePerKb:(uint64_t)feePerKb;
+- (void)peer:(DSPeer *)peer setFeePerByte:(uint64_t)feePerKb;
 - (DSTransaction *)peer:(DSPeer *)peer requestedTransaction:(UInt256)txHash;
 - (DSGovernanceVote *)peer:(DSPeer *)peer requestedVote:(UInt256)voteHash;
 - (DSGovernanceObject *)peer:(DSPeer *)peer requestedGovernanceObject:(UInt256)governanceObjectHash;
@@ -169,14 +170,12 @@ typedef NS_ENUM(uint32_t, DSSyncCountInfo);
 - (void)peer:(DSPeer *)peer relayedSpork:(DSSpork *)spork;
 
 - (void)peer:(DSPeer *)peer relayedSyncInfo:(DSSyncCountInfo)syncCountInfo count:(uint32_t)count;
-- (void)peer:(DSPeer *)peer relayedMasternodeBroadcast:(DSMasternodeBroadcast*)masternodeBroadcast;
-- (void)peer:(DSPeer *)peer relayedMasternodePing:(DSMasternodePing*)masternodePing;
 
 - (void)peer:(DSPeer *)peer relayedGovernanceObject:(DSGovernanceObject *)governanceObject;
 - (void)peer:(DSPeer *)peer relayedGovernanceVote:(DSGovernanceVote *)governanceVote;
 
-- (void)peer:(DSPeer *)peer hasMasternodeBroadcastHashes:(NSSet*)masternodeBroadcastHashes;
 - (void)peer:(DSPeer *)peer relayedMasternodeDiffMessage:(NSData*)masternodeDiffMessage;
+- (void)peerRelayedIncorrectMasternodeDiffMessage:(DSPeer *)peer;
 
 - (void)peer:(DSPeer *)peer hasGovernanceObjectHashes:(NSSet*)governanceObjectHashes;
 - (void)peer:(DSPeer *)peer hasGovernanceVoteHashes:(NSSet*)governanceVoteHashes;
@@ -188,12 +187,16 @@ typedef NS_ENUM(uint32_t, DSSyncCountInfo);
 @end
 
 typedef NS_ENUM(NSUInteger, DSPeerStatus) {
+    DSPeerStatus_Unknown = -1,
     DSPeerStatus_Disconnected = 0,
     DSPeerStatus_Connecting,
-    DSPeerStatus_Connected
+    DSPeerStatus_Connected,
+    DSPeerStatus_Banned
+    
 };
 
 typedef NS_ENUM(NSUInteger, DSPeerType) {
+    DSPeerType_Unknown = -1,
     DSPeerType_FullNode = 0,
     DSPeerType_MasterNode
 };
@@ -216,10 +219,10 @@ typedef NS_ENUM(NSUInteger, DSPeerType) {
 @property (nonatomic, readonly) uint64_t nonce;
 @property (nonatomic, readonly) NSString *useragent;
 @property (nonatomic, readonly) uint32_t lastblock;
-@property (nonatomic, readonly) uint64_t feePerKb; // minimum tx fee rate peer will accept
+@property (nonatomic, readonly) uint64_t feePerByte; // minimum tx fee rate peer will accept
 @property (nonatomic, readonly) NSTimeInterval pingTime;
 @property (nonatomic, readonly) NSTimeInterval relaySpeed; // headers or block->totalTx per second being relayed
-@property (nonatomic, assign) NSTimeInterval timestamp; // timestamp reported by peer (interval since refrence date)
+@property (nonatomic, assign) NSTimeInterval timestamp; // timestamp reported by peer (since 1970)
 @property (nonatomic, assign) int16_t misbehavin;
 @property (nonatomic, assign) uint32_t priority;
 @property (nonatomic, assign) NSTimeInterval lowPreferenceTill;
@@ -250,7 +253,6 @@ services:(uint64_t)services;
 - (void)sendGetblocksMessageWithLocators:(NSArray *)locators andHashStop:(UInt256)hashStop;
 - (void)sendInvMessageForHashes:(NSArray *)invHashes ofType:(DSInvType)invType;
 - (void)sendGetdataMessageWithTxHashes:(NSArray *)txHashes andBlockHashes:(NSArray *)blockHashes;
-- (void)sendGetdataMessageWithMasternodeBroadcastHashes:(NSArray<NSData*> *)masternodeBroadcastHashes;
 - (void)sendGetdataMessageWithGovernanceObjectHashes:(NSArray<NSData*> *)governanceObjectHashes;
 - (void)sendGetdataMessageWithGovernanceVoteHashes:(NSArray<NSData*> *)governanceVoteHashes;
 - (void)sendGetMasternodeListFromPreviousBlockHash:(UInt256)previousBlockHash forBlockHash:(UInt256)blockHash;

@@ -2,8 +2,9 @@
 //  NSMutableData+Axe.m
 //  AxeSync
 //
-//  Created by Aaron Voisine on 5/20/13.
+//  Created by Aaron Voisine for BreadWallet on 5/20/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
+//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -158,6 +159,22 @@ CFAllocatorRef SecureAllocator()
     [self appendBytes:&i length:sizeof(i)];
 }
 
+- (void)appendUInt384:(UInt384)i
+{
+    [self appendBytes:&i length:sizeof(i)];
+}
+
+- (void)appendUInt512:(UInt512)i
+{
+    [self appendBytes:&i length:sizeof(i)];
+}
+
+- (void)appendUInt768:(UInt768)i
+{
+    [self appendBytes:&i length:sizeof(i)];
+}
+
+
 
 - (void)appendVarInt:(uint64_t)i
 {
@@ -192,7 +209,6 @@ CFAllocatorRef SecureAllocator()
 - (void)appendCoinbaseMessage:(NSString *)message atHeight:(uint32_t)height
 {
     NSUInteger l = [message lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-    uint8_t bytesInHeight;
     if (height < VAR_INT16_HEADER) {
         uint8_t header = l;
         uint8_t payload = (uint8_t)height;
@@ -221,8 +237,8 @@ CFAllocatorRef SecureAllocator()
     //A little weirder
     uint8_t l = (uint8_t)[message lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     uint8_t a = 0x51;
-    uint8_t fullLength = l + 2;
-    [self appendBytes:&fullLength length:sizeof(fullLength)];
+    //uint8_t fullLength = l + 2;
+    //[self appendBytes:&fullLength length:sizeof(fullLength)];
     [self appendBytes:&a length:sizeof(a)];
     [self appendBytes:&l length:sizeof(l)];
     [self appendBytes:message.UTF8String length:l];
@@ -296,7 +312,7 @@ CFAllocatorRef SecureAllocator()
 
 - (void)appendShapeshiftMemoForAddress:(NSString *)address
 {
-    static uint8_t pubkeyAddress = BITCOIN_PUBKEY_ADDRESS, scriptAddress = BITCOIN_SCRIPT_ADDRESS;
+    static uint8_t scriptAddress = BITCOIN_SCRIPT_ADDRESS;
     NSData *d = address.base58checkToData;
     
     if (d.length != 21) return;
@@ -350,7 +366,6 @@ CFAllocatorRef SecureAllocator()
 // MARK: - axe protocol
 
 - (void)appendProposalInfo:(NSData*)proposalInfo {
-    static uint8_t pubkeyAddress = BITCOIN_PUBKEY_ADDRESS, scriptAddress = BITCOIN_SCRIPT_ADDRESS;
     NSMutableData * hashMutableData = [[NSMutableData alloc] init];
 
     [hashMutableData appendUInt256:proposalInfo.SHA256_2];

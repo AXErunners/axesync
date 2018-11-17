@@ -2,8 +2,9 @@
 //  DSTransaction.h
 //  AxeSync
 //
-//  Created by Aaron Voisine on 5/16/13.
+//  Created by Aaron Voisine for BreadWallet on 5/16/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
+//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -30,11 +31,11 @@
 
 @class DSChain,DSAccount,DSWallet;
 
-#define TX_FEE_PER_KB        1000ULL    // standard tx fee per kb of tx size, rounded up to nearest kb
+#define TX_FEE_PER_B        1ULL    // standard tx fee per kb of tx size, rounded up to nearest kb
 #define TX_FEE_PER_INPUT     10000ULL    // standard ix fee per input
 #define TX_OUTPUT_SIZE       34          // estimated size for a typical transaction output
 #define TX_INPUT_SIZE        148         // estimated size for a typical compact pubkey transaction input
-#define TX_MIN_OUTPUT_AMOUNT (TX_FEE_PER_KB*3*(TX_OUTPUT_SIZE + TX_INPUT_SIZE)/1000) //no txout can be below this amount
+#define TX_MIN_OUTPUT_AMOUNT (TX_FEE_PER_B*3*(TX_OUTPUT_SIZE + TX_INPUT_SIZE)) //no txout can be below this amount
 #define TX_MAX_SIZE          100000      // no tx can be larger than this size in bytes
 #define TX_FREE_MAX_SIZE     1000        // tx must not be larger than this size in bytes without a fee
 #define TX_FREE_MIN_PRIORITY 57600000ULL // tx must not have a priority below this value without a fee
@@ -44,7 +45,7 @@
 #define IX_PREVIOUS_CONFIRMATIONS_NEEDED       6   // number of previous confirmations needed in ix inputs
 
 #define TX_VERSION    0x00000001u
-#define SPECIAL_TX_VERSION    0x00000002u
+#define SPECIAL_TX_VERSION    0x00000003u
 #define TX_LOCKTIME   0x00000000u
 #define TXIN_SEQUENCE UINT32_MAX
 #define SIGHASH_ALL   0x00000001u
@@ -69,9 +70,11 @@ typedef union _UInt256 UInt256;
 @property (nonatomic, assign) uint16_t version;
 @property (nonatomic, assign) uint16_t type;
 @property (nonatomic, assign) uint32_t lockTime;
+@property (nonatomic, readonly) NSData * payloadData;
+@property (nonatomic, readonly) NSData * payloadDataForHash;
 @property (nonatomic, assign) uint32_t payloadOffset;
 @property (nonatomic, assign) uint32_t blockHeight;
-@property (nonatomic, assign) NSTimeInterval timestamp; // time interval since refrence date, 00:00:00 01/01/01 GMT
+@property (nonatomic, assign) NSTimeInterval timestamp; // time interval since 1970
 @property (nonatomic, readonly) size_t size; // size in bytes if signed, or estimated size assuming compact pubkey sigs
 @property (nonatomic, readonly) uint64_t standardFee;
 @property (nonatomic, readonly) BOOL isSigned; // checks if all signatures exist, but does not verify them
@@ -79,10 +82,12 @@ typedef union _UInt256 UInt256;
 
 @property (nonatomic, readonly) NSString *longDescription;
 @property (nonatomic, readonly) BOOL isCoinbaseClassicTransaction;
-@property (nonatomic, readonly) NSData * coinbaseClassicalTransactionData;
 @property (nonatomic, strong) DSShapeshiftEntity * associatedShapeshift;
 @property (nonatomic, readonly) DSChain * chain;
 @property (nonatomic, readonly) DSAccount * account;
+@property (nonatomic, readonly) Class entityClass;
+
+@property (nonatomic, readonly) BOOL transactionTypeRequiresInputs;
 
 @property (nonatomic, strong) NSMutableArray *hashes, *indexes, *inScripts, *signatures, *sequences;
 @property (nonatomic, strong) NSMutableArray *amounts, *addresses, *outScripts;
@@ -93,13 +98,16 @@ typedef union _UInt256 UInt256;
 - (instancetype)initOnChain:(DSChain*)chain;
 - (instancetype)initWithMessage:(NSData *)message onChain:(DSChain*)chain;
 - (instancetype)initWithInputHashes:(NSArray *)hashes inputIndexes:(NSArray *)indexes inputScripts:(NSArray *)scripts
-                    outputAddresses:(NSArray *)addresses outputAmounts:(NSArray *)amounts onChain:(DSChain*)chain;
+                    outputAddresses:(NSArray *)addresses outputAmounts:(NSArray *)amounts onChain:(DSChain*)chain; //for v1
+
+- (instancetype)initWithInputHashes:(NSArray *)hashes inputIndexes:(NSArray *)indexes inputScripts:(NSArray *)scripts inputSequences:(NSArray*)inputSequences outputAddresses:(NSArray *)addresses outputAmounts:(NSArray *)amounts onChain:(DSChain *)chain; //for v2 onwards
 
 - (void)addInputHash:(UInt256)hash index:(NSUInteger)index script:(NSData *)script;
 - (void)addInputHash:(UInt256)hash index:(NSUInteger)index script:(NSData *)script signature:(NSData *)signature
 sequence:(uint32_t)sequence;
 - (void)addOutputAddress:(NSString *)address amount:(uint64_t)amount;
 - (void)addOutputShapeshiftAddress:(NSString *)address;
+- (void)addOutputBurnAmount:(uint64_t)amount;
 - (void)addOutputScript:(NSData *)script amount:(uint64_t)amount;
 - (void)setInputAddress:(NSString *)address atIndex:(NSUInteger)index;
 - (void)shuffleOutputOrder;
@@ -114,5 +122,7 @@ sequence:(uint32_t)sequence;
 
 // the block height after which the transaction can be confirmed without a fee, or TX_UNCONFIRMED for never
 - (uint32_t)blockHeightUntilFreeForAmounts:(NSArray *)amounts withBlockHeights:(NSArray *)heights;
+
+- (NSData *)toDataWithSubscriptIndex:(NSUInteger)subscriptIndex;
 
 @end

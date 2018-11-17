@@ -10,7 +10,7 @@
 #import "DSCoinbaseTransaction.h"
 
 //Special Transaction
-//https://github.com/axerunners/dips/blob/master/dip-0002-special-transactions.md
+
 typedef NS_ENUM(NSUInteger, DSTransactionType) {
     DSTransactionType_Classic = 0,
     DSTransactionType_ProviderRegistration = 1,

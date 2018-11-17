@@ -2,7 +2,7 @@
 //  DSPaymentProtocol.m
 //  AxeSync
 //
-//  Created by Aaron Voisine on 4/21/14.
+//  Created by Aaron Voisine for BreadWallet on 4/21/14.
 //  Copyright (c) 2014 Aaron Voisine <voisine@gmail.com>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
@@ -29,6 +29,7 @@
 #import "DSTransaction.h"
 #import "DSChain.h"
 #import "NSData+Bitcoin.h"
+#import "NSDate+Utils.h"
 
 // BIP70 payment protocol: https://github.com/bitcoin/bips/blob/master/bip-0070.mediawiki
 
@@ -227,8 +228,8 @@ typedef enum : NSUInteger {
         switch ([data protoBufFieldAtOffset:&off int:&i data:&d]) {
             case details_network: if (d) self.chain = [DSChain chainForNetworkName:protoBufString(d)]; break;
             case details_outputs: while (o < d.length) [d protoBufFieldAtOffset:&o int:&amount data:&script]; break;
-            case details_time: if (i) _time = i - NSTimeIntervalSince1970; break;
-            case details_expires: if (i) _expires = i - NSTimeIntervalSince1970; break;
+            case details_time: if (i) _time = i; break;
+            case details_expires: if (i) _expires = i; break;
             case details_memo: if (d) _memo = protoBufString(d); break;
             case details_payment_url: if (d) _paymentURL = protoBufString(d); break;
             case details_merchant_data: if (d) _merchantData = d; break;
@@ -273,8 +274,8 @@ typedef enum : NSUInteger {
         [d appendProtoBufData:output withKey:details_outputs];
     }
 
-    if (_time >= 1) [d appendProtoBufInt:_time + NSTimeIntervalSince1970 withKey:details_time];
-    if (_expires >= 1) [d appendProtoBufInt:_expires + NSTimeIntervalSince1970 withKey:details_expires];
+    if (_time >= 1) [d appendProtoBufInt:_time withKey:details_time];
+    if (_expires >= 1) [d appendProtoBufInt:_expires withKey:details_expires];
     if (_memo) [d appendProtoBufString:_memo withKey:details_memo];
     if (_paymentURL) [d appendProtoBufString:_paymentURL withKey:details_payment_url];
     if (_merchantData) [d appendProtoBufData:_merchantData withKey:details_merchant_data];
@@ -406,13 +407,15 @@ details:(DSPaymentProtocolDetails *)details signature:(NSData *)sig onChain:(DSC
 
         // kSecTrustResultUnspecified indicates a positive result that wasn't decided by the user
         if (trustResult != kSecTrustResultUnspecified && trustResult != kSecTrustResultProceed) {
-            _errorMessage = (certs.count > 0) ? NSLocalizedString(@"untrusted certificate", nil) :
-                            NSLocalizedString(@"missing certificate", nil);
+            _errorMessage = (certs.count > 0) ? DSLocalizedString(@"untrusted certificate", nil) :
+                            DSLocalizedString(@"missing certificate", nil);
 
-            for (NSDictionary *property in CFBridgingRelease(SecTrustCopyProperties(trust))) {
-                if (! [property[@"type"] isEqual:(__bridge id)kSecPropertyTypeError]) continue;
-                _errorMessage = [_errorMessage stringByAppendingFormat:@" - %@", property[@"value"]];
-                break;
+            if (trust) {
+                for (NSDictionary *property in CFBridgingRelease(SecTrustCopyProperties(trust))) {
+                    if (! [property[@"type"] isEqual:(__bridge id)kSecPropertyTypeError]) continue;
+                    _errorMessage = [_errorMessage stringByAppendingFormat:@" - %@", property[@"value"]];
+                    break;
+                }
             }
             
             r = NO;
@@ -439,7 +442,7 @@ details:(DSPaymentProtocolDetails *)details signature:(NSData *)sig onChain:(DSC
 
         if (status != errSecSuccess) {
             if (status == errSecUnimplemented) {
-                _errorMessage = NSLocalizedString(@"unsupported signature type", nil);
+                _errorMessage = DSLocalizedString(@"unsupported signature type", nil);
                 NSLog(@"%@", _errorMessage);
             }
             else {
@@ -455,8 +458,8 @@ details:(DSPaymentProtocolDetails *)details signature:(NSData *)sig onChain:(DSC
         _commonName = [[NSString alloc] initWithData:self.certs.firstObject encoding:NSUTF8StringEncoding];
     }
 
-    if (r && self.details.expires >= 1 && [NSDate timeIntervalSinceReferenceDate] > self.details.expires) {
-        _errorMessage = NSLocalizedString(@"request expired", nil);
+    if (r && self.details.expires >= 1 && [NSDate timeIntervalSince1970] > self.details.expires) {
+        _errorMessage = DSLocalizedString(@"request expired", nil);
         r = NO;
     }
 

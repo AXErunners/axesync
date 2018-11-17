@@ -2,7 +2,7 @@
 //  DSPriceManager.h
 //  AxeSync
 //
-//  Created by Aaron Voisine on 3/2/14.
+//  Created by Aaron Voisine for BreadWallet on 3/2/14.
 //  Copyright (c) 2014 Aaron Voisine <voisine@gmail.com>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
@@ -76,7 +76,5 @@ typedef void (^ResetCancelHandlerBlock)(void);
 - (NSString * _Nonnull)localCurrencyStringForBitcoinAmount:(int64_t)amount;
 - (NSNumber * _Nullable)localCurrencyNumberForAxeAmount:(int64_t)amount;
 - (NSNumber* _Nonnull)localCurrencyAxePrice;
-
-- (void)showResetWalletWithCancelHandler:(_Nullable ResetCancelHandlerBlock)resetCancelHandlerBlock;
 
 @end

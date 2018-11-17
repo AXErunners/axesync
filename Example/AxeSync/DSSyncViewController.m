@@ -16,6 +16,9 @@
 #import "DSStandaloneDerivationPathController.h"
 #import "DSGovernanceObjectListViewController.h"
 #import "DSTransactionsViewController.h"
+#import "DSBlockchainUsersViewController.h"
+#import "DSPeersViewController.h"
+#import "DSLayer2ViewController.h"
 
 @interface DSSyncViewController ()
 
@@ -25,11 +28,11 @@
 @property (strong, nonatomic) IBOutlet UILabel *lastBlockHeightLabel;
 @property (strong, nonatomic) IBOutlet UIProgressView *progressView, *pulseView;
 @property (assign, nonatomic) NSTimeInterval timeout, start;
-@property (strong, nonatomic) IBOutlet UILabel *connectedPeerCount;
+@property (strong, nonatomic) IBOutlet UILabel *connectedPeerCountLabel;
+@property (strong, nonatomic) IBOutlet UILabel *peerCountLabel;
 @property (strong, nonatomic) IBOutlet UILabel *downloadPeerLabel;
 @property (strong, nonatomic) IBOutlet UILabel *chainTipLabel;
-@property (strong, nonatomic) IBOutlet UILabel *axeAmountLabel;
-@property (strong, nonatomic) IBOutlet UILabel *transactionCountLabel;
+@property (strong, nonatomic) IBOutlet UILabel *transactionCountBalanceLabel;
 @property (strong, nonatomic) IBOutlet UILabel *walletCountLabel;
 @property (strong, nonatomic) IBOutlet UILabel *standaloneDerivationPathsCountLabel;
 @property (strong, nonatomic) IBOutlet UILabel *standaloneAddressesCountLabel;
@@ -39,7 +42,8 @@
 @property (strong, nonatomic) IBOutlet UILabel *verifiedMasternodeCountLabel;
 @property (strong, nonatomic) IBOutlet UILabel *receivedProposalCountLabel;
 @property (strong, nonatomic) IBOutlet UILabel *receivedVotesCountLabel;
-@property (strong, nonatomic) id syncFinishedObserver,syncFailedObserver,balanceObserver,blocksObserver,blocksResetObserver,sporkObserver,masternodeObserver,masternodeCountObserver, chainWalletObserver,chainStandaloneDerivationPathObserver,chainSingleAddressObserver,governanceObjectCountObserver,governanceObjectReceivedCountObserver,governanceVoteCountObserver,governanceVoteReceivedCountObserver;
+@property (strong, nonatomic) IBOutlet UILabel *blockchainUsersCountLabel;
+@property (strong, nonatomic) id syncFinishedObserver,syncFailedObserver,balanceObserver,blocksObserver,blocksResetObserver,sporkObserver,masternodeObserver,masternodeCountObserver, chainWalletObserver,chainStandaloneDerivationPathObserver,chainSingleAddressObserver,governanceObjectCountObserver,governanceObjectReceivedCountObserver,governanceVoteCountObserver,governanceVoteReceivedCountObserver,connectedPeerConnectionObserver,peerConnectionObserver,blockchainUsersObserver;
 
 - (IBAction)startSync:(id)sender;
 - (IBAction)stopSync:(id)sender;
@@ -63,6 +67,9 @@
     [self updateSingleAddressesCount];
     [self updateReceivedGovernanceProposalCount];
     [self updateReceivedGovernanceVoteCount];
+    [self updateBlockchainUsersCount];
+    [self updatePeerCount];
+    [self updateConnectedPeerCount];
     
     self.syncFinishedObserver =
     [[NSNotificationCenter defaultCenter] addObserverForName:DSChainPeerManagerSyncFinishedNotification object:nil
@@ -79,6 +86,21 @@
                                                                [self syncFailed];
                                                            }
                                                        }];
+    
+    
+    self.connectedPeerConnectionObserver = [[NSNotificationCenter defaultCenter] addObserverForName:DSChainPeerManagerConnectedPeersDidChangeNotification object:nil
+                                                                                     queue:nil usingBlock:^(NSNotification *note) {
+                                                                                                                                                    if ([note.userInfo[DSChainPeerManagerNotificationChainKey] isEqual:[self chain]]) {
+                                                                                         [self updateConnectedPeerCount];
+                                                                                                                                                    }
+                                                                                     }];
+    
+    self.peerConnectionObserver = [[NSNotificationCenter defaultCenter] addObserverForName:DSChainPeerManagerPeersDidChangeNotification object:nil
+                                                                                        queue:nil usingBlock:^(NSNotification *note) {
+                                                                                                                                                       if ([note.userInfo[DSChainPeerManagerNotificationChainKey] isEqual:[self chain]]) {
+                                                                                            [self updatePeerCount];
+                                                                                                                                                       }
+                                                                                        }];
     
     
     self.blocksObserver =
@@ -164,6 +186,13 @@
                                                                [self updateWalletCount];
                                                            }
                                                        }];
+    
+    self.blockchainUsersObserver = [[NSNotificationCenter defaultCenter] addObserverForName:DSChainBlockchainUsersDidChangeNotification object:nil
+                                                                                          queue:nil usingBlock:^(NSNotification *note) {
+                                                                                              if ([note.userInfo[DSChainPeerManagerNotificationChainKey] isEqual:[self chain]]) {
+                                                                                                  [self updateBlockchainUsersCount];
+                                                                                              }
+                                                                                          }];
     self.chainStandaloneDerivationPathObserver =
     [[NSNotificationCenter defaultCenter] addObserverForName:DSChainStandaloneDerivationPathsDidChangeNotification object:nil
                                                        queue:nil usingBlock:^(NSNotification *note) {
@@ -291,13 +320,10 @@
     
     counter++;
     
-    uint64_t connectedPeerCount = self.chainPeerManager.peerCount;
-    
     self.explanationLabel.text = NSLocalizedString(@"Syncing", nil);
     self.percentageLabel.text = [NSString stringWithFormat:@"%0.1f%%",(progress > 0.1 ? progress - 0.1 : 0.0)*111.0];
     self.dbSizeLabel.text = [NSString stringWithFormat:@"%0.1llu KB",dbFileSize/1000];
     self.lastBlockHeightLabel.text = [NSString stringWithFormat:@"%d",lastBlockHeight];
-    self.connectedPeerCount.text = [NSString stringWithFormat:@"%llu",connectedPeerCount];
     self.downloadPeerLabel.text = self.chainPeerManager.downloadPeerName;
     self.chainTipLabel.text = self.chain.chainTip;
     if (progress + DBL_EPSILON >= 1.0) {
@@ -341,7 +367,7 @@
     }]];
     
     [wipeDataAlertController addAction:[UIAlertAction actionWithTitle:@"Wallet Data" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
-        [[AxeSync sharedSyncController] wipeWalletDataForChain:self.chainPeerManager.chain];
+        [[AxeSync sharedSyncController] wipeWalletDataForChain:self.chainPeerManager.chain forceReauthentication:YES];
     }]];
     
     [wipeDataAlertController addAction:[UIAlertAction actionWithTitle:@"Everything" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
@@ -350,7 +376,7 @@
         [[AxeSync sharedSyncController] wipeSporkDataForChain:self.chainPeerManager.chain];
         [[AxeSync sharedSyncController] wipeMasternodeDataForChain:self.chainPeerManager.chain];
         [[AxeSync sharedSyncController] wipeGovernanceDataForChain:self.chainPeerManager.chain];
-        [[AxeSync sharedSyncController] wipeWalletDataForChain:self.chainPeerManager.chain]; //this takes care of blockchain info as well;
+        [[AxeSync sharedSyncController] wipeWalletDataForChain:self.chainPeerManager.chain forceReauthentication:YES]; //this takes care of blockchain info as well;
     }]];
     
     [wipeDataAlertController addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
@@ -370,12 +396,21 @@
 }
 
 -(void)updateBalance {
-    self.axeAmountLabel.text = [[DSPriceManager sharedInstance] stringForAxeAmount:self.chainPeerManager.chain.balance];
-    self.transactionCountLabel.text = [NSString stringWithFormat:@"%lu",[self.chain.allTransactions count]];
+    self.transactionCountBalanceLabel.text = [NSString stringWithFormat:@"%lu / %@",[self.chain.allTransactions count],[[DSPriceManager sharedInstance] stringForAxeAmount:self.chainPeerManager.chain.balance]];
 }
 
 -(void)updateBlockHeight {
     self.lastBlockHeightLabel.text = [NSString stringWithFormat:@"%d",self.chain.lastBlockHeight];
+}
+
+-(void)updatePeerCount {
+    uint64_t peerCount = self.chainPeerManager.peerCount;
+    self.peerCountLabel.text = [NSString stringWithFormat:@"%llu",peerCount];
+}
+
+-(void)updateConnectedPeerCount {
+    uint64_t connectedPeerCount = self.chainPeerManager.connectedPeerCount;
+    self.connectedPeerCountLabel.text = [NSString stringWithFormat:@"%llu",connectedPeerCount];
 }
 
 -(void)updateSporks {
@@ -387,13 +422,9 @@
 }
 
 -(void)updateMasternodeList {
-    if (self.chainPeerManager.chain.protocolVersion < 70211) {
-        self.masternodeBroadcastsCountLabel.text = [NSString stringWithFormat:@"%lu",(unsigned long)[self.chainPeerManager.masternodeManager masternodeBroadcastsCount]];
-    } else {
         self.masternodeCountLabel.text = [NSString stringWithFormat:@"%lu",(unsigned long)[self.chainPeerManager.masternodeManager simplifiedMasternodeEntryCount]];
         self.masternodeBroadcastsCountLabel.text = [NSString stringWithFormat:@"%lu",(unsigned long)[self.chainPeerManager.masternodeManager simplifiedMasternodeEntryCount]];
         self.verifiedMasternodeCountLabel.text = [NSString stringWithFormat:@"%lu",(unsigned long)[self.chainPeerManager.masternodeManager simplifiedMasternodeEntryCount]];
-    }
 }
 
 -(void)updateWalletCount {
@@ -410,6 +441,10 @@
 
 -(void)updateReceivedGovernanceVoteCount {
     self.receivedVotesCountLabel.text = [NSString stringWithFormat:@"%lu / %lu",(unsigned long)[self.chainPeerManager.governanceSyncManager governanceVotesCount],self.chainPeerManager.governanceSyncManager.totalGovernanceVotesCount];
+}
+
+-(void)updateBlockchainUsersCount {
+    self.blockchainUsersCountLabel.text = [NSString stringWithFormat:@"%u",self.chainPeerManager.chain.blockchainUsersCount];
 }
 
 -(void)updateReceivedGovernanceProposalCount {
@@ -439,6 +474,15 @@
     } else if ([segue.identifier isEqualToString:@"TransactionsViewSegue"]) {
         DSTransactionsViewController * transactionsViewController = (DSTransactionsViewController*)segue.destinationViewController;
         transactionsViewController.chainPeerManager = self.chainPeerManager;
+    } else if ([segue.identifier isEqualToString:@"BlockchainUsersSegue"]) {
+        DSBlockchainUsersViewController * blockchainUsersViewController = (DSBlockchainUsersViewController*)segue.destinationViewController;
+        blockchainUsersViewController.chainPeerManager = self.chainPeerManager;
+    } else if ([segue.identifier isEqualToString:@"ShowPeersSegue"]) {
+        DSPeersViewController * peersViewController = (DSPeersViewController*)segue.destinationViewController;
+        peersViewController.chainPeerManager = self.chainPeerManager;
+    } else if ([segue.identifier isEqualToString:@"Layer2Segue"]) {
+        DSLayer2ViewController * layer2ViewController = (DSLayer2ViewController*)segue.destinationViewController;
+        layer2ViewController.chainPeerManager = self.chainPeerManager;
     }
 }
 

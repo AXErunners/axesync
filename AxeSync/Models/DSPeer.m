@@ -2,8 +2,9 @@
 //  DSPeer.m
 //  AxeSync
 //
-//  Created by Aaron Voisine on 10/9/13.
+//  Created by Aaron Voisine for BreadWallet on 10/9/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
+//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -34,10 +35,8 @@
 #import "NSData+Bitcoin.h"
 #import "NSData+Axe.h"
 #import "Reachability.h"
-#import "DSMasternodeBroadcast.h"
 #import "DSGovernanceObject.h"
 #import <arpa/inet.h>
-#import "DSMasternodePing.h"
 #import "DSBloomFilter.h"
 #import "DSGovernanceVote.h"
 #import "DSChainPeerManager.h"
@@ -46,6 +45,7 @@
 #import "DSTransactionHashEntity+CoreDataClass.h"
 #import "NSManagedObject+Sugar.h"
 #import "DSChainEntity+CoreDataClass.h"
+#import "NSDate+Utils.h"
 
 #define PEER_LOGGING 1
 
@@ -53,9 +53,9 @@
 #define NSLog(...)
 #endif
 
-#define MESSAGE_LOGGING 1
+#define MESSAGE_LOGGING 0
 
-#define HEADER_LENGTH      24
+#define HEADER_LENGTH      24 
 #define MAX_MSG_LENGTH     0x02000000
 #define MAX_GETDATA_HASHES 50000
 #define ENABLED_SERVICES   0     // we don't provide full blocks to remote nodes
@@ -184,7 +184,7 @@
                 [[NSNotificationCenter defaultCenter] addObserverForName:kReachabilityChangedNotification object:nil
                                                                    queue:nil usingBlock:^(NSNotification *note) {
                                                                        if (self.reachabilityObserver && self.reachability.currentReachabilityStatus != NotReachable) {
-                                                                           _status = DSPeerStatus_Disconnected;
+                                                                           self->_status = DSPeerStatus_Disconnected;
                                                                            [self connect];
                                                                        }
                                                                    }];
@@ -246,7 +246,7 @@
         // after the reachablity check, the radios should be warmed up and we can set a short socket connect timeout
         [self performSelector:@selector(disconnectWithError:)
                    withObject:[NSError errorWithDomain:@"AxeWallet" code:BITCOIN_TIMEOUT_CODE
-                                              userInfo:@{NSLocalizedDescriptionKey:NSLocalizedString(@"connect timeout", nil)}]
+                                              userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"connect timeout", nil)}]
                    afterDelay:CONNECT_TIMEOUT];
         
         [self.inputStream open];
@@ -263,7 +263,7 @@
 
 - (void)disconnectWithError:(NSError *)error
 {
-    NSLog(@"Disconnected with error %@",error);
+    NSLog(@"Disconnected from peer %@ with error %@",self.host,error);
     [NSObject cancelPreviousPerformRequestsWithTarget:self]; // cancel connect timeout
     
     if (_status == DSPeerStatus_Disconnected) return;
@@ -317,7 +317,7 @@
     _status = DSPeerStatus_Connected;
     
     dispatch_async(self.delegateQueue, ^{
-        if (_status == DSPeerStatus_Connected) [self.delegate peerConnected:self];
+        if (self->_status == DSPeerStatus_Connected) [self.delegate peerConnected:self];
     });
 }
 
@@ -337,7 +337,9 @@
     
     CFRunLoopPerformBlock([self.runLoop getCFRunLoop], kCFRunLoopCommonModes, ^{
 #if MESSAGE_LOGGING
-        NSLog(@"%@:%u sending %@", self.host, self.port, type);
+        if (![type isEqualToString:@"getdata"]) { //we log this somewhere else for better accuracy of what data is being got
+            NSLog(@"%@:%u sending %@", self.host, self.port, type);
+        }
 #endif
         
         [self.outputBuffer appendMessage:message type:type forChain:self.chain];
@@ -359,7 +361,7 @@
     
     [msg appendUInt32:self.chain.protocolVersion]; // version
     [msg appendUInt64:ENABLED_SERVICES]; // services
-    [msg appendUInt64:[NSDate timeIntervalSinceReferenceDate] + NSTimeIntervalSince1970]; // timestamp
+    [msg appendUInt64:[NSDate timeIntervalSince1970]]; // timestamp
     [msg appendUInt64:self.services]; // services of remote peer
     [msg appendBytes:&_address length:sizeof(_address)]; // IPv6 address of remote peer
     [msg appendBytes:&port length:sizeof(port)]; // port of remote peer
@@ -375,7 +377,7 @@
     }
     [msg appendUInt32:0]; // last block received
     [msg appendUInt8:0]; // relay transactions (no for SPV bloom filter mode)
-    self.pingStartTime = [NSDate timeIntervalSinceReferenceDate];
+    self.pingStartTime = [NSDate timeIntervalSince1970];
     [self sendMessage:msg type:MSG_VERSION];
 }
 
@@ -389,6 +391,7 @@
 - (void)sendFilterloadMessage:(NSData *)filter
 {
     self.sentFilter = YES;
+    NSLog(@"Sending filter with fingerprint %@ to node %@",[NSData dataWithUInt256:filter.SHA256].shortHexString,self.host);
     [self sendMessage:filter type:MSG_FILTERLOAD];
 }
 
@@ -410,7 +413,7 @@
     if (completion) {
         if (self.mempoolCompletion) {
             dispatch_async(self.delegateQueue, ^{
-                if (_status == DSPeerStatus_Connected) completion(NO);
+                if (self->_status == DSPeerStatus_Connected) completion(NO);
             });
         }
         else {
@@ -475,7 +478,7 @@
     }
     
     [msg appendBytes:&hashStop length:sizeof(hashStop)];
-    if (self.relayStartTime == 0) self.relayStartTime = [NSDate timeIntervalSinceReferenceDate];
+    if (self.relayStartTime == 0) self.relayStartTime = [NSDate timeIntervalSince1970];
     [self sendMessage:msg type:MSG_GETHEADERS];
 }
 
@@ -561,29 +564,9 @@
     }
     
     self.sentGetdataTxBlocks = YES;
-    [self sendMessage:msg type:MSG_GETDATA];
-}
-
-- (void)sendGetdataMessageWithMasternodeBroadcastHashes:(NSArray<NSData*> *)masternodeBroadcastHashes
-{
-    if (masternodeBroadcastHashes.count > MAX_GETDATA_HASHES) { // limit total hash count to MAX_GETDATA_HASHES
-        NSLog(@"%@:%u couldn't send masternode getdata, %u is too many items, max is %u", self.host, self.port,
-              (int)masternodeBroadcastHashes.count, MAX_GETDATA_HASHES);
-        return;
-    }
-    else if (masternodeBroadcastHashes.count == 0) return;
-    
-    NSMutableData *msg = [NSMutableData data];
-    
-    [msg appendVarInt:masternodeBroadcastHashes.count];
-    
-    for (NSData *dataHash in masternodeBroadcastHashes) {
-        [msg appendUInt32:DSInvType_MasternodeBroadcast];
-        
-        [msg appendBytes:dataHash.bytes length:sizeof(UInt256)];
-    }
-    
-    self.sentGetdataMasternode = YES;
+#if MESSAGE_LOGGING
+        NSLog(@"%@:%u sending getdata (transactions and blocks)", self.host, self.port);
+#endif
     [self sendMessage:msg type:MSG_GETDATA];
 }
 
@@ -615,6 +598,9 @@
     }
     
     self.sentGetdataGovernance = YES;
+#if MESSAGE_LOGGING
+    NSLog(@"%@:%u sending getdata (governance objects)", self.host, self.port);
+#endif
     [self sendMessage:msg type:MSG_GETDATA];
 }
 
@@ -637,6 +623,9 @@
     }
     
     self.sentGetdataGovernanceVotes = YES;
+#if MESSAGE_LOGGING
+    NSLog(@"%@:%u sending getdata (governance votes)", self.host, self.port);
+#endif
     [self sendMessage:msg type:MSG_GETDATA];
 }
 
@@ -655,7 +644,7 @@
         if (! self.pongHandlers) self.pongHandlers = [NSMutableArray array];
         [self.pongHandlers addObject:(pongHandler) ? [pongHandler copy] : [^(BOOL success) {} copy]];
         [msg appendUInt64:self.localNonce];
-        self.pingStartTime = [NSDate timeIntervalSinceReferenceDate];
+        self.pingStartTime = [NSDate timeIntervalSince1970];
         [self sendMessage:msg type:MSG_PING];
     });
 }
@@ -815,7 +804,7 @@
     
     _version = [message UInt32AtOffset:0];
     _services = [message UInt64AtOffset:4];
-    _timestamp = [message UInt64AtOffset:12] - NSTimeIntervalSince1970;
+    _timestamp = [message UInt64AtOffset:12];
     _useragent = [message stringAtOffset:80 length:&l];
     
     if (message.length < 80 + l.unsignedIntegerValue + sizeof(uint32_t)) {
@@ -842,7 +831,7 @@
         return;
     }
     
-    _pingTime = [NSDate timeIntervalSinceReferenceDate] - self.pingStartTime; // use verack time as initial ping time
+    _pingTime = [NSDate timeIntervalSince1970] - self.pingStartTime; // use verack time as initial ping time
     self.pingStartTime = 0;
 #if MESSAGE_LOGGING
     NSLog(@"%@:%u got verack in %fs", self.host, self.port, self.pingTime);
@@ -864,7 +853,7 @@
     }
     else if (! self.sentGetaddr) return; // simple anti-tarpitting tactic, don't accept unsolicited addresses
     
-    NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
+    NSTimeInterval now = [NSDate timeIntervalSince1970];
     NSNumber * l = nil;
     NSUInteger count = (NSUInteger)[message varIntAtOffset:0 length:&l];
     NSMutableArray *peers = [NSMutableArray array];
@@ -881,7 +870,7 @@
     else NSLog(@"%@:%u got addr with %u addresses", self.host, self.port, (int)count);
     
     for (NSUInteger off = l.unsignedIntegerValue; off < l.unsignedIntegerValue + 30*count; off += 30) {
-        NSTimeInterval timestamp = [message UInt32AtOffset:off] - NSTimeIntervalSince1970;
+        NSTimeInterval timestamp = [message UInt32AtOffset:off];
         uint64_t services = [message UInt64AtOffset:off + sizeof(uint32_t)];
         UInt128 address = *(UInt128 *)((const uint8_t *)message.bytes + off + sizeof(uint32_t) + sizeof(uint64_t));
         uint16_t port = CFSwapInt16BigToHost(*(const uint16_t *)((const uint8_t *)message.bytes + off +
@@ -900,7 +889,7 @@
     }
     
     dispatch_async(self.delegateQueue, ^{
-        if (_status == DSPeerStatus_Connected) [self.delegate peer:self relayedPeers:peers];
+        if (self->_status == DSPeerStatus_Connected) [self.delegate peer:self relayedPeers:peers];
     });
 }
 
@@ -949,8 +938,6 @@
     NSMutableSet *sporkHashes = [NSMutableSet set];
     NSMutableSet *governanceObjectHashes = [NSMutableSet set];
     NSMutableSet *governanceObjectVoteHashes = [NSMutableSet set];
-    NSMutableSet *masternodeVerifications = [NSMutableSet set]; //mnv messages
-    NSMutableSet *masternodeBroadcastHashes = [NSMutableSet set]; //mnb messages
     
     if (l.unsignedIntegerValue == 0 || message.length < l.unsignedIntegerValue + count*36) {
         [self error:@"malformed inv message, length is %u, should be %u for %u items", (int)message.length,
@@ -967,17 +954,27 @@
         NSLog(@"%@:%u got inv with %u items (first item %@)", self.host, self.port, (int)count,[self nameOfInvMessage:[message UInt32AtOffset:l.unsignedIntegerValue]]);
     }
     
+    BOOL onlyPrivateSendTransactions = NO;
+    
     for (NSUInteger off = l.unsignedIntegerValue; off < l.unsignedIntegerValue + 36*count; off += 36) {
         DSInvType type = [message UInt32AtOffset:off];
         UInt256 hash = [message hashAtOffset:off + sizeof(uint32_t)];
         
         if (uint256_is_zero(hash)) continue;
         
+        if (off == l.unsignedIntegerValue && type == DSInvType_DSTx) {
+            onlyPrivateSendTransactions = YES;
+        }
+        
+        if (type != DSInvType_DSTx) {
+            onlyPrivateSendTransactions = NO;
+        }
+        
         switch (type) {
             case DSInvType_Tx:
-            case DSInvType_DSTx:
             case DSInvType_TxLockRequest:
                 [txHashes addObject:uint256_obj(hash)]; break;
+            case DSInvType_DSTx: break;
             case DSInvType_TxLockVote: break;
             case DSInvType_Block: [blockHashes addObject:uint256_obj(hash)]; break;
             case DSInvType_Merkleblock: [blockHashes addObject:uint256_obj(hash)]; break;
@@ -986,8 +983,8 @@
             case DSInvType_GovernanceObjectVote: [governanceObjectVoteHashes addObject:[NSData dataWithUInt256:hash]]; break;
             case DSInvType_MasternodePing: break;//[masternodePingHashes addObject:uint256_obj(hash)]; break;
             case DSInvType_MasternodePaymentVote: break;
-            case DSInvType_MasternodeVerify: [masternodeVerifications addObject:[NSData dataWithUInt256:hash]]; break;
-            case DSInvType_MasternodeBroadcast: [masternodeBroadcastHashes addObject:[NSData dataWithUInt256:hash]]; break;
+            case DSInvType_MasternodeVerify: break;
+            case DSInvType_MasternodeBroadcast: break;
             default:
             {
                 NSAssert(FALSE, @"inventory type not dealt with");
@@ -996,8 +993,8 @@
         }
     }
     
-    if ([self.chain syncsBlockchain] && !self.sentFilter && ! self.sentMempool && ! self.sentGetblocks) {
-        if (txHashes.count > 0) [self error:@"got inv message before loading a filter"];
+    if ([self.chain syncsBlockchain] && !self.sentFilter && ! self.sentMempool && ! self.sentGetblocks && (txHashes.count > 0) && !onlyPrivateSendTransactions) {
+        [self error:@"got tx inv message before loading a filter"];
         return;
     }
     else if (txHashes.count > 10000) { // this was happening on testnet, some sort of DOS/spam attack?
@@ -1067,10 +1064,6 @@
     if (governanceObjectVoteHashes.count > 0) {
         [self.delegate peer:self hasGovernanceVoteHashes:governanceObjectVoteHashes];
     }
-    if (masternodeBroadcastHashes.count > 0) {
-        NSLog(@"requesting data on %lu broadcasts",(unsigned long)masternodeBroadcastHashes.count);
-        [self.delegate peer:self hasMasternodeBroadcastHashes:masternodeBroadcastHashes];
-    }
     if (sporkHashes.count > 0) {
         [self.delegate peer:self hasSporkHashes:sporkHashes];
     }
@@ -1078,7 +1071,7 @@
 
 - (void)acceptTxMessage:(NSData *)message
 {
-    DSTransaction *tx = [DSTransaction transactionWithMessage:message onChain:self.chain];
+    DSTransaction *tx = [DSTransactionFactory transactionWithMessage:message onChain:self.chain];
     
     if (! tx) {
         [self error:@"malformed tx message: %@", message];
@@ -1089,13 +1082,14 @@
         return;
     }
     
-    NSLog(@"%@:%u got tx %@", self.host, self.port, uint256_obj(tx.txHash));
-    
     dispatch_async(self.delegateQueue, ^{
         [self.delegate peer:self relayedTransaction:tx];
     });
     
+    NSLog(@"%@:%u got tx %@", self.host, self.port, uint256_obj(tx.txHash));
+    
     if (self.currentBlock) { // we're collecting tx messages for a merkleblock
+        
         [self.currentBlockTxHashes removeObject:uint256_obj(tx.txHash)];
         
         if (self.currentBlockTxHashes.count == 0) { // we received the entire block including all matched tx
@@ -1109,6 +1103,7 @@
             });
         }
     }
+    
 }
 
 - (void)acceptHeadersMessage:(NSData *)message
@@ -1130,20 +1125,20 @@
     NSLog(@"%@:%u got %u headers", self.host, self.port, (int)count);
     
     if (_relayStartTime != 0) { // keep track of relay peformance
-        NSTimeInterval speed = count/([NSDate timeIntervalSinceReferenceDate] - self.relayStartTime);
+        NSTimeInterval speed = count/([NSDate timeIntervalSince1970] - self.relayStartTime);
         
         if (_relaySpeed == 0) _relaySpeed = speed;
         _relaySpeed = _relaySpeed*0.9 + speed*0.1;
         _relayStartTime = 0;
     }
-    for (int i = 0; i < count; i++) {
-        UInt256 locator = [message subdataWithRange:NSMakeRange(l + 81*i, 80)].x11;
-        NSLog(@"%@:%u header: %@", self.host, self.port, uint256_obj(locator));
-    }
+//    for (int i = 0; i < count; i++) {
+//        UInt256 locator = [message subdataWithRange:NSMakeRange(l + 81*i, 80)].x11;
+//        NSLog(@"%@:%u header: %@", self.host, self.port, uint256_obj(locator));
+//    }
     // To improve chain download performance, if this message contains 2000 headers then request the next 2000 headers
     // immediately, and switch to requesting blocks when we receive a header newer than earliestKeyTime
     // Devnets can run slower than usual
-    NSTimeInterval t = [message UInt32AtOffset:l + 81*(count - 1) + 68] - NSTimeIntervalSince1970;
+    NSTimeInterval t = [message UInt32AtOffset:l + 81*(count - 1) + 68];
     if (count >= 2000 || t >= self.earliestKeyTime - (2*HOUR_TIME_INTERVAL + WEEK_TIME_INTERVAL)/4 || [self.chain isDevnetAny]) {
         UInt256 firstX11 = [message subdataWithRange:NSMakeRange(l, 80)].x11;
         UInt256 lastX11 = [message subdataWithRange:NSMakeRange(l + 81*(count - 1), 80)].x11;
@@ -1151,11 +1146,11 @@
         NSValue *lastHash = uint256_obj(lastX11);
         
         if (t >= self.earliestKeyTime - (2*HOUR_TIME_INTERVAL + WEEK_TIME_INTERVAL)/4) { // request blocks for the remainder of the chain
-            t = [message UInt32AtOffset:l + 81 + 68] - NSTimeIntervalSince1970;
+            t = [message UInt32AtOffset:l + 81 + 68];
             
             for (off = l; t > 0 && t < self.earliestKeyTime - (2*HOUR_TIME_INTERVAL + WEEK_TIME_INTERVAL)/4;) {
                 off += 81;
-                t = [message UInt32AtOffset:off + 81 + 68] - NSTimeIntervalSince1970;
+                t = [message UInt32AtOffset:off + 81 + 68];
             }
             
             lastHash = uint256_obj([message subdataWithRange:NSMakeRange(off, 80)].x11);
@@ -1335,7 +1330,7 @@
     }
     
     if (self.pingStartTime > 1) {
-        NSTimeInterval pingTime = [NSDate timeIntervalSinceReferenceDate] - self.pingStartTime;
+        NSTimeInterval pingTime = [NSDate timeIntervalSince1970] - self.pingStartTime;
         
         // 50% low pass filter on current ping time
         _pingTime = self.pingTime*0.5 + pingTime*0.5;
@@ -1347,7 +1342,7 @@
 #endif
     
     dispatch_async(self.delegateQueue, ^{
-        if (_status == DSPeerStatus_Connected && self.pongHandlers.count) {
+        if (self->_status == DSPeerStatus_Connected && self.pongHandlers.count) {
             ((void (^)(BOOL))self.pongHandlers[0])(YES);
             [self.pongHandlers removeObjectAtIndex:0];
         }
@@ -1417,11 +1412,11 @@
         return;
     }
     
-    _feePerKb = [message UInt64AtOffset:0];
-    NSLog(@"%@:%u got feefilter with rate %llu", self.host, self.port, self.feePerKb);
+    _feePerByte = ceilf((float)[message UInt64AtOffset:0]/1000.0f);
+    NSLog(@"%@:%u got feefilter with rate %llu per Byte", self.host, self.port, self.feePerByte);
     
     dispatch_async(self.delegateQueue, ^{
-        [self.delegate peer:self setFeePerKb:self.feePerKb];
+        [self.delegate peer:self setFeePerByte:self.feePerByte];
     });
 }
 
@@ -1470,15 +1465,7 @@
 
 -(void)acceptMNBMessage:(NSData *)message
 {
-    if (self.chain.protocolVersion < 70211) {
-        BOOL syncsMasternodeList = !!([[DSOptionsManager sharedInstance] syncType] & DSSyncType_MasternodeList);
-        if (syncsMasternodeList) {
-            DSMasternodeBroadcast * broadcast = [DSMasternodeBroadcast masternodeBroadcastFromMessage:message onChain:self.chain];
-            if (broadcast) {
-                [self.delegate peer:self relayedMasternodeBroadcast:broadcast];
-            }
-        }
-    }
+    //deprecated since version 70211
 }
 
 -(void)acceptMNLISTDIFFMessage:(NSData*)message
@@ -1551,7 +1538,7 @@
 
 - (void)acceptDarksendTransactionMessage:(NSData *)message
 {
-    //    BRTransaction *tx = [BRTransaction transactionWithMessage:message];
+    //    DSTransaction *tx = [DSTransaction transactionWithMessage:message];
     //
     //    if (! tx) {
     //        [self error:@"malformed tx message: %@", message];
@@ -1624,14 +1611,14 @@
         case NSStreamEventOpenCompleted:
             NSLog(@"%@:%u %@ stream connected in %fs", self.host, self.port,
                   (aStream == self.inputStream) ? @"input" : (aStream == self.outputStream ? @"output" : @"unknown"),
-                  [NSDate timeIntervalSinceReferenceDate] - self.pingStartTime);
+                  [NSDate timeIntervalSince1970] - self.pingStartTime);
             
             if (aStream == self.outputStream) {
-                self.pingStartTime = [NSDate timeIntervalSinceReferenceDate]; // don't count connect time in ping time
+                self.pingStartTime = [NSDate timeIntervalSince1970]; // don't count connect time in ping time
                 [NSObject cancelPreviousPerformRequestsWithTarget:self]; // cancel pending socket connect timeout
                 [self performSelector:@selector(disconnectWithError:)
                            withObject:[NSError errorWithDomain:@"AxeWallet" code:BITCOIN_TIMEOUT_CODE
-                                                      userInfo:@{NSLocalizedDescriptionKey:NSLocalizedString(@"connect timeout", nil)}]
+                                                      userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"connect timeout", nil)}]
                            afterDelay:CONNECT_TIMEOUT];
             }
             

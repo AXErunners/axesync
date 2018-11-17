@@ -2,8 +2,9 @@
 //  NSManagedObject+Sugar.m
 //  AxeSync
 //
-//  Created by Aaron Voisine on 08/22/13.
+//  Created by Aaron Voisine for BreadWallet on 08/22/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
+//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -27,6 +28,7 @@
 
 #import "NSManagedObject+Sugar.h"
 #import <objc/runtime.h>
+#import "DSTransaction.h"
 
 static const char *_contextKey = "contextKey";
 static const char *_storeURLKey = "storeURLKey";
@@ -262,11 +264,8 @@ static NSUInteger _fetchBatchSize = 100;
     
     dispatch_once(&onceToken, ^{
         NSURL *docURL = [[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject;
-        NSURL *bundleURL = [[NSBundle.mainBundle resourceURL] URLByAppendingPathComponent:@"AxeSync.bundle"];
-        NSBundle *resourceBundle = [NSBundle bundleWithURL:bundleURL];
-        NSURL *modelURL = [resourceBundle URLsForResourcesWithExtension:@"momd" subdirectory:nil].lastObject;
-        NSString *projName = modelURL.lastPathComponent.stringByDeletingPathExtension;
-        storeURL = [[docURL URLByAppendingPathComponent:projName] URLByAppendingPathExtension:@"sqlite"];
+        NSString *fileName = @"AxeSync.sqlite";
+        storeURL = [docURL URLByAppendingPathComponent:fileName];
     });
     return storeURL;
 }
@@ -278,8 +277,8 @@ static NSUInteger _fetchBatchSize = 100;
     static dispatch_once_t onceToken = 0;
     
     dispatch_once(&onceToken, ^{
-
-        NSURL *bundleURL = [[NSBundle.mainBundle resourceURL] URLByAppendingPathComponent:@"AxeSync.bundle"];
+        NSBundle *frameworkBundle = [NSBundle bundleForClass:[DSTransaction class]];
+        NSURL *bundleURL = [[frameworkBundle resourceURL] URLByAppendingPathComponent:@"AxeSync.bundle"];
         NSBundle *resourceBundle = [NSBundle bundleWithURL:bundleURL];
         NSURL *modelURL = [resourceBundle URLsForResourcesWithExtension:@"momd" subdirectory:nil].lastObject;
         

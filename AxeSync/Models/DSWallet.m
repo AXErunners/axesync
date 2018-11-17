@@ -35,13 +35,17 @@
 #import "NSData+Bitcoin.h"
 #import "DSEnvironment.h"
 #import "DSChainManager.h"
-
+#import "DSBlockchainUser.h"
+#import "DSBlockchainUserRegistrationTransaction.h"
+#import "DSBlockchainUserResetTransaction.h"
+#import "NSDate+Utils.h"
 
 #define SEED_ENTROPY_LENGTH   (128/8)
 #define WALLET_CREATION_TIME_KEY   @"WALLET_CREATION_TIME_KEY"
 #define AUTH_PRIVKEY_KEY    @"authprivkey"
 #define WALLET_MNEMONIC_KEY        @"WALLET_MNEMONIC_KEY"
 #define WALLET_MASTER_PUBLIC_KEY        @"WALLET_MASTER_PUBLIC_KEY"
+#define WALLET_BLOCKCHAIN_USERS_KEY  @"WALLET_BLOCKCHAIN_USERS_KEY"
 
 @interface DSWallet()
 
@@ -49,47 +53,53 @@
 @property (nonatomic, strong) NSMutableDictionary * mAccounts;
 @property (nonatomic, copy) NSString * uniqueID;
 @property (nonatomic, assign) NSTimeInterval walletCreationTime;
+@property (nonatomic, strong) NSMutableDictionary<NSString *,NSNumber *> * mBlockchainUsers;
+@property (nonatomic, strong) SeedRequestBlock seedRequestBlock;
 
 @end
 
 @implementation DSWallet
 
-+ (DSWallet*)standardWalletWithSeedPhrase:(NSString*)seedPhrase forChain:(DSChain*)chain storeSeedPhrase:(BOOL)store {
++ (DSWallet*)standardWalletWithSeedPhrase:(NSString*)seedPhrase setCreationDate:(NSTimeInterval)creationDate forChain:(DSChain*)chain storeSeedPhrase:(BOOL)store {
     DSAccount * account = [DSAccount accountWithDerivationPaths:[chain standardDerivationPathsForAccountNumber:0]];
-    NSString * uniqueId = [self setSeedPhrase:seedPhrase withAccounts:@[account] storeOnKeychain:store]; //make sure we can create the wallet first
+    NSString * uniqueId = [self setSeedPhrase:seedPhrase createdAt:creationDate withAccounts:@[account] storeOnKeychain:store forChain:chain]; //make sure we can create the wallet first
     if (!uniqueId) return nil;
     DSWallet * wallet = [[DSWallet alloc] initWithUniqueID:uniqueId andAccount:account forChain:chain storeSeedPhrase:store];
     return wallet;
 }
 
-+ (DSWallet*)standardWalletWithRandomSeedPhraseForChain:(DSChain* )chain {
-    return [self standardWalletWithSeedPhrase:[self generateRandomSeed] forChain:chain storeSeedPhrase:YES];
++ (DSWallet*)standardWalletWithRandomSeedPhraseForChain:(DSChain*)chain storeSeedPhrase:(BOOL)store {
+    return [self standardWalletWithSeedPhrase:[self generateRandomSeed] setCreationDate:[NSDate timeIntervalSince1970] forChain:chain storeSeedPhrase:store];
 }
 
 -(instancetype)initWithChain:(DSChain*)chain {
     if (! (self = [super init])) return nil;
     self.mAccounts = [NSMutableDictionary dictionary];
     self.chain = chain;
+    self.mBlockchainUsers = [NSMutableDictionary dictionary];
     return self;
 }
 
 -(instancetype)initWithUniqueID:(NSString*)uniqueID andAccount:(DSAccount*)account forChain:(DSChain*)chain storeSeedPhrase:(BOOL)store {
     if (! (self = [self initWithChain:chain])) return nil;
     self.uniqueID = uniqueID;
+    __weak typeof(self) weakSelf = self;
+    self.seedRequestBlock = ^void(NSString *authprompt, uint64_t amount, SeedCompletionBlock seedCompletion) {
+        //this happens when we request the seed
+        [weakSelf seedWithPrompt:authprompt forAmount:amount completion:seedCompletion];
+    };
     if (store) {
-        __weak typeof(self) weakSelf = self;
-        self.seedRequestBlock = ^void(NSString *authprompt, uint64_t amount, SeedCompletionBlock seedCompletion) {
-            //this happens when we request the seed
-            [weakSelf seedWithPrompt:authprompt forAmount:amount completion:seedCompletion];
-        };
+        [chain registerWallet:self];
     }
     if (account) [self addAccount:account]; //this must be last, as adding the account queries the wallet unique ID
+    NSError * error = nil;
+    self.mBlockchainUsers = [getKeychainDict(self.walletBlockchainUsersKey, &error) mutableCopy];
+    if (error) return nil;
     return self;
 }
 
 -(instancetype)initWithUniqueID:(NSString*)uniqueID forChain:(DSChain*)chain {
-    if (! (self = [self initWithUniqueID:uniqueID andAccount:[DSAccount accountWithDerivationPaths:[chain standardDerivationPathsForAccountNumber:0]] forChain:chain storeSeedPhrase:YES])) return nil;
-
+    if (! (self = [self initWithUniqueID:uniqueID andAccount:[DSAccount accountWithDerivationPaths:[chain standardDerivationPathsForAccountNumber:0]] forChain:chain storeSeedPhrase:NO])) return nil;
     return self;
 }
 
@@ -106,6 +116,10 @@
     return wallet;
 }
 
+-(NSString*)walletBlockchainUsersKey {
+    return [NSString stringWithFormat:@"%@_%@",WALLET_BLOCKCHAIN_USERS_KEY,[self uniqueID]];
+}
+
 
 -(NSArray *)accounts {
     return [self.mAccounts allValues];
@@ -118,6 +132,21 @@
 
 - (DSAccount* _Nullable)accountWithNumber:(NSUInteger)accountNumber {
     return [self.mAccounts objectForKey:@(accountNumber)];
+}
+
+-(void)copyForChain:(DSChain*)chain completion:(void (^ _Nonnull)(DSWallet * copiedWallet))completion {
+    if ([self.chain isEqual:chain]) {
+        completion(self);
+        return;
+    }
+    [self seedPhraseAfterAuthentication:^(NSString * _Nullable seedPhrase) {
+        if (!seedPhrase) {
+            completion(nil);
+            return;
+        }
+        DSWallet * wallet = [self.class standardWalletWithSeedPhrase:seedPhrase setCreationDate:self.walletCreationTime forChain:chain storeSeedPhrase:YES];
+        completion(wallet);
+    }];
 }
 
 // MARK: - Unique Identifiers
@@ -154,7 +183,7 @@
 
 - (void)seedPhraseAfterAuthentication:(void (^)(NSString * _Nullable))completion
 {
-    [self seedPhraseWithPrompt:nil completion:completion];
+    [self seedPhraseAfterAuthenticationWithPrompt:nil completion:completion];
 }
 
 -(BOOL)hasSeedPhrase {
@@ -172,7 +201,7 @@
     return ([DSEnvironment sharedInstance].watchOnly) ? 0 : BIP39_CREATION_TIME;
 }
 
-+ (NSString*)setSeedPhrase:(NSString *)seedPhrase withAccounts:(NSArray*)accounts storeOnKeychain:(BOOL)storeOnKeychain
++ (NSString*)setSeedPhrase:(NSString *)seedPhrase createdAt:(NSTimeInterval)createdAt withAccounts:(NSArray*)accounts storeOnKeychain:(BOOL)storeOnKeychain forChain:(DSChain*)chain
 {
     if (!seedPhrase) return nil;
     NSString * uniqueID = nil;
@@ -187,9 +216,11 @@
         HMAC(&I, SHA512, sizeof(UInt512), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), derivedKeyData.bytes, derivedKeyData.length);
         
         NSData * publicKey = [DSKey keyWithSecret:*(UInt256 *)&I compressed:YES].publicKey;
-        uniqueID = [NSData dataWithUInt256:[publicKey SHA256]].shortHexString; //one way injective function
+        NSMutableData * uniqueIDData = [[NSData dataWithUInt256:chain.genesisHash] mutableCopy];
+        [uniqueIDData appendData:publicKey];
+        uniqueID = [NSData dataWithUInt256:[uniqueIDData SHA256]].shortHexString; //one way injective function
         if (storeOnKeychain) {
-            if (! setKeychainString(seedPhrase, [DSWallet mnemonicUniqueIDForUniqueID:uniqueID], YES) || ! setKeychainData([NSData dataWithBytes:&time length:sizeof(time)], [DSWallet creationTimeUniqueIDForUniqueID:uniqueID], NO)) {
+            if (! setKeychainString(seedPhrase, [DSWallet mnemonicUniqueIDForUniqueID:uniqueID], YES) || ! setKeychainData([NSData dataWithBytes:&createdAt length:sizeof(createdAt)], [DSWallet creationTimeUniqueIDForUniqueID:uniqueID], NO)) {
                 NSAssert(FALSE, @"error setting wallet seed");
                 
                 return nil;
@@ -206,17 +237,17 @@
 }
 
 // authenticates user and returns seed
-- (void)seedWithPrompt:(NSString *)authprompt forAmount:(uint64_t)amount completion:(void (^)(NSData * seed))completion
+- (void)seedWithPrompt:(NSString *)authprompt forAmount:(uint64_t)amount completion:(_Nullable SeedCompletionBlock)completion
 {
     @autoreleasepool {
-        BOOL touchid = (self.totalSent + amount < getKeychainInt(SPEND_LIMIT_KEY, nil)) ? YES : NO;
+        BOOL touchid = amount?((self.totalSent + amount < getKeychainInt(SPEND_LIMIT_KEY, nil)) ? YES : NO):NO;
         
         [[DSAuthenticationManager sharedInstance] authenticateWithPrompt:authprompt andTouchId:touchid alertIfLockout:YES completion:^(BOOL authenticated,BOOL cancelled) {
             if (!authenticated) {
                 completion(nil);
             } else {
-                // BUG: if user manually chooses to enter pin, the touch id spending limit is reset, but the tx being authorized
-                // still counts towards the next touch id spending limit
+                // BUG: if user manually chooses to enter pin, the Touch ID spending limit is reset, but the tx being authorized
+                // still counts towards the next Touch ID spending limit
                 if (! touchid) setKeychainInt(self.totalSent + amount + [DSPriceManager sharedInstance].spendingLimit, SPEND_LIMIT_KEY, NO);
                 completion([[DSBIP39Mnemonic sharedInstance] deriveKeyFromPhrase:getKeychainString(self.mnemonicUniqueID, nil) withPassphrase:nil]);
             }
@@ -235,11 +266,11 @@
 }
 
 // authenticates user and returns seedPhrase
-- (void)seedPhraseWithPrompt:(NSString *)authprompt completion:(void (^)(NSString * seedPhrase))completion
+- (void)seedPhraseAfterAuthenticationWithPrompt:(NSString *)authprompt completion:(void (^)(NSString * seedPhrase))completion
 {
     @autoreleasepool {
         [[DSAuthenticationManager sharedInstance] authenticateWithPrompt:authprompt andTouchId:NO alertIfLockout:YES completion:^(BOOL authenticated,BOOL cancelled) {
-            NSString * rSeedPhrase = authenticated?getKeychainString(self.uniqueID, nil):nil;
+            NSString * rSeedPhrase = authenticated?getKeychainString(self.mnemonicUniqueID, nil):nil;
             completion(rSeedPhrase);
         }];
     }
@@ -418,6 +449,106 @@
     for (DSAccount * account in self.accounts) {
         [account wipeBlockchainInfo];
     }
+}
+
+// MARK: - Blockchain Users
+
+-(NSArray*)blockchainUserAddresses {
+    DSDerivationPath * derivationPath = [DSDerivationPath blockchainUsersDerivationPathForWallet:self];
+    if (!derivationPath.hasExtendedPublicKey) return @[];
+    return [derivationPath addressesToIndex:[self unusedBlockchainUserIndex] + 10];
+}
+
+- (DSBlockchainUserRegistrationTransaction *)registrationTransactionForPublicKeyHash:(UInt160)publicKeyHash {
+    for (DSAccount * account in self.accounts) {
+        DSBlockchainUserRegistrationTransaction * transaction = [account registrationTransactionForPublicKeyHash:publicKeyHash];
+        if (transaction) return transaction;
+    }
+    return nil;
+}
+
+- (UInt256)lastBlockchainUserTransactionHashForRegistrationTransactionHash:(UInt256)blockchainUserRegistrationTransactionHash {
+    UInt256 lastSubscriptionTransactionHash = blockchainUserRegistrationTransactionHash;
+    UInt256 startLastSubscriptionTransactionHash;
+    do {
+        startLastSubscriptionTransactionHash = lastSubscriptionTransactionHash;
+        for (DSAccount * account in self.accounts) {
+            lastSubscriptionTransactionHash = [account lastSubscriptionTransactionHashForRegistrationTransactionHash:lastSubscriptionTransactionHash];
+        }
+    }
+    while (!uint256_eq(startLastSubscriptionTransactionHash, lastSubscriptionTransactionHash));
+    return lastSubscriptionTransactionHash;
+}
+
+- (DSBlockchainUserResetTransaction *)resetTransactionForPublicKeyHash:(UInt160)publicKeyHash {
+    for (DSAccount * account in self.accounts) {
+        DSBlockchainUserResetTransaction * transaction = [account resetTransactionForPublicKeyHash:publicKeyHash];
+        if (transaction) return transaction;
+    }
+    return nil;
+}
+
+-(DSBlockchainUserRegistrationTransaction *)registrationTransactionForIndex:(uint32_t)index {
+    DSDerivationPath * derivationPath = [DSDerivationPath blockchainUsersDerivationPathForWallet:self];
+    UInt160 hash160 = [derivationPath publicKeyAtIndex:index].hash160;
+    return [self registrationTransactionForPublicKeyHash:hash160];
+}
+
+-(void)unregisterBlockchainUser:(DSBlockchainUser *)blockchainUser {
+    NSAssert(blockchainUser.wallet == self, @"the blockchainUser you are trying to remove is not in this wallet");
+    [self.mBlockchainUsers removeObjectForKey:blockchainUser.username];
+    NSError * error = nil;
+    NSMutableDictionary * keyChainDictionary = [getKeychainDict(self.walletBlockchainUsersKey, &error) mutableCopy];
+    if (!keyChainDictionary) keyChainDictionary = [NSMutableDictionary dictionary];
+    [keyChainDictionary removeObjectForKey:blockchainUser.username];
+    setKeychainDict(keyChainDictionary, self.walletBlockchainUsersKey, NO);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainBlockchainUsersDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:self.chain}];
+    });
+}
+-(void)addBlockchainUser:(DSBlockchainUser *)blockchainUser {
+    [self.mBlockchainUsers setObject:@(blockchainUser.index) forKey:blockchainUser.username];
+}
+
+- (void)registerBlockchainUser:(DSBlockchainUser *)blockchainUser
+{
+    if ([self.mBlockchainUsers objectForKey:blockchainUser.username] == nil) {
+        [self addBlockchainUser:blockchainUser];
+    }
+    NSError * error = nil;
+    NSMutableDictionary * keyChainDictionary = [getKeychainDict(self.walletBlockchainUsersKey, &error) mutableCopy];
+    if (!keyChainDictionary) keyChainDictionary = [NSMutableDictionary dictionary];
+    [keyChainDictionary setObject:@(blockchainUser.index) forKey:blockchainUser.username];
+    setKeychainDict(keyChainDictionary, self.walletBlockchainUsersKey, NO);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainBlockchainUsersDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:self.chain}];
+    });
+}
+
+-(NSArray*)blockchainUsers {
+    NSError * error = nil;
+    NSMutableDictionary * keyChainDictionary = [getKeychainDict(self.walletBlockchainUsersKey, &error) mutableCopy];
+    NSMutableArray * rArray = [NSMutableArray array];
+    if (keyChainDictionary) {
+        for (NSString * username in keyChainDictionary) {
+            uint32_t index = [keyChainDictionary[username] unsignedIntValue];
+            UInt256 registrationTransactionHash = [self registrationTransactionForIndex:index].txHash;
+            UInt256 lastBlockchainUserTransactionHash = [self lastBlockchainUserTransactionHashForRegistrationTransactionHash:registrationTransactionHash];
+            [rArray addObject:[[DSBlockchainUser alloc] initWithUsername:username atIndex:[keyChainDictionary[username] unsignedIntValue] inWallet:self createdWithTransactionHash:registrationTransactionHash lastBlockchainUserTransactionHash:lastBlockchainUserTransactionHash]];
+        }
+    }
+    return [rArray copy];
+}
+
+-(uint32_t)unusedBlockchainUserIndex {
+    NSArray * indexes = [_mBlockchainUsers allValues];
+    NSNumber * max = [indexes valueForKeyPath:@"@max.intValue"];
+    return max != nil ? ([max unsignedIntValue] + 1) : 0;
+}
+
+-(DSBlockchainUser*)createBlockchainUserForUsername:(NSString*)username {
+    DSBlockchainUser * blockchainUser = [[DSBlockchainUser alloc] initWithUsername:username atIndex:[self unusedBlockchainUserIndex] inWallet:self];
+    return blockchainUser;
 }
 
 @end

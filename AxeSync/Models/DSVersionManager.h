@@ -7,6 +7,7 @@
 
 #import <Foundation/Foundation.h>
 
+@class DSWallet;
 @class DSChain;
 
 typedef void (^UpgradeCompletionBlock)(BOOL success, BOOL neededUpgrade,BOOL authenticated,BOOL cancelled); //success is true is neededUpgrade is true and we upgraded, or we didn't need upgrade
@@ -15,7 +16,9 @@ typedef void (^UpgradeCompletionBlock)(BOOL success, BOOL neededUpgrade,BOOL aut
 
 + (instancetype _Nullable)sharedInstance;
 
--(void)upgradeExtendedKeysWithCompletion:(_Nullable UpgradeCompletionBlock)completion forChain:(DSChain*)chain;
+- (BOOL)noOldWallet;
+
+- (void)upgradeExtendedKeysForWallet:(DSWallet*)wallet chain:(DSChain *)chain withMessage:(NSString*)message withCompletion:(UpgradeCompletionBlock)completion;
 
 - (void)clearKeychainWalletData;
 

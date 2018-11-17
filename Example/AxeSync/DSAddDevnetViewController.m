@@ -20,6 +20,9 @@
 @property (nonatomic,strong) DSKeyValueTableViewCell * sporkPrivateKeyTableViewCell;
 @property (nonatomic,strong) DSKeyValueTableViewCell * protocolVersionTableViewCell;
 @property (nonatomic,strong) DSKeyValueTableViewCell * minProtocolVersionTableViewCell;
+@property (nonatomic,strong) DSKeyValueTableViewCell * dapiPortTableViewCell;
+@property (nonatomic,strong) DSKeyValueTableViewCell * axedPortTableViewCell;
+
 @property (nonatomic,strong) DSAddDevnetAddIPAddressTableViewCell * addDevnetAddIPAddressTableViewCell;
 @property (nonatomic,strong) DSAddDevnetIPAddressTableViewCell * activeAddDevnetIPAddressTableViewCell;
 
@@ -35,6 +38,8 @@
     self.sporkPrivateKeyTableViewCell = [self.tableView dequeueReusableCellWithIdentifier:@"DevnetSporkPrivateKeyCellIdentifier"];
     self.protocolVersionTableViewCell = [self.tableView dequeueReusableCellWithIdentifier:@"DevnetProtocolVersionCellIdentifier"];
     self.minProtocolVersionTableViewCell = [self.tableView dequeueReusableCellWithIdentifier:@"DevnetMinProtocolVersionCellIdentifier"];
+    self.dapiPortTableViewCell = [self.tableView dequeueReusableCellWithIdentifier:@"DapiPortCellIdentifier"];
+    self.axedPortTableViewCell = [self.tableView dequeueReusableCellWithIdentifier:@"AxedPortCellIdentifier"];
     if (!self.chain) {
         self.insertedIPAddresses = [NSMutableOrderedSet orderedSet];
     } else {
@@ -65,7 +70,7 @@
 -(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     switch (section) {
         case 0:
-            return 3;
+            return 5;
             break;
         case 1:
             return 2;
@@ -99,8 +104,13 @@
                     return self.protocolVersionTableViewCell;
                 case 2:
                     return self.minProtocolVersionTableViewCell;
+                case 3:
+                    return self.axedPortTableViewCell;
+                case 4:
+                    return self.dapiPortTableViewCell;
                 default:
-                    return nil;
+                    NSAssert(NO, @"Unknown cell");
+                    return [[UITableViewCell alloc] init];
             }
         }
         case 1:
@@ -110,7 +120,8 @@
                 case 1:
                     return self.sporkPrivateKeyTableViewCell;
                 default:
-                    return nil;
+                    NSAssert(NO, @"Unknown cell");
+                    return [[UITableViewCell alloc] init];
             }
         case 2:
         {    if (indexPath.row == _insertedIPAddresses.count + 1) return self.addDevnetAddIPAddressTableViewCell;
@@ -118,7 +129,8 @@
             
         }
     }
-    return nil;
+    NSAssert(NO, @"Unknown cell");
+    return [[UITableViewCell alloc] init];
 
 }
 
@@ -177,6 +189,7 @@
     self.activeAddDevnetIPAddressTableViewCell = nil;
 }
 
+
 // MARK:- Navigation
 
 -(void)showError:(NSString*)errorMessage {
@@ -189,6 +202,8 @@
     uint32_t minProtocolVersion = [self.minProtocolVersionTableViewCell.valueTextField.text intValue];
     NSString * sporkAddress = [self.sporkAddressTableViewCell.valueTextField.text isEqualToString:@""]?nil:self.sporkAddressTableViewCell.valueTextField.text;
     NSString * sporkPrivateKey = [self.sporkPrivateKeyTableViewCell.valueTextField.text isEqualToString:@""]?nil:self.sporkPrivateKeyTableViewCell.valueTextField.text;
+    uint32_t axedPort = [self.axedPortTableViewCell.valueTextField.text isEqualToString:@""]?DEVNET_STANDARD_PORT:[self.axedPortTableViewCell.valueTextField.text intValue];
+    uint32_t dapiPort = [self.dapiPortTableViewCell.valueTextField.text isEqualToString:@""]?DEVNET_DAPI_STANDARD_PORT:[self.dapiPortTableViewCell.valueTextField.text intValue];
     if (![sporkAddress isValidAxeDevnetAddress]) {
         sporkAddress = nil;
     }
@@ -196,10 +211,10 @@
         sporkPrivateKey = nil;
     }
     if (self.chain) {
-        [[DSChainManager sharedInstance] updateDevnetChain:self.chain forServiceLocations:self.insertedIPAddresses standardPort:12999 protocolVersion:protocolVersion minProtocolVersion:minProtocolVersion sporkAddress:sporkAddress sporkPrivateKey:sporkPrivateKey];
+        [[DSChainManager sharedInstance] updateDevnetChain:self.chain forServiceLocations:self.insertedIPAddresses standardPort:axedPort dapiPort:dapiPort protocolVersion:protocolVersion minProtocolVersion:minProtocolVersion sporkAddress:sporkAddress sporkPrivateKey:sporkPrivateKey];
     } else {
         NSString * identifier = self.addDevnetNameTableViewCell.valueTextField.text;
-        [[DSChainManager sharedInstance] registerDevnetChainWithIdentifier:identifier forServiceLocations:self.insertedIPAddresses standardPort:12999 protocolVersion:protocolVersion minProtocolVersion:minProtocolVersion sporkAddress:sporkAddress sporkPrivateKey:sporkPrivateKey];
+        [[DSChainManager sharedInstance] registerDevnetChainWithIdentifier:identifier forServiceLocations:self.insertedIPAddresses standardPort:axedPort dapiPort:dapiPort protocolVersion:protocolVersion minProtocolVersion:minProtocolVersion sporkAddress:sporkAddress sporkPrivateKey:sporkPrivateKey];
     }
     [self.presentingViewController dismissViewControllerAnimated:TRUE completion:nil];
 }

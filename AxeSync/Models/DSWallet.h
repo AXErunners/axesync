@@ -23,22 +23,27 @@
 //  THE SOFTWARE.
 
 #import <Foundation/Foundation.h>
+#import "DSBlockchainUser.h"
 
-#import "IntTypes.h"
+#import "BigIntTypes.h"
 
 typedef void (^SeedCompletionBlock)(NSData * _Nullable seed);
 typedef void (^SeedRequestBlock)(NSString * _Nullable authprompt, uint64_t amount, _Nullable SeedCompletionBlock seedCompletion);
 
 FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 
-#define DUFFS           100000000LL
-#define MAX_MONEY          (21000000LL*DUFFS)
+#define HAKS           100000000LL
+#define MAX_MONEY          (21000000LL*HAKS)
 
 @class DSChain,DSAccount,DSTransaction,DSDerivationPath;
 
 @interface DSWallet : NSObject
 
 @property (nonatomic, readonly) NSArray * accounts;
+
+@property (nonatomic, readonly) NSArray * blockchainUsers;
+
+@property (nonatomic, readonly) NSArray * blockchainUserAddresses;
 
 @property (nonatomic, readonly) NSString * uniqueID;
 
@@ -75,12 +80,15 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 // the total amount received by the wallet (excluding change)
 @property (nonatomic, readonly) uint64_t totalReceived;
 
-@property (nonatomic, strong) SeedRequestBlock seedRequestBlock;
+// the first unused index for blockchain users
+@property (nonatomic, readonly) uint32_t unusedBlockchainUserIndex;
+
+@property (nonatomic, readonly) SeedRequestBlock seedRequestBlock;
 
 -(void)authPrivateKey:(void (^ _Nullable)(NSString * _Nullable authKey))completion;
 
-+ (DSWallet* _Nullable)standardWalletWithSeedPhrase:(NSString* _Nonnull)seedPhrase forChain:(DSChain* _Nonnull)chain storeSeedPhrase:(BOOL)storeSeedPhrase;
-+ (DSWallet* _Nullable)standardWalletWithRandomSeedPhraseForChain:(DSChain* _Nonnull)chain;
++ (DSWallet* _Nullable)standardWalletWithSeedPhrase:(NSString* _Nonnull)seedPhrase setCreationDate:(NSTimeInterval)creationDate forChain:(DSChain* _Nonnull)chain storeSeedPhrase:(BOOL)storeSeedPhrase;
++ (DSWallet* _Nullable)standardWalletWithRandomSeedPhraseForChain:(DSChain* _Nonnull)chain storeSeedPhrase:(BOOL)store;
 
 -(instancetype)initWithUniqueID:(NSString*)uniqueID forChain:(DSChain*)chain;
 
@@ -124,6 +132,7 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 
 //returns the seed phrase after authenticating
 -(void)seedPhraseAfterAuthentication:(void (^ _Nullable)(NSString * _Nullable seedPhrase))completion;
+- (void)seedPhraseAfterAuthenticationWithPrompt:(NSString *)authprompt completion:(void (^ _Nullable)(NSString * _Nullable seedPhrase))completion;
 
 -(NSString* _Nullable)seedPhraseIfAuthenticated;
 
@@ -141,5 +150,14 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 
 //This removes all blockchain information from the wallet
 - (void)wipeBlockchainInfo;
+
+-(void)unregisterBlockchainUser:(DSBlockchainUser* _Nonnull)blockchainUser;
+-(void)addBlockchainUser:(DSBlockchainUser* _Nonnull)blockchainUser;
+-(void)registerBlockchainUser:(DSBlockchainUser* _Nonnull)blockchainUser;
+-(DSBlockchainUser* _Nonnull)createBlockchainUserForUsername:(NSString* _Nonnull)username;
+
+- (void)seedWithPrompt:(NSString * _Nonnull)authprompt forAmount:(uint64_t)amount completion:(_Nullable SeedCompletionBlock)completion;
+
+-(void)copyForChain:(DSChain* _Nonnull)chain completion:(void (^ _Nonnull)(DSWallet * _Nullable copiedWallet))completion;
 
 @end

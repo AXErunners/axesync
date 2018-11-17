@@ -2,8 +2,9 @@
 //  NSString+Axe.h
 //  AxeSync
 //
-//  Created by Aaron Voisine on 5/13/13.
+//  Created by Aaron Voisine for BreadWallet on 5/13/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
+//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -29,7 +30,7 @@
 #import <UIKit/UIKit.h>
 #import "NSString+Bitcoin.h"
 
-#define AXE_PUBKEY_ADDRESS      55
+#define AXE_PUBKEY_ADDRESS      76
 #define AXE_SCRIPT_ADDRESS      16
 #define AXE_PUBKEY_ADDRESS_TEST 140
 #define AXE_SCRIPT_ADDRESS_TEST 19

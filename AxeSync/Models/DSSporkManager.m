@@ -54,13 +54,19 @@
 -(BOOL)instantSendActive {
     DSSpork * instantSendSpork = self.sporkDictionary[@(DSSporkIdentifier_Spork2InstantSendEnabled)];
     if (!instantSendSpork) return TRUE;//assume true
-    return !!instantSendSpork.value;
+    return instantSendSpork.value <= self.chain.lastBlockHeight;
+}
+
+-(BOOL)instantSendAutoLocks {
+    DSSpork * instantSendSpork = self.sporkDictionary[@(DSSporkIdentifier_Spork16InstantSendAutoLocks)];
+    if (!instantSendSpork) return FALSE;//assume false
+    return instantSendSpork.value <= self.chain.lastBlockHeight;
 }
 
 -(BOOL)sporksUpdatedSignatures {
     DSSpork * updateSignatureSpork = self.sporkDictionary[@(DSSporkIdentifier_Spork6NewSigs)];
-    if (!updateSignatureSpork) return FALSE;//assume true
-    return !!updateSignatureSpork.value;
+    if (!updateSignatureSpork) return FALSE;//assume false
+    return updateSignatureSpork.value <= self.chain.lastBlockHeight;
 }
 
 
@@ -100,11 +106,11 @@
     [dictionary setObject:spork forKey:@"new"];
     [dictionary setObject:self.chain forKey:DSChainPeerManagerNotificationChainKey];
     if (!currentSpork || updatedSpork) {
-        @autoreleasepool {
-            [[DSSporkEntity managedObject] setAttributesFromSpork:spork]; // add new peers
-            [DSSporkEntity saveContext];
-        }
         dispatch_async(dispatch_get_main_queue(), ^{
+            @autoreleasepool {
+                [[DSSporkEntity managedObject] setAttributesFromSpork:spork]; // add new peers
+                [DSSporkEntity saveContext];
+            }
             [[NSNotificationCenter defaultCenter] postNotificationName:DSSporkListDidUpdateNotification object:nil userInfo:dictionary];
         });
     }

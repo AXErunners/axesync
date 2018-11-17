@@ -20,7 +20,7 @@
 #import "NSMutableData+Axe.h"
 #import "DSChainPeerManager.h"
 #import "NSManagedObject+Sugar.h"
-#import "DSMasternodeBroadcast.h"
+#import "DSSimplifiedMasternodeEntry.h"
 #import "DSAccount.h"
 #import "DSGovernanceObjectEntity+CoreDataProperties.h"
 
@@ -208,6 +208,17 @@
     
 }
 
+-(UInt256)governanceObjectHash {
+    if (uint256_eq(_governanceObjectHash, UINT256_ZERO)) {
+    NSTimeInterval timestamp = self.timestamp;
+    DSUTXO o;
+    o.hash = UINT256_ZERO;
+    o.n = 0;
+    _governanceObjectHash = [DSGovernanceObject hashWithParentHash:[NSData dataWithUInt256:self.parentHash] revision:self.revision timeStampData:[NSData dataWithBytes:&timestamp length:sizeof(timestamp)] governanceMessageHexData:self.proposalInfo masternodeUTXO:o signature:[NSData data] onChain:self.chain];
+    }
+    return _governanceObjectHash;
+}
+
 -(NSData*)dataMessage {
     NSMutableData * data = [NSMutableData data];
     [data appendUInt256:self.parentHash];
@@ -241,7 +252,7 @@
     _url = url;
     
     _governanceVotes = [NSMutableArray array];
-    [self loadGovernanceVotes:0];
+    if (!uint256_is_zero(governanceObjectHash)) [self loadGovernanceVotes:0];
     self.managedObjectContext = [NSManagedObject context];
     
     return self;
@@ -299,7 +310,7 @@
     if (!_knownGovernanceVoteHashesForExistingGovernanceVotes) _knownGovernanceVoteHashesForExistingGovernanceVotes = [NSMutableOrderedSet orderedSet];
     for (DSGovernanceVoteEntity * governanceVoteEntity in governanceVoteEntities) {
         DSGovernanceVote * governanceVote = [governanceVoteEntity governanceVote];
-        NSLog(@"%@ : %@ -> %d/%d",self.identifier,[NSData dataWithUInt256:governanceVote.masternodeBroadcast.masternodeBroadcastHash].shortHexString,governanceVote.outcome, governanceVote.signal);
+        NSLog(@"%@ : %@ -> %d/%d",self.identifier,[NSData dataWithUInt256:governanceVote.masternode.simplifiedMasternodeEntryHash].shortHexString,governanceVote.outcome, governanceVote.signal);
         [_knownGovernanceVoteHashesForExistingGovernanceVotes addObject:[NSData dataWithUInt256:governanceVote.governanceVoteHash]];
         [_governanceVotes addObject:governanceVote];
     }
@@ -469,7 +480,7 @@
         [self requestGovernanceVotesFromPeer:peer];
         [DSGovernanceVoteEntity saveContext];
         dispatch_async(dispatch_get_main_queue(), ^{
-            [[NSNotificationCenter defaultCenter] postNotificationName:DSGovernanceVotesDidChangeNotification object:self userInfo:@{DSChainPeerManagerNotificationChainKey:peer.chain}];
+            [[NSNotificationCenter defaultCenter] postNotificationName:DSGovernanceVotesDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:peer.chain}];
         });
     }
 }
@@ -488,12 +499,24 @@
     [dictionary setObject:self.identifier forKey:@"name"];
     [dictionary setObject:@(self.startEpoch) forKey:@"start_epoch"];
     [dictionary setObject:@(self.endEpoch) forKey:@"end_epoch"];
+    [dictionary setObject:@(1) forKey:@"type"];
     [dictionary setObject:self.paymentAddress forKey:@"payment_address"];
-    [dictionary setObject:[[NSDecimalNumber decimalNumberWithMantissa:self.amount exponent:-8 isNegative:FALSE] stringValue] forKey:@"payment_amount"];
+    [dictionary setObject:[NSDecimalNumber decimalNumberWithMantissa:self.amount exponent:-8 isNegative:FALSE] forKey:@"payment_amount"];
     [dictionary setObject:self.url forKey:@"url"];
+    NSArray * proposalArray = @[@[@"proposal",dictionary]];
     NSError * error = nil;
-    NSData* data = [NSJSONSerialization dataWithJSONObject:dictionary options:0 error:&error];
-    return data;
+    if (@available(iOS 11.0, *)) {
+        NSData* data = [NSJSONSerialization dataWithJSONObject:proposalArray options:NSJSONWritingSortedKeys error:&error];
+        NSString * dataString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        dataString = [dataString stringByReplacingOccurrencesOfString:@"\\/" withString:@"/"];
+        data = [dataString dataUsingEncoding:NSUTF8StringEncoding];
+        return data;
+    } else {
+        //figure out how to handle this on iOS 10
+        NSData* data = [NSJSONSerialization dataWithJSONObject:dictionary options:0 error:&error];
+        return data;
+        // Fallback on earlier versions
+    }
 }
 
 

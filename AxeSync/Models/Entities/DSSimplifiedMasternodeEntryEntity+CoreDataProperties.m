@@ -14,13 +14,15 @@
 	return [NSFetchRequest fetchRequestWithEntityName:@"DSSimplifiedMasternodeEntryEntity"];
 }
 
-@dynamic providerTransactionHash;
+@dynamic providerRegistrationTransactionHash;
+@dynamic confirmedHash;
 @dynamic address;
 @dynamic port;
-@dynamic keyIDOperator;
+@dynamic operatorBLSPublicKey;
 @dynamic keyIDVoting;
 @dynamic isValid;
 @dynamic simplifiedMasternodeEntryHash;
 @dynamic chain;
+@dynamic claimed;
 
 @end

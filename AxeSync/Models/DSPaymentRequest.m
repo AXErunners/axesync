@@ -2,8 +2,9 @@
 //  DSPaymentRequest.m
 //  AxeSync
 //
-//  Created by Aaron Voisine on 5/9/13.
+//  Created by Aaron Voisine for BreadWallet on 5/9/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
+//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -297,7 +298,7 @@ completion:(void (^)(DSPaymentProtocolRequest *req, NSError *error))completion
 
     if (! req) {
         completion(nil, [NSError errorWithDomain:@"AxeWallet" code:417
-                         userInfo:@{NSLocalizedDescriptionKey:NSLocalizedString(@"bad payment request URL", nil)}]);
+                         userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"bad payment request URL", nil)}]);
         return;
     }
 
@@ -326,12 +327,12 @@ completion:(void (^)(DSPaymentProtocolRequest *req, NSError *error))completion
             NSLog(@"unexpected response from %@:\n%@", req.URL.host,
                   [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
             completion(nil, [NSError errorWithDomain:@"AxeWallet" code:417 userInfo:@{NSLocalizedDescriptionKey:
-                             [NSString stringWithFormat:NSLocalizedString(@"unexpected response from %@", nil),
+                             [NSString stringWithFormat:DSLocalizedString(@"unexpected response from %@", nil),
                               req.URL.host]}]);
         }
         else if (![request.details.chain isActive]) {
             completion(nil, [NSError errorWithDomain:@"AxeWallet" code:417 userInfo:@{NSLocalizedDescriptionKey:
-                             [NSString stringWithFormat:NSLocalizedString(@"requested network \"%@\" not currently in use",
+                             [NSString stringWithFormat:DSLocalizedString(@"requested network \"%@\" not currently in use",
                                                                           nil), request.details.chain.networkName]}]);
         }
         else completion(request, nil);
@@ -348,7 +349,7 @@ completion:(void (^)(DSPaymentProtocolRequest *req, NSError *error))completion
     if (! req) {
         if (completion) {
             completion(nil, [NSError errorWithDomain:@"AxeWallet" code:417
-                             userInfo:@{NSLocalizedDescriptionKey:NSLocalizedString(@"bad payment URL", nil)}]);
+                             userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"bad payment URL", nil)}]);
         }
         
         return;
@@ -377,7 +378,7 @@ completion:(void (^)(DSPaymentProtocolRequest *req, NSError *error))completion
                   [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
             if (completion) {
                 completion(nil, [NSError errorWithDomain:@"AxeWallet" code:417 userInfo:@{NSLocalizedDescriptionKey:
-                                 [NSString stringWithFormat:NSLocalizedString(@"unexpected response from %@", nil),
+                                 [NSString stringWithFormat:DSLocalizedString(@"unexpected response from %@", nil),
                                   req.URL.host]}]);
             }
         }

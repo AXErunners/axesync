@@ -2,8 +2,9 @@
 //  NSMutableData+Axe.h
 //  AxeSync
 //
-//  Created by Aaron Voisine on 5/20/13.
+//  Created by Aaron Voisine for BreadWallet on 5/20/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
+//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -27,7 +28,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "IntTypes.h"
+#import "BigIntTypes.h"
 
 CF_IMPLICIT_BRIDGING_ENABLED
 
@@ -53,6 +54,9 @@ CF_IMPLICIT_BRIDGING_DISABLED
 - (void)appendUInt128:(UInt128)i;
 - (void)appendUInt160:(UInt160)i;
 - (void)appendUInt256:(UInt256)i;
+- (void)appendUInt384:(UInt384)i;
+- (void)appendUInt512:(UInt512)i;
+- (void)appendUInt768:(UInt768)i;
 - (void)appendVarInt:(uint64_t)i;
 - (void)appendString:(NSString *)s;
 

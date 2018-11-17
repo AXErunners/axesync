@@ -14,6 +14,7 @@
 #import "NSData+Bitcoin.h"
 #import "NSString+Axe.h"
 #import "DSWallet.h"
+#import "AxeSync.h"
 #include <arpa/inet.h>
 
 #define FEE_PER_KB_URL       0 //not supported @"https://api.breadwallet.com/fee-per-kb"
@@ -24,6 +25,7 @@
 
 @property (nonatomic,strong) NSMutableArray * knownChains;
 @property (nonatomic,strong) NSMutableArray * knownDevnetChains;
+@property (nonatomic,strong) NSMutableDictionary * devnetGenesisDictionary;
 @property (nonatomic,strong) Reachability *reachability;
 
 @end
@@ -42,15 +44,16 @@
     return singleton;
 }
 
--(id)init {
-    if ([super init] == self) {
+- (instancetype)init {
+    self = [super init];
+    if (self) {
         self.knownChains = [NSMutableArray array];
         NSError * error = nil;
         NSMutableDictionary * registeredDevnetIdentifiers = [getKeychainDict(DEVNET_CHAINS_KEY, &error) mutableCopy];
         self.knownDevnetChains = [NSMutableArray array];
         for (NSString * string in registeredDevnetIdentifiers) {
             NSArray<DSCheckpoint*>* checkpointArray = registeredDevnetIdentifiers[string];
-            [self.knownDevnetChains addObject:[DSChain setUpDevnetWithIdentifier:string withCheckpoints:checkpointArray withDefaultPort:DEVNET_STANDARD_PORT]];
+            [self.knownDevnetChains addObject:[DSChain setUpDevnetWithIdentifier:string withCheckpoints:checkpointArray withDefaultPort:DEVNET_STANDARD_PORT withDefaultDapiPort:DEVNET_DAPI_STANDARD_PORT]];
         }
         
         self.reachability = [Reachability reachabilityForInternetConnection];
@@ -87,22 +90,21 @@
 
 
 -(DSChainPeerManager*)devnetManagerForChain:(DSChain*)chain {
-    static NSMutableDictionary * _devnetDictionary = nil;
     static dispatch_once_t devnetToken = 0;
     dispatch_once(&devnetToken, ^{
-        _devnetDictionary = [NSMutableDictionary dictionary];
+        self.devnetGenesisDictionary = [NSMutableDictionary dictionary];
     });
     NSValue * genesisValue = uint256_obj(chain.genesisHash);
     DSChainPeerManager * devnetChainPeerManager = nil;
     @synchronized(self) {
-        if (![_devnetDictionary objectForKey:genesisValue]) {
+        if (![self.devnetGenesisDictionary objectForKey:genesisValue]) {
             devnetChainPeerManager = [[DSChainPeerManager alloc] initWithChain:chain];
             chain.peerManagerDelegate = devnetChainPeerManager;
             [self.knownChains addObject:chain];
             [self.knownDevnetChains addObject:chain];
-            [_devnetDictionary setObject:devnetChainPeerManager forKey:genesisValue];
+            [self.devnetGenesisDictionary setObject:devnetChainPeerManager forKey:genesisValue];
         } else {
-            devnetChainPeerManager = [_devnetDictionary objectForKey:genesisValue];
+            devnetChainPeerManager = [self.devnetGenesisDictionary objectForKey:genesisValue];
         }
     }
     return devnetChainPeerManager;
@@ -127,7 +129,7 @@
     return [self.knownChains copy];
 }
 
--(void)updateDevnetChain:(DSChain*)chain forServiceLocations:(NSMutableOrderedSet<NSString*>*)serviceLocations standardPort:(uint32_t)standardPort protocolVersion:(uint32_t)protocolVersion minProtocolVersion:(uint32_t)minProtocolVersion sporkAddress:(NSString*)sporkAddress sporkPrivateKey:(NSString*)sporkPrivateKey {
+-(void)updateDevnetChain:(DSChain*)chain forServiceLocations:(NSMutableOrderedSet<NSString*>*)serviceLocations standardPort:(uint32_t)standardPort dapiPort:(uint32_t)dapiPort protocolVersion:(uint32_t)protocolVersion minProtocolVersion:(uint32_t)minProtocolVersion sporkAddress:(NSString*)sporkAddress sporkPrivateKey:(NSString*)sporkPrivateKey {
     DSChainPeerManager * peerManager = [self peerManagerForChain:chain];
     [peerManager clearRegisteredPeers];
     if (protocolVersion) {
@@ -160,14 +162,14 @@
             NSLog(@"invalid address");
         }
         
-        [peerManager registerPeerAtLocation:ipAddress port:port?[port intValue]:standardPort];
+        [peerManager registerPeerAtLocation:ipAddress port:port?[port intValue]:standardPort dapiPort:dapiPort];
     }
 }
 
--(DSChain*)registerDevnetChainWithIdentifier:(NSString*)identifier forServiceLocations:(NSMutableOrderedSet<NSString*>*)serviceLocations standardPort:(uint32_t)standardPort protocolVersion:(uint32_t)protocolVersion minProtocolVersion:(uint32_t)minProtocolVersion sporkAddress:(NSString*)sporkAddress sporkPrivateKey:(NSString*)sporkPrivateKey {
+-(DSChain*)registerDevnetChainWithIdentifier:(NSString*)identifier forServiceLocations:(NSMutableOrderedSet<NSString*>*)serviceLocations standardPort:(uint32_t)standardPort dapiPort:(uint32_t)dapiPort protocolVersion:(uint32_t)protocolVersion minProtocolVersion:(uint32_t)minProtocolVersion sporkAddress:(NSString*)sporkAddress sporkPrivateKey:(NSString*)sporkPrivateKey {
     NSError * error = nil;
     
-    DSChain * chain = [DSChain setUpDevnetWithIdentifier:identifier withCheckpoints:nil withDefaultPort:standardPort];
+    DSChain * chain = [DSChain setUpDevnetWithIdentifier:identifier withCheckpoints:nil withDefaultPort:standardPort withDefaultDapiPort:dapiPort];
     if (protocolVersion) {
         chain.protocolVersion = protocolVersion;
     }
@@ -199,7 +201,7 @@
             NSLog(@"invalid address");
         }
         
-        [peerManager registerPeerAtLocation:ipAddress port:port?[port intValue]:standardPort];
+        [peerManager registerPeerAtLocation:ipAddress port:port?[port intValue]:standardPort dapiPort:dapiPort];
     }
     
     NSMutableDictionary * registeredDevnetsDictionary = [getKeychainDict(DEVNET_CHAINS_KEY, &error) mutableCopy];
@@ -216,20 +218,35 @@
 }
 
 -(void)removeDevnetChain:(DSChain* _Nonnull)chain {
-    NSError * error = nil;
-    DSChainPeerManager * chainPeerManager = [self peerManagerForChain:chain];
-    [chainPeerManager clearRegisteredPeers];
-    NSMutableDictionary * registeredDevnetsDictionary = [getKeychainDict(DEVNET_CHAINS_KEY, &error) mutableCopy];
+    [[DSAuthenticationManager sharedInstance] authenticateWithPrompt:@"Remove Devnet?" andTouchId:FALSE alertIfLockout:NO completion:^(BOOL authenticatedOrSuccess, BOOL cancelled) {
+        if (!cancelled && authenticatedOrSuccess) {
+            NSError * error = nil;
+            DSChainPeerManager * chainPeerManager = [self peerManagerForChain:chain];
+            [chainPeerManager clearRegisteredPeers];
+            NSMutableDictionary * registeredDevnetsDictionary = [getKeychainDict(DEVNET_CHAINS_KEY, &error) mutableCopy];
+            
+            if (!registeredDevnetsDictionary) registeredDevnetsDictionary = [NSMutableDictionary dictionary];
+            if ([[registeredDevnetsDictionary allKeys] containsObject:chain.devnetIdentifier]) {
+                [registeredDevnetsDictionary removeObjectForKey:chain.devnetIdentifier];
+                setKeychainDict(registeredDevnetsDictionary, DEVNET_CHAINS_KEY, NO);
+            }
+            [chain wipeWalletsAndDerivatives];
+            [[AxeSync sharedSyncController] wipePeerDataForChain:chain];
+            [[AxeSync sharedSyncController] wipeBlockchainDataForChain:chain];
+            [[AxeSync sharedSyncController] wipeSporkDataForChain:chain];
+            [[AxeSync sharedSyncController] wipeMasternodeDataForChain:chain];
+            [[AxeSync sharedSyncController] wipeGovernanceDataForChain:chain];
+            [[AxeSync sharedSyncController] wipeWalletDataForChain:chain forceReauthentication:NO]; //this takes care of blockchain info as well;
+            [self.knownDevnetChains removeObject:chain];
+            [self.knownChains removeObject:chain];
+            NSValue * genesisValue = uint256_obj(chain.genesisHash);
+            [self.devnetGenesisDictionary removeObjectForKey:genesisValue];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [[NSNotificationCenter defaultCenter] postNotificationName:DSChainsDidChangeNotification object:nil];
+            });
+        }
+    }];
     
-    if (!registeredDevnetsDictionary) registeredDevnetsDictionary = [NSMutableDictionary dictionary];
-    if ([[registeredDevnetsDictionary allKeys] containsObject:chain.devnetIdentifier]) {
-        [registeredDevnetsDictionary removeObjectForKey:chain.devnetIdentifier];
-        setKeychainDict(registeredDevnetsDictionary, DEVNET_CHAINS_KEY, NO);
-    }
-    [self.knownDevnetChains removeObject:chain];
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainsDidChangeNotification object:nil];
-    });
 }
 
 // MARK: - Spending Limits
@@ -238,7 +255,7 @@
 - (uint64_t)spendingLimit
 {
     // it's ok to store this in userdefaults because increasing the value only takes effect after successful pin entry
-    if (! [[NSUserDefaults standardUserDefaults] objectForKey:SPEND_LIMIT_AMOUNT_KEY]) return DUFFS;
+    if (! [[NSUserDefaults standardUserDefaults] objectForKey:SPEND_LIMIT_AMOUNT_KEY]) return HAKS;
     
     return [[NSUserDefaults standardUserDefaults] doubleForKey:SPEND_LIMIT_AMOUNT_KEY];
 }

@@ -8,13 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import <AxeSync/AxeSync.h>
-
-@protocol DSAccountChooserDelegate
-
--(void)viewController:(UIViewController*)controller didChooseAccount:(DSAccount*)account;
-
-@end
-
+#import "DSAccountChooserViewController.h"
 
 @interface DSProposalCreatorViewController : UITableViewController <UITextFieldDelegate,DSAccountChooserDelegate>
 

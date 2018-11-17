@@ -2,7 +2,7 @@
 //  DSBIP39Mnemonic.h
 //  AxeSync
 //
-//  Created by Aaron Voisine on 3/21/14.
+//  Created by Aaron Voisine for BreadWallet on 3/21/14.
 //  Copyright (c) 2014 Aaron Voisine <voisine@gmail.com>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
@@ -31,9 +31,11 @@
 // BIP39 is method for generating a deterministic wallet seed from a mnemonic phrase
 // https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
 
-#define BIP39_CREATION_TIME (1427587200.0 - NSTimeIntervalSince1970)
+#define BIP39_CREATION_TIME 1427587200.0
 
 @interface DSBIP39Mnemonic : NSObject<DSMnemonic>
+
+@property (nonatomic, readonly) NSArray *words;
 
 + (instancetype _Nullable)sharedInstance;
 

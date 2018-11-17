@@ -2,7 +2,7 @@
 //  DSPriceManager.m
 //  AxeSync
 //
-//  Created by Aaron Voisine on 3/2/14.
+//  Created by Aaron Voisine for BreadWallet on 3/2/14.
 //  Copyright (c) 2014 Aaron Voisine <voisine@gmail.com>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
@@ -41,13 +41,14 @@
 #import "NSData+Bitcoin.h"
 #import "NSMutableData+Axe.h"
 #import "NSManagedObject+Sugar.h"
-#import "NSAttributedString+Attachments.h"
+
 #import "NSString+Axe.h"
 #import "Reachability.h"
 #import "DSChainPeerManager.h"
 #import "DSDerivationPath.h"
 #import "DSAuthenticationManager.h"
 #import "NSData+Bitcoin.h"
+#import "NSDate+Utils.h"
 
 #define BITCOIN_TICKER_URL  @"https://bitpay.com/rates"
 #define POLONIEX_TICKER_URL  @"https://poloniex.com/public?command=returnOrderBook&currencyPair=BTC_AXE&depth=1"
@@ -55,7 +56,7 @@
 #define TICKER_REFRESH_TIME 60.0
 
 #define DEFAULT_CURRENCY_CODE @"USD"
-#define DEFAULT_SPENT_LIMIT   DUFFS
+#define DEFAULT_SPENT_LIMIT   HAKS
 
 #define LOCAL_CURRENCY_CODE_KEY @"LOCAL_CURRENCY_CODE"
 #define CURRENCY_CODES_KEY      @"CURRENCY_CODES"
@@ -194,7 +195,7 @@
     if (i == NSNotFound) code = DEFAULT_CURRENCY_CODE, i = [_currencyCodes indexOfObject:DEFAULT_CURRENCY_CODE];
     _localCurrencyCode = [code copy];
     
-    if (i < _currencyPrices.count && [DSAuthenticationManager sharedInstance].secureTime + 3*24*60*60 > [NSDate timeIntervalSinceReferenceDate]) {
+    if (i < _currencyPrices.count && [DSAuthenticationManager sharedInstance].secureTime + 3*24*60*60 > [NSDate timeIntervalSince1970]) {
         self.localCurrencyBitcoinPrice = _currencyPrices[i]; // don't use exchange rate data more than 72hrs out of date
     }
     else self.localCurrencyBitcoinPrice = @(0);
@@ -202,7 +203,7 @@
     self.localFormat.currencyCode = _localCurrencyCode;
     self.localFormat.maximum =
     [[NSDecimalNumber decimalNumberWithDecimal:self.localCurrencyBitcoinPrice.decimalValue]
-     decimalNumberByMultiplyingBy:(id)[NSDecimalNumber numberWithLongLong:MAX_MONEY/DUFFS]];
+     decimalNumberByMultiplyingBy:(id)[NSDecimalNumber numberWithLongLong:MAX_MONEY/HAKS]];
     
     if ([self.localCurrencyCode isEqual:[[NSLocale currentLocale] objectForKey:NSLocaleCurrencyCode]]) {
         [defs removeObjectForKey:LOCAL_CURRENCY_CODE_KEY];
@@ -281,7 +282,7 @@
                                              NSString *date = [(NSHTTPURLResponse *)response allHeaderFields][@"Date"];
                                              NSTimeInterval now = [[[NSDataDetector dataDetectorWithTypes:NSTextCheckingTypeDate error:nil]
                                                                     matchesInString:date options:0 range:NSMakeRange(0, date.length)].lastObject
-                                                                   date].timeIntervalSinceReferenceDate;
+                                                                   date].timeIntervalSince1970;
                                              
                                              if (now > [DSAuthenticationManager sharedInstance].secureTime) [defs setDouble:now forKey:SECURE_TIME_KEY];
                                          }
@@ -308,8 +309,8 @@
                                              }
                                          }
 #if EXCHANGE_RATES_LOGGING
-                                         NSLog(@"poloniex exchange rate updated to %@/%@", [self localCurrencyStringForAxeAmount:DUFFS],
-                                               [self stringForAxeAmount:DUFFS]);
+                                         NSLog(@"poloniex exchange rate updated to %@/%@", [self localCurrencyStringForAxeAmount:HAKS],
+                                               [self stringForAxeAmount:HAKS]);
 #endif
                                      }
       ] resume];
@@ -339,7 +340,7 @@
                                              NSString *date = [(NSHTTPURLResponse *)response allHeaderFields][@"Date"];
                                              NSTimeInterval now = [[[NSDataDetector dataDetectorWithTypes:NSTextCheckingTypeDate error:nil]
                                                                     matchesInString:date options:0 range:NSMakeRange(0, date.length)].lastObject
-                                                                   date].timeIntervalSinceReferenceDate;
+                                                                   date].timeIntervalSince1970;
                                              
                                              if (now > [DSAuthenticationManager sharedInstance].secureTime) [defs setDouble:now forKey:SECURE_TIME_KEY];
                                          }
@@ -356,8 +357,8 @@
                                                  [defs synchronize];
                                                  [self refreshBitcoinAxePrice];
 #if EXCHANGE_RATES_LOGGING
-                                                 NSLog(@"axe central exchange rate updated to %@/%@", [self localCurrencyStringForAxeAmount:DUFFS],
-                                                       [self stringForAxeAmount:DUFFS]);
+                                                 NSLog(@"axe central exchange rate updated to %@/%@", [self localCurrencyStringForAxeAmount:HAKS],
+                                                       [self stringForAxeAmount:HAKS]);
 #endif
                                              }
                                          }
@@ -390,7 +391,7 @@
             NSString *date = [(NSHTTPURLResponse *)response allHeaderFields][@"Date"];
             NSTimeInterval now = [[[NSDataDetector dataDetectorWithTypes:NSTextCheckingTypeDate error:nil]
                                    matchesInString:date options:0 range:NSMakeRange(0, date.length)].lastObject
-                                  date].timeIntervalSinceReferenceDate;
+                                  date].timeIntervalSince1970;
             
             if (now > [DSAuthenticationManager sharedInstance].secureTime) [defs setDouble:now forKey:SECURE_TIME_KEY];
         }
@@ -424,8 +425,8 @@
         [defs setObject:self.currencyPrices forKey:CURRENCY_PRICES_KEY];
         [defs synchronize];
 #if EXCHANGE_RATES_LOGGING
-        NSLog(@"bitcoin exchange rate updated to %@/%@", [self localCurrencyStringForAxeAmount:DUFFS],
-              [self stringForAxeAmount:DUFFS]);
+        NSLog(@"bitcoin exchange rate updated to %@/%@", [self localCurrencyStringForAxeAmount:HAKS],
+              [self stringForAxeAmount:HAKS]);
 #endif
     }
       
@@ -507,7 +508,7 @@
 }
 
 -(NSNumber* _Nonnull)localCurrencyAxePrice {
-    if (!_bitcoinAxePrice || !_localCurrencyBitcoinPrice) {
+    if (_bitcoinAxePrice == nil || _localCurrencyBitcoinPrice == nil) {
         return _localCurrencyAxePrice;
     } else {
         return @(_bitcoinAxePrice.doubleValue * _localCurrencyBitcoinPrice.doubleValue);
@@ -528,9 +529,9 @@
     overflowbits = 0, p = 10, min, max, amount;
     
     if (local == 0 || price < 1) return 0;
-    while (llabs(local) + 1 > INT64_MAX/DUFFS) local /= 2, overflowbits++; // make sure we won't overflow an int64_t
-    min = llabs(local)*DUFFS/price + 1; // minimum amount that safely matches local currency string
-    max = (llabs(local) + 1)*DUFFS/price - 1; // maximum amount that safely matches local currency string
+    while (llabs(local) + 1 > INT64_MAX/HAKS) local /= 2, overflowbits++; // make sure we won't overflow an int64_t
+    min = llabs(local)*HAKS/price + 1; // minimum amount that safely matches local currency string
+    max = (llabs(local) + 1)*HAKS/price - 1; // maximum amount that safely matches local currency string
     amount = (min + max)/2; // average min and max
     while (overflowbits > 0) local *= 2, min *= 2, max *= 2, amount *= 2, overflowbits--;
     
@@ -552,9 +553,9 @@
     int64_t local = amt + DBL_EPSILON*amt, overflowbits = 0;
     
     if (local == 0) return 0;
-    while (llabs(local) + 1 > INT64_MAX/DUFFS) local /= 2, overflowbits++; // make sure we won't overflow an int64_t
-    int64_t min = llabs(local)*DUFFS/(int64_t)(price + DBL_EPSILON*price) + 1,
-    max = (llabs(local) + 1)*DUFFS/(int64_t)(price + DBL_EPSILON*price) - 1,
+    while (llabs(local) + 1 > INT64_MAX/HAKS) local /= 2, overflowbits++; // make sure we won't overflow an int64_t
+    int64_t min = llabs(local)*HAKS/(int64_t)(price + DBL_EPSILON*price) + 1,
+    max = (llabs(local) + 1)*HAKS/(int64_t)(price + DBL_EPSILON*price) - 1,
     amount = (min + max)/2, p = 10;
     
     while (overflowbits > 0) local *= 2, min *= 2, max *= 2, amount *= 2, overflowbits--;
@@ -572,7 +573,7 @@
     
     NSDecimalNumber *n = [[[NSDecimalNumber decimalNumberWithDecimal:self.bitcoinAxePrice.decimalValue]
                            decimalNumberByMultiplyingBy:(id)[NSDecimalNumber numberWithLongLong:llabs(amount)]]
-                          decimalNumberByDividingBy:(id)[NSDecimalNumber numberWithLongLong:DUFFS]],
+                          decimalNumberByDividingBy:(id)[NSDecimalNumber numberWithLongLong:HAKS]],
     *min = [[NSDecimalNumber one]
             decimalNumberByMultiplyingByPowerOf10:-self.bitcoinFormat.maximumFractionDigits];
     
@@ -585,8 +586,8 @@
 - (NSString *)localCurrencyStringForAxeAmount:(int64_t)amount
 {
     NSNumber *n = [self localCurrencyNumberForAxeAmount:amount];
-    if (!n) {
-        return NSLocalizedString(@"Updating Price",@"Updating Price");
+    if (n == nil) {
+        return DSLocalizedString(@"Updating Price",@"Updating Price");
     }
     return [self.localFormat stringFromNumber:n];
 }
@@ -598,7 +599,7 @@
     
     NSDecimalNumber *n = [[[NSDecimalNumber decimalNumberWithDecimal:self.localCurrencyBitcoinPrice.decimalValue]
                            decimalNumberByMultiplyingBy:(id)[NSDecimalNumber numberWithLongLong:llabs(amount)]]
-                          decimalNumberByDividingBy:(id)[NSDecimalNumber numberWithLongLong:DUFFS]],
+                          decimalNumberByDividingBy:(id)[NSDecimalNumber numberWithLongLong:HAKS]],
     *min = [[NSDecimalNumber one]
             decimalNumberByMultiplyingByPowerOf10:-self.localFormat.maximumFractionDigits];
     
@@ -613,7 +614,7 @@
         return @0;
     }
     
-    if (!self.localCurrencyBitcoinPrice || !self.bitcoinAxePrice) {
+    if (self.localCurrencyBitcoinPrice == nil || self.bitcoinAxePrice == nil) {
         return nil;
     }
     
@@ -621,7 +622,7 @@
     
     NSDecimalNumber *n = [[[NSDecimalNumber decimalNumberWithDecimal:local.decimalValue]
                            decimalNumberByMultiplyingBy:(id)[NSDecimalNumber numberWithLongLong:llabs(amount)]]
-                          decimalNumberByDividingBy:(id)[NSDecimalNumber numberWithLongLong:DUFFS]],
+                          decimalNumberByDividingBy:(id)[NSDecimalNumber numberWithLongLong:HAKS]],
     *min = [[NSDecimalNumber one]
             decimalNumberByMultiplyingByPowerOf10:-self.localFormat.maximumFractionDigits];
     

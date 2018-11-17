@@ -59,29 +59,29 @@
 //    NSArray * inputIndexes = @[@(0)];
 //    NSArray * inputScripts = @[script];
 //    NSArray * outputAddresses = @[w.receiveAddress];
-//    NSArray * outputAmounts = @[@(DUFFS)];
+//    NSArray * outputAmounts = @[@(HAKS)];
 //    DSTransaction *tx = [[DSTransaction alloc] initWithInputHashes:inputHashes inputIndexes:inputIndexes inputScripts:inputScripts
 //                                                   outputAddresses:outputAddresses outputAmounts:outputAmounts];
 //
 //    [tx signWithPrivateKeys:@[k.privateKey]];
 //    [w registerTransaction:tx];
 //
-//    XCTAssertEqual(w.balance, DUFFS, @"[DSWallet registerTransaction]");
+//    XCTAssertEqual(w.balance, HAKS, @"[DSWallet registerTransaction]");
 //
 //    tx = [DSTransaction new];
 //    [tx addInputHash:UINT256_ZERO index:2 script:script signature:NULL sequence:UINT32_MAX - 1];
-//    [tx addOutputAddress:w.receiveAddress amount:DUFFS];
+//    [tx addOutputAddress:w.receiveAddress amount:HAKS];
 //    tx.lockTime = 1000;
 //    tx.blockHeight = TX_UNCONFIRMED;
 //    [tx signWithPrivateKeys:@[k.privateKey]];
 //    [w registerTransaction:tx]; // test pending tx with future lockTime
 //
-//    XCTAssertEqual(w.balance, DUFFS, @"[DSWallet registerTransaction]");
+//    XCTAssertEqual(w.balance, HAKS, @"[DSWallet registerTransaction]");
 //
 //    [w setBlockHeight:1000 andTimestamp:1 forTxHashes:@[uint256_obj(tx.txHash)]];
-//    XCTAssertEqual(w.balance, DUFFS*2, @"[DSWallet registerTransaction]");
+//    XCTAssertEqual(w.balance, HAKS*2, @"[DSWallet registerTransaction]");
 //
-//    tx = [w transactionFor:DUFFS/2 to:k.address withFee:NO];
+//    tx = [w transactionFor:HAKS/2 to:k.address withFee:NO];
 //
 //    XCTAssertNotNil(tx, @"[DSWallet transactionFor:to:withFee:]");
 //
@@ -93,7 +93,7 @@
 //
 //    [w registerTransaction:tx];
 //
-//    XCTAssertEqual(w.balance, DUFFS*3/2, @"[DSWallet balance]");
+//    XCTAssertEqual(w.balance, HAKS*3/2, @"[DSWallet balance]");
 //
 //    w = [[DSWallet alloc] initWithContext:nil sequence:sequence masterBIP44PublicKey:master44Pub masterBIP32PublicKey:master32Pub
 //                         requestSeedBlock:^(NSString * _Nullable authprompt, uint64_t amount, SeedCompletionBlock  _Nullable seedCompletion) {

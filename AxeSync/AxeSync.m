@@ -33,10 +33,9 @@
     return singleton;
 }
 
-
-- (id)init
-{
-    if (self == [super init]) {
+- (instancetype)init {
+    self = [super init];
+    if (self) {
         // use background fetch to stay synced with the blockchain
         [[UIApplication sharedApplication] setMinimumBackgroundFetchInterval:UIApplicationBackgroundFetchIntervalMinimum];
         
@@ -80,6 +79,7 @@
 
 -(void)wipePeerDataForChain:(DSChain*)chain {
     [self stopSyncForChain:chain];
+    [[[DSChainManager sharedInstance] peerManagerForChain:chain] removeTrustedPeerHost];
     [[[DSChainManager sharedInstance] peerManagerForChain:chain] clearPeers];
     DSChainEntity * chainEntity = chain.chainEntity;
     [DSPeerEntity deletePeersForChain:chainEntity];
@@ -105,19 +105,14 @@
     NSManagedObjectContext * context = [NSManagedObject context];
     [context performBlockAndWait:^{
         [DSChainEntity setContext:context];
-        [DSMasternodeBroadcastHashEntity setContext:context];
         [DSSimplifiedMasternodeEntryEntity setContext:context];
         DSChainEntity * chainEntity = chain.chainEntity;
-        if (chain.protocolVersion < 70211) {
-            [DSMasternodeBroadcastHashEntity deleteHashesOnChain:chainEntity];
-        } else {
-            [DSSimplifiedMasternodeEntryEntity deleteAllOnChain:chainEntity];
-        }
+        [DSSimplifiedMasternodeEntryEntity deleteAllOnChain:chainEntity];
         DSChainPeerManager * peerManager = [[DSChainManager sharedInstance] peerManagerForChain:chain];
         [peerManager setCount:0 forSyncCountInfo:DSSyncCountInfo_List];
         [peerManager.masternodeManager wipeMasternodeInfo];
-        [DSMasternodeBroadcastHashEntity saveContext];
-        [[NSUserDefaults standardUserDefaults] removeObjectForKey:[NSString stringWithFormat:@"%@-%@",chain.uniqueID,LAST_SYNCED_MASTERNODE_LIST]];
+        [DSSimplifiedMasternodeEntryEntity saveContext];
+        [[NSUserDefaults standardUserDefaults] removeObjectForKey:[NSString stringWithFormat:@"%@_%@",chain.uniqueID,LAST_SYNCED_MASTERNODE_LIST]];
         dispatch_async(dispatch_get_main_queue(), ^{
             [[NSNotificationCenter defaultCenter] postNotificationName:DSMasternodeListDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:chain}];
             [[NSNotificationCenter defaultCenter] postNotificationName:DSMasternodeListCountUpdateNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:chain}];
@@ -148,7 +143,7 @@
     [peerManager setCount:0 forSyncCountInfo:DSSyncCountInfo_GovernanceObjectVote];
     [peerManager.governanceSyncManager wipeGovernanceInfo];
     [DSGovernanceObjectHashEntity saveContext];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:[NSString stringWithFormat:@"%@-%@",chain.uniqueID,LAST_SYNCED_GOVERANCE_OBJECTS]];
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:[NSString stringWithFormat:@"%@_%@",chain.uniqueID,LAST_SYNCED_GOVERANCE_OBJECTS]];
     dispatch_async(dispatch_get_main_queue(), ^{
         [[NSNotificationCenter defaultCenter] postNotificationName:DSGovernanceObjectListDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:chain}];
         [[NSNotificationCenter defaultCenter] postNotificationName:DSGovernanceVotesDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:chain}];
@@ -157,8 +152,16 @@
     });
 }
 
--(void)wipeWalletDataForChain:(DSChain*)chain {
+-(void)wipeWalletDataForChain:(DSChain*)chain forceReauthentication:(BOOL)forceReauthentication {
     [self wipeBlockchainDataForChain:chain];
+    if (!forceReauthentication && [[DSAuthenticationManager sharedInstance] didAuthenticate]) {
+        [chain wipeWalletsAndDerivatives];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [[NSNotificationCenter defaultCenter] postNotificationName:DSChainStandaloneAddressesDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:chain}];
+            [[NSNotificationCenter defaultCenter] postNotificationName:DSChainWalletsDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:chain}];
+            [[NSNotificationCenter defaultCenter] postNotificationName:DSChainStandaloneDerivationPathsDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:chain}];
+        });
+    } else {
     [[DSAuthenticationManager sharedInstance] authenticateWithPrompt:@"Wipe wallets" andTouchId:NO alertIfLockout:NO completion:^(BOOL authenticatedOrSuccess, BOOL cancelled) {
         if (authenticatedOrSuccess) {
             [chain wipeWalletsAndDerivatives];
@@ -169,6 +172,7 @@
             });
         }
     }];
+    }
 
 }
 

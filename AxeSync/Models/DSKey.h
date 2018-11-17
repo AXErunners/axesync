@@ -2,8 +2,9 @@
 //  DSKey.h
 //  AxeSync
 //
-//  Created by Aaron Voisine on 5/22/13.
+//  Created by Aaron Voisine for BreadWallet on 5/22/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
+//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -26,9 +27,7 @@
 //  THE SOFTWARE.
 
 #import <Foundation/Foundation.h>
-
-typedef union _UInt256 UInt256;
-typedef union _UInt160 UInt160;
+#import "BigIntTypes.h"
 
 typedef struct {
     uint8_t p[33];
