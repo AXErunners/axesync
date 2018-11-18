@@ -11,13 +11,13 @@ Pod::Spec.new do |s|
   s.summary          = 'Axe Sync is a light and configurable blockchain client that you can embed into your iOS Application.'
   s.description      = 'Axe Sync is a light blockchain client that you can embed into your iOS Application.  It is fully customizable to make the type of node you are interested in.'
 
-  s.homepage         = 'https://github.com/axerunners/axesync-ios.git'
+  s.homepage         = 'https://github.com/axerunners/axesync.git'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
   s.author           = { 'axerunners' => 'info@axerunners.com' }
-  s.source           = { :git => 'https://github.com/axerunners/axesync-iOS.git', :tag => s.version.to_s }
+  s.source           = { :git => 'https://github.com/axerunners/axesync.git', :tag => s.version.to_s }
 
   s.ios.deployment_target = '10.0'
-  
+
   s.requires_arc = true
 
   s.source_files = "AxeSync/**/*.{h,m,mm}"
@@ -25,14 +25,13 @@ Pod::Spec.new do |s|
   s.private_header_files = 'AxeSync/crypto/x11/*.h'
   s.libraries = 'bz2', 'sqlite3'
   s.resource_bundles = {'AxeSync' => ['AxeSync/*.xcdatamodeld', 'AxeSync/*.plist', 'AxeSync/*.lproj']}
-  
+
   s.framework = 'Foundation', 'UIKit', 'SystemConfiguration', 'CoreData'
   s.compiler_flags = '-Wno-comma'
   s.dependency 'secp256k1_axe', '0.1.2'
-  s.dependency 'bls-signatures-pod', '0.2.4'
+  s.dependency 'bls-signatures-pod', '0.2.5'
   #s.dependency 'AFJSONRPCClient_AXE', '2.1.4'
   s.dependency 'AFNetworking', '~> 3.0'
   s.prefix_header_contents = '#import "DSEnvironment.h"'
-  
-end
 
+end
