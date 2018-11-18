@@ -14,11 +14,11 @@ PODS:
   - AFNetworking/Serialization (3.2.1)
   - AFNetworking/UIKit (3.2.1):
     - AFNetworking/NSURLSession
-  - bls-signatures-pod (0.2.4)
   - AxeSync (0.1.0):
     - AFNetworking (~> 3.0)
-    - bls-signatures-pod (= 0.2.4)
+    - bls-signatures-pod (= 0.2.5)
     - secp256k1_axe (= 0.1.2)
+  - bls-signatures-pod (0.2.5)
   - KVO-MVVM (0.5.1)
   - secp256k1_axe (0.1.2)
 
@@ -39,11 +39,11 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   AFNetworking: b6f891fdfaed196b46c7a83cf209e09697b94057
-  bls-signatures-pod: 37010863455881049f9aa80d8430226a74f727c1
-  AxeSync: 2cd9dd9759360a1586dd9b8b967c9610dd60423c
+  AxeSync: fa6990820da606c1942a4c9b0d345387fcb00f0d
+  bls-signatures-pod: 9eba0926055dfa6b8dd9b4ad2b647221ffb033a4
   KVO-MVVM: 4df3afd1f7ebcb69735458b85db59c4271ada7c6
-  secp256k1_axe: 7fdbc23e3e8a27d522ec211b874d97fb091c2b23
+  secp256k1_axe: 363ce7b53f2307a96a383b46480312468246ec35
 
-PODFILE CHECKSUM: cf2bb92d4a6ddabb748a367412c54f3005370ebc
+PODFILE CHECKSUM: 6cc99188b1da0ed49dd217ea6d4546acc9cb0254
 
 COCOAPODS: 1.5.3
