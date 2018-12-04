@@ -6,7 +6,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'secp256k1_axe'
-  s.version          = '0.1.2'
+  s.version          = '0.1.2.1'
   s.summary          = 'Optimized C library for EC operations on curve secp256k1'
   s.description      = <<-DESC
 Optimized C library for EC operations on curve secp256k1.
@@ -37,7 +37,7 @@ Configured with following defines: `USE_BASIC_CONFIG`, `ENABLE_MODULE_RECOVERY`,
   s.private_header_files = 'src/*.h'
   s.header_mappings_dir = '.'
 
-  s.pod_target_xcconfig = { 
+  s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '${PODS_ROOT}/**',
     'CLANG_WARN_DOCUMENTATION_COMMENTS' => 'NO',
     'GCC_WARN_64_TO_32_BIT_CONVERSION' => 'NO',
