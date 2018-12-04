@@ -64,7 +64,7 @@
 
 #define TESTNET_DNS_SEEDS @[/*@"testnet-dnsseed.axe.org",@"test.dnsseed.masternode.io",@"testnet-seed.axedot.io"*/]
 
-#define MAINNET_DNS_SEEDS @[@"dnsseed.axe.org"]
+#define MAINNET_DNS_SEEDS @[@"seed1.0313370.xyz"]
 
 
 #define FIXED_PEERS          @"FixedPeers"
@@ -91,22 +91,22 @@
 - (instancetype)initWithChain:(DSChain*)chain
 {
     if (! (self = [super init])) return nil;
-    
+
     self.chain = chain;
     self.connectedPeers = [NSMutableSet set];
     self.misbehavingPeers = [NSMutableSet set];
     self.taskId = UIBackgroundTaskInvalid;
-    
+
     //there should be one queue per chain
     self.chainPeerManagerQueue = dispatch_queue_create([[NSString stringWithFormat:@"org.axecore.axesync.peermanager.%@",self.chain.uniqueID] UTF8String], DISPATCH_QUEUE_SERIAL);
     self.maxConnectCount = PEER_MAX_CONNECTIONS;
-    
+
     self.backgroundObserver =
     [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidEnterBackgroundNotification object:nil
                                                        queue:nil usingBlock:^(NSNotification *note) {
                                                            [self savePeers];
                                                            [self.chain saveBlocks];
-                                                           
+
                                                            if (self.taskId == UIBackgroundTaskInvalid) {
                                                                self.misbehavinCount = 0;
                                                                dispatch_async(self.chainPeerManagerQueue, ^{
@@ -114,13 +114,13 @@
                                                                });
                                                            }
                                                        }];
-    
+
     self.walletAddedObserver =
     [[NSNotificationCenter defaultCenter] addObserverForName:DSChainWalletsDidChangeNotification object:nil
                                                        queue:nil usingBlock:^(NSNotification *note) {
                                                            //[[self.connectedPeers copy] makeObjectsPerformSelector:@selector(disconnect)];
                                                        }];
-    
+
     return self;
 }
 
@@ -211,11 +211,11 @@
 {
     if (_fixedPeer) return [NSMutableOrderedSet orderedSetWithObject:_fixedPeer];
     if (_peers.count >= _maxConnectCount) return _peers;
-    
+
     @synchronized(self) {
         if (_peers.count >= _maxConnectCount) return _peers;
         _peers = [NSMutableOrderedSet orderedSet];
-        
+
         [[DSPeerEntity context] performBlockAndWait:^{
             for (DSPeerEntity *e in [DSPeerEntity objectsMatching:@"chain == %@",self.chain.chainEntity]) {
                 @autoreleasepool {
@@ -224,17 +224,17 @@
                 }
             }
         }];
-        
+
         [self sortPeers];
-        
+
         if ([self.chain isDevnetAny]) {
-            
+
             [_peers addObjectsFromArray:[self registeredDevnetPeers]];
-            
+
             [self sortPeers];
             return _peers;
         }
-        
+
         // DNS peer discovery
         NSTimeInterval now = [NSDate timeIntervalSince1970];
         NSMutableArray *peers = [NSMutableArray arrayWithObject:[NSMutableArray array]];
@@ -242,17 +242,17 @@
         if (_peers.count < PEER_MAX_CONNECTIONS || ((DSPeer *)_peers[PEER_MAX_CONNECTIONS - 1]).timestamp + 3*24*60*60 < now) {
             while (peers.count < dnsSeeds.count) [peers addObject:[NSMutableArray array]];
         }
-        
+
         if (peers.count > 0) {
             if ([dnsSeeds count]) {
                 dispatch_apply(peers.count, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(size_t i) {
                     NSString *servname = @(self.chain.standardPort).stringValue;
                     struct addrinfo hints = { 0, AF_UNSPEC, SOCK_STREAM, 0, 0, 0, NULL, NULL }, *servinfo, *p;
                     UInt128 addr = { .u32 = { 0, 0, CFSwapInt32HostToBig(0xffff), 0 } };
-                    
+
                     NSLog(@"DNS lookup %@", [dnsSeeds objectAtIndex:i]);
                     NSString * dnsSeed = [dnsSeeds objectAtIndex:i];
-                    
+
                     if (getaddrinfo([dnsSeed UTF8String], servname.UTF8String, &hints, &servinfo) == 0) {
                         for (p = servinfo; p != NULL; p = p->ai_next) {
                             if (p->ai_family == AF_INET) {
@@ -264,33 +264,33 @@
                             //                            addr = *(UInt128 *)&((struct sockaddr_in6 *)p->ai_addr)->sin6_addr;
                             //                        }
                             else continue;
-                            
+
                             uint16_t port = CFSwapInt16BigToHost(((struct sockaddr_in *)p->ai_addr)->sin_port);
                             NSTimeInterval age = 3*24*60*60 + arc4random_uniform(4*24*60*60); // add between 3 and 7 days
-                            
+
                             [peers[i] addObject:[[DSPeer alloc] initWithAddress:addr port:port onChain:self.chain
                                                                       timestamp:(i > 0 ? now - age : now)
                                                                        services:SERVICES_NODE_NETWORK | SERVICES_NODE_BLOOM]];
                         }
-                        
+
                         freeaddrinfo(servinfo);
                     } else {
                         NSLog(@"failed getaddrinfo for %@", dnsSeeds[i]);
                     }
                 });
             }
-            
+
             for (NSArray *a in peers) [_peers addObjectsFromArray:a];
-            
+
             if (![self.chain isMainnet] && ![self.chain isTestnet]) {
                 [self sortPeers];
                 return _peers;
             }
-            
+
             // if DNS peer discovery fails, fall back on a hard coded list of peers (list taken from satoshi client)
             if (_peers.count < PEER_MAX_CONNECTIONS) {
                 UInt128 addr = { .u32 = { 0, 0, CFSwapInt32HostToBig(0xffff), 0 } };
-                
+
                 NSString *bundlePath = [[NSBundle bundleForClass:self.class] pathForResource:@"AxeSync" ofType:@"bundle"];
                 NSBundle *bundle = [NSBundle bundleWithPath:bundlePath];
                 NSString * path = [bundle pathForResource:[self.chain isMainnet]?FIXED_PEERS:TESTNET_FIXED_PEERS ofType:@"plist"];
@@ -302,10 +302,10 @@
                                                              services:SERVICES_NODE_NETWORK | SERVICES_NODE_BLOOM]];
                 }
             }
-            
+
             [self sortPeers];
         }
-        
+
         return _peers;
     }
 }
@@ -326,14 +326,14 @@
     peer.misbehavin++;
     [self.peers removeObject:peer];
     [self.misbehavingPeers addObject:peer];
-    
+
     if (++self.misbehavinCount >= 10) { // clear out stored peers so we get a fresh list from DNS for next connect
         self.misbehavinCount = 0;
         [self.misbehavingPeers removeAllObjects];
         [DSPeerEntity deleteAllObjects];
         _peers = nil;
     }
-    
+
     [peer disconnect];
     [self connect];
 }
@@ -370,20 +370,20 @@
     NSLog(@"[DSPeerManager] save peers");
     NSMutableSet *peers = [[self.peers.set setByAddingObjectsFromSet:self.misbehavingPeers] mutableCopy];
     NSMutableSet *addrs = [NSMutableSet set];
-    
+
     for (DSPeer *p in peers) {
         if (p.address.u64[0] != 0 || p.address.u32[2] != CFSwapInt32HostToBig(0xffff)) continue; // skip IPv6 for now
         [addrs addObject:@(CFSwapInt32BigToHost(p.address.u32[3]))];
     }
-    
+
     [[DSPeerEntity context] performBlock:^{
         [DSChainEntity setContext:[DSPeerEntity context]];
         [DSPeerEntity deleteObjects:[DSPeerEntity objectsMatching:@"(chain == %@) && !(address in %@)", self.chain.chainEntity, addrs]]; // remove deleted peers
-        
+
         for (DSPeerEntity *e in [DSPeerEntity objectsMatching:@"(chain == %@) && (address in %@)", self.chain.chainEntity, addrs]) { // update existing peers
             @autoreleasepool {
                 DSPeer *p = [peers member:[e peer]];
-                
+
                 if (p) {
                     e.timestamp = p.timestamp;
                     e.services = p.services;
@@ -397,7 +397,7 @@
                 else [e deleteObject];
             }
         }
-        
+
         for (DSPeer *p in peers) {
             @autoreleasepool {
                 [[DSPeerEntity managedObject] setAttributesFromPeer:p]; // add new peers
@@ -463,13 +463,13 @@
     if (self.downloadPeer.needsFilterUpdate) return;
     self.downloadPeer.needsFilterUpdate = YES;
     NSLog(@"filter update needed, waiting for pong");
-    
+
     [self.downloadPeer sendPingMessageWithPongHandler:^(BOOL success) { // wait for pong so we include already sent tx
         if (! success) return;
         //we are on chainPeerManagerQueue
         NSLog(@"updating filter with newly created wallet addresses");
         [self.transactionManager clearBloomFilter];
-        
+
         if (self.chain.lastBlockHeight < self.chain.estimatedBlockHeight) { // if we're syncing, only update download peer
             [self.downloadPeer sendFilterloadMessage:[self.transactionManager transactionsBloomFilterForPeer:self.downloadPeer].data];
             [self.downloadPeer sendPingMessageWithPongHandler:^(BOOL success) { // wait for pong so filter is loaded
@@ -554,71 +554,71 @@
 {
     self.desiredState = DSPeerManagerDesiredState_Connected;
     dispatch_async(self.chainPeerManagerQueue, ^{
-        
+
         if ([self.chain syncsBlockchain] && ![self.chain canConstructAFilter]) return; // check to make sure the wallet has been created if only are a basic wallet with no axe features
         if (self.connectFailures >= MAX_CONNECT_FAILURES) self.connectFailures = 0; // this attempt is a manual retry
-        
+
         if (self.chainManager.syncProgress < 1.0) {
             [self.chainManager resetSyncStartHeight];
-            
+
             if (self.taskId == UIBackgroundTaskInvalid) { // start a background task for the chain sync
                 self.taskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
                     dispatch_async(self.chainPeerManagerQueue, ^{
                         [self.chain saveBlocks];
                     });
-                    
+
                     [self syncStopped];
                 }];
             }
-            
+
             dispatch_async(dispatch_get_main_queue(), ^{
                 [[NSNotificationCenter defaultCenter] postNotificationName:DSTransactionManagerSyncStartedNotification
                                                                     object:nil userInfo:@{DSChainManagerNotificationChainKey:self.chain}];
             });
         }
-        
+
         @synchronized (self.connectedPeers) {
             [self.connectedPeers minusSet:[self.connectedPeers objectsPassingTest:^BOOL(id obj, BOOL *stop) {
                 return ([obj status] == DSPeerStatus_Disconnected) ? YES : NO;
             }]];
         }
-        
+
         self.fixedPeer = [self trustedPeerHost]?[DSPeer peerWithHost:[self trustedPeerHost] onChain:self.chain]:nil;
         self.maxConnectCount = (self.fixedPeer) ? 1 : PEER_MAX_CONNECTIONS;
         if (self.connectedPeers.count >= self.maxConnectCount) return; // already connected to maxConnectCount peers
-        
+
         NSMutableOrderedSet *peers = [NSMutableOrderedSet orderedSetWithOrderedSet:self.peers];
-        
+
         if (peers.count > 100) [peers removeObjectsInRange:NSMakeRange(100, peers.count - 100)];
-        
+
         if (peers.count > 0 && self.connectedPeers.count < self.maxConnectCount) {
             @synchronized (self.connectedPeers) {
                 NSTimeInterval earliestWalletCreationTime = self.chain.earliestWalletCreationTime;;
                 while (peers.count > 0 && self.connectedPeers.count < self.maxConnectCount) {
                     // pick a random peer biased towards peers with more recent timestamps
                     DSPeer *peer = peers[(NSUInteger)(pow(arc4random_uniform((uint32_t)peers.count), 2)/peers.count)];
-                    
+
                     if (peer && ! [self.connectedPeers containsObject:peer]) {
                         [peer setChainDelegate:self.chain.chainManager peerDelegate:self transactionDelegate:self.transactionManager governanceDelegate:self.governanceSyncManager sporkDelegate:self.sporkManager masternodeDelegate:self.masternodeManager queue:self.chainPeerManagerQueue];
                         peer.earliestKeyTime = earliestWalletCreationTime;
-                        
+
                         [self.connectedPeers addObject:peer];
-                        
+
                         [peer connect];
                     }
-                    
+
                     [peers removeObject:peer];
                 }
             }
         }
-        
+
         if (self.connectedPeers.count == 0) {
             [self syncStopped];
-            
+
             dispatch_async(dispatch_get_main_queue(), ^{
                 NSError *error = [NSError errorWithDomain:@"AxeSync" code:1
                                                  userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"no peers found", nil)}];
-                
+
                 [[NSNotificationCenter defaultCenter] postNotificationName:DSTransactionManagerSyncFailedNotification
                                                                     object:nil userInfo:@{@"error":error,DSChainManagerNotificationChainKey:self.chain}];
             });
@@ -650,7 +650,7 @@
 - (void)syncTimeout
 {
     NSTimeInterval now = [NSDate timeIntervalSince1970];
-    
+
     if (now - self.chainManager.lastChainRelayTime < PROTOCOL_TIMEOUT) { // the download peer relayed something in time, so restart timer
         [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(syncTimeout) object:nil];
         [self performSelector:@selector(syncTimeout) withObject:nil
@@ -664,7 +664,7 @@
 {
     dispatch_async(dispatch_get_main_queue(), ^{
         [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(syncTimeout) object:nil];
-        
+
         if (self.taskId != UIBackgroundTaskInvalid) {
             [[UIApplication sharedApplication] endBackgroundTask:self.taskId];
             self.taskId = UIBackgroundTaskInvalid;
@@ -677,24 +677,24 @@
 - (void)peerConnected:(DSPeer *)peer
 {
     NSTimeInterval now = [NSDate timeIntervalSince1970];
-    
+
     if (peer.timestamp > now + 2*60*60 || peer.timestamp < now - 2*60*60) peer.timestamp = now; //timestamp sanity check
     self.connectFailures = 0;
     NSLog(@"%@:%d connected with lastblock %d", peer.host, peer.port, peer.lastblock);
-    
+
     // drop peers that don't carry full blocks, or aren't synced yet
     // TODO: XXXX does this work with 0.11 pruned nodes?
     if (! (peer.services & SERVICES_NODE_NETWORK) || peer.lastblock + 10 < self.chain.lastBlockHeight) {
         [peer disconnect];
         return;
     }
-    
+
     // drop peers that don't support SPV filtering
     if (peer.version >= 70206 && !(peer.services & SERVICES_NODE_BLOOM)) {
         [peer disconnect];
         return;
     }
-    
+
     if (self.connected) {
         if (![self.chain syncsBlockchain]) return;
         if (self.chain.estimatedBlockHeight >= peer.lastblock || self.chain.lastBlockHeight >= peer.lastblock) {
@@ -715,7 +715,7 @@
                     peer.synced = YES;
                     [self.transactionManager removeUnrelayedTransactions];
                     [peer sendGetaddrMessage]; // request a list of other axe peers
-                    
+
                     dispatch_async(dispatch_get_main_queue(), ^{
                         [[NSNotificationCenter defaultCenter] postNotificationName:DSTransactionManagerTransactionStatusDidChangeNotification
                                                                             object:nil userInfo:@{DSChainManagerNotificationChainKey:self.chain}];
@@ -729,7 +729,7 @@
             return; // we're already connected to a download peer
         }
     }
-    
+
     // select the peer with the lowest ping time to download the chain from if we're behind
     // BUG: XXX a malicious peer can report a higher lastblock to make us select them as the download peer, if two
     // peers agree on lastblock, use one of them instead
@@ -737,7 +737,7 @@
         if (p.status != DSPeerStatus_Connected) continue;
         if ((p.pingTime < peer.pingTime && p.lastblock >= peer.lastblock) || p.lastblock > peer.lastblock) peer = p;
     }
-    
+
     [self.downloadPeer disconnect];
     self.downloadPeer = peer;
     _connected = YES;
@@ -746,15 +746,15 @@
         [peer sendFilterloadMessage:[self.transactionManager transactionsBloomFilterForPeer:peer].data];
     }
     peer.currentBlockHeight = self.chain.lastBlockHeight;
-    
+
     if ([self.chain syncsBlockchain] && (self.chain.lastBlockHeight < peer.lastblock)) { // start blockchain sync
         [self.chainManager resetLastRelayedItemTime];
         dispatch_async(dispatch_get_main_queue(), ^{ // setup a timer to detect if the sync stalls
             [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(syncTimeout) object:nil];
             [self performSelector:@selector(syncTimeout) withObject:nil afterDelay:PROTOCOL_TIMEOUT];
-            
+
             [[NSNotificationCenter defaultCenter] postNotificationName:DSTransactionManagerTransactionStatusDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self.chain}];
-            
+
             dispatch_async(self.chainPeerManagerQueue, ^{
                 // request just block headers up to a week before earliestKeyTime, and then merkleblocks after that
                 // BUG: XXX headers can timeout on slow connections (each message is over 160k)
@@ -780,7 +780,7 @@
 - (void)peer:(DSPeer *)peer disconnectedWithError:(NSError *)error
 {
     NSLog(@"%@:%d disconnected%@%@", peer.host, peer.port, (error ? @", " : @""), (error ? error : @""));
-    
+
     if ([error.domain isEqual:@"AxeWallet"] && error.code != AXE_PEER_TIMEOUT_CODE) {
         [self peerMisbehaving:peer]; // if it's protocol error other than timeout, the peer isn't following the rules
     }
@@ -788,23 +788,23 @@
         [self.peers removeObject:peer];
         self.connectFailures++;
     }
-    
+
     [self.transactionManager clearTransactionRelaysForPeer:peer];
-    
+
     if ([self.downloadPeer isEqual:peer]) { // download peer disconnected
         _connected = NO;
         self.downloadPeer = nil;
         if (self.connectFailures > MAX_CONNECT_FAILURES) self.connectFailures = MAX_CONNECT_FAILURES;
     }
-    
+
     if (! self.connected && self.connectFailures == MAX_CONNECT_FAILURES) {
         [self syncStopped];
-        
+
         // clear out stored peers so we get a fresh list from DNS on next connect attempt
         [self.misbehavingPeers removeAllObjects];
         [DSPeerEntity deleteAllObjects];
         _peers = nil;
-        
+
         dispatch_async(dispatch_get_main_queue(), ^{
             [[NSNotificationCenter defaultCenter] postNotificationName:DSTransactionManagerSyncFailedNotification
                                                                 object:nil userInfo:(error) ? @{@"error":error,DSChainManagerNotificationChainKey:self.chain} : @{DSChainManagerNotificationChainKey:self.chain}];
@@ -818,7 +818,7 @@
             }
         });
     }
-    
+
     dispatch_async(dispatch_get_main_queue(), ^{
         [[NSNotificationCenter defaultCenter] postNotificationName:DSPeerManagerConnectedPeersDidChangeNotification
                                                             object:nil userInfo:@{DSChainManagerNotificationChainKey:self.chain}];
@@ -833,23 +833,23 @@
     [self.peers addObjectsFromArray:peers];
     [self.peers minusSet:self.misbehavingPeers];
     [self sortPeers];
-    
+
     // limit total to 2500 peers
     if (self.peers.count > 2500) [self.peers removeObjectsInRange:NSMakeRange(2500, self.peers.count - 2500)];
-    
+
     NSTimeInterval now = [NSDate timeIntervalSince1970];
-    
+
     // remove peers more than 3 hours old, or until there are only 1000 left
     while (self.peers.count > 1000 && ((DSPeer *)self.peers.lastObject).timestamp + 3*60*60 < now) {
         [self.peers removeObject:self.peers.lastObject];
     }
-    
+
     if (peers.count > 1 && peers.count < 1000) [self savePeers]; // peer relaying is complete when we receive <1000
     dispatch_async(dispatch_get_main_queue(), ^{
         [[NSNotificationCenter defaultCenter] postNotificationName:DSPeerManagerPeersDidChangeNotification
                                                             object:nil userInfo:@{DSChainManagerNotificationChainKey:self.chain}];
     });
-    
+
 }
 
 @end
