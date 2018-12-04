@@ -3,7 +3,7 @@
 //  AxeSync_Example
 //
 //  Created by Sam Westrich on 6/23/18.
-//  Copyright © 2018 Axe Core Group. All rights reserved.
+//  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
 #import "DSSendAmountViewController.h"
@@ -176,7 +176,7 @@
                 
                 __block BOOL waiting = YES, sent = NO;
                 
-                [[[DSChainManager sharedInstance] peerManagerForChain:self.account.wallet.chain] publishTransaction:tx completion:^(NSError *error) {
+                [[[DSChainsManager sharedInstance] chainManagerForChain:self.account.wallet.chain].transactionManager publishTransaction:tx completion:^(NSError *error) {
                     if (error) {
                         if (! waiting && ! sent) {
                             UIAlertController * alert = [UIAlertController
@@ -196,7 +196,7 @@
                     }
                     else if (! sent) { //TODO: show full screen sent dialog with tx info, "you sent b10,000 to bob"
                         sent = YES;
-                        tx.timestamp = [NSDate timeIntervalSinceReferenceDate];
+                        tx.timestamp = [NSDate timeIntervalSince1970];
                         [self.account registerTransaction:tx];
                         [self.view addSubview:[[[BRBubbleView viewWithText:NSLocalizedString(@"sent!", nil)
                                                                     center:CGPointMake(self.view.bounds.size.width/2, self.view.bounds.size.height/2)] popIn]

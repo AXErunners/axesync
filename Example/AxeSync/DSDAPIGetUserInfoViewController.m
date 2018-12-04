@@ -3,7 +3,7 @@
 //  AxeSync_Example
 //
 //  Created by Sam Westrich on 9/14/18.
-//  Copyright © 2018 Axe Core Group. All rights reserved.
+//  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
 #import "DSDAPIGetUserInfoViewController.h"
@@ -77,13 +77,13 @@
 
 -(IBAction)search:(id)sender {
     if (self.usernameCell.valueTextField.text && ![self.usernameCell.valueTextField.text isEqualToString:@""]) {
-        [self.chainPeerManager.DAPIPeerManager getUserByUsername:self.usernameCell.valueTextField.text withSuccess:^(NSDictionary *userInfo) {
+        [self.chainManager.DAPIPeerManager getUserByUsername:self.usernameCell.valueTextField.text withSuccess:^(NSDictionary *userInfo) {
             NSLog(@"%@",userInfo);
         } failure:^(NSError *error) {
             NSLog(@"%@",error);
         }];
     } else if (self.regTxIdCell.valueTextField.text && ![self.regTxIdCell.valueTextField.text isEqualToString:@""]) {
-        [self.chainPeerManager.DAPIPeerManager getUserByUsername:self.regTxIdCell.valueTextField.text withSuccess:^(NSDictionary *userInfo) {
+        [self.chainManager.DAPIPeerManager getUserByUsername:self.regTxIdCell.valueTextField.text withSuccess:^(NSDictionary *userInfo) {
             NSLog(@"%@",userInfo);
         } failure:^(NSError *error) {
             NSLog(@"%@",error);

@@ -3,7 +3,7 @@
 //  AxeSync_Example
 //
 //  Created by Sam Westrich on 5/18/18.
-//  Copyright © 2018 Axe Core Group. All rights reserved.
+//  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
 #import "DSWalletInputPhraseViewController.h"
@@ -11,6 +11,7 @@
 
 @interface DSWalletInputPhraseViewController ()
 @property (strong, nonatomic) IBOutlet UITextView *inputSeedPhraseTextView;
+@property (strong, nonatomic) NSString * randomPassphrase;
 - (IBAction)generateRandomPassphrase:(id)sender;
 @property (strong, nonatomic) IBOutlet UIBarButtonItem *saveButton;
 - (IBAction)createWallet:(id)sender;
@@ -41,7 +42,8 @@
  */
 
 - (IBAction)generateRandomPassphrase:(id)sender {
-    self.inputSeedPhraseTextView.text = [DSWallet generateRandomSeed];
+    self.randomPassphrase = [DSWallet generateRandomSeed];
+    self.inputSeedPhraseTextView.text = self.randomPassphrase;
     self.saveButton.enabled = TRUE;
 }
 
@@ -56,7 +58,8 @@
 
 - (IBAction)createWallet:(id)sender {
     if ([[DSBIP39Mnemonic sharedInstance] phraseIsValid:self.inputSeedPhraseTextView.text]) {
-        DSWallet * wallet = [DSWallet standardWalletWithSeedPhrase:self.inputSeedPhraseTextView.text setCreationDate:[NSDate timeIntervalSinceReferenceDate] forChain:self.chain storeSeedPhrase:YES];
+        NSTimeInterval creationDate = [self.inputSeedPhraseTextView.text isEqualToString:self.randomPassphrase]?[NSDate timeIntervalSince1970]:0;
+        DSWallet * wallet = [DSWallet standardWalletWithSeedPhrase:self.inputSeedPhraseTextView.text setCreationDate:creationDate forChain:self.chain storeSeedPhrase:YES];
         [self.chain registerWallet:wallet];
         [self.navigationController popViewControllerAnimated:TRUE];
     } else if ([self.inputSeedPhraseTextView.text isValidAxeExtendedPublicKeyOnChain:self.chain]) {

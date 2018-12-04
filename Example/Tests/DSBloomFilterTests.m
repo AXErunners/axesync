@@ -3,7 +3,7 @@
 //  AxeSync_Tests
 //
 //  Created by Andrew Podkovyrin on 20/06/2018.
-//  Copyright © 2018 Axe Core Group. All rights reserved.
+//  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
 #import <XCTest/XCTest.h>
@@ -39,7 +39,7 @@
                                                                   flags:BLOOM_UPDATE_ALL];
     
     [f insertData:@"99108ad8ed9bb6274d3980bab5a85c048f0950c8".hexToData];
-    NSLog(@"fpRate = %.5f",f.falsePositiveRate);
+    NSLog(@"transactionsBloomFilterFalsePositiveRate = %.5f",f.falsePositiveRate);
     XCTAssertTrue([f containsData:@"99108ad8ed9bb6274d3980bab5a85c048f0950c8".hexToData],
                   @"[DSBloomFilter containsData:]");
     
@@ -48,12 +48,12 @@
                    @"[DSBloomFilter containsData:]");
     
     [f insertData:@"b5a2c786d9ef4658287ced5914b37a1b4aa32eee".hexToData];
-    NSLog(@"fpRate = %.5f",f.falsePositiveRate);
+    NSLog(@"transactionsBloomFilterFalsePositiveRate = %.5f",f.falsePositiveRate);
     XCTAssertTrue([f containsData:@"b5a2c786d9ef4658287ced5914b37a1b4aa32eee".hexToData],
                   @"[DSBloomFilter containsData:]");
     
     [f insertData:@"b9300670b4c5366e95b2699e8b18bc75e5f729c5".hexToData];
-    NSLog(@"fpRate = %.5f",f.falsePositiveRate);
+    NSLog(@"transactionsBloomFilterFalsePositiveRate = %.5f",f.falsePositiveRate);
     XCTAssertTrue([f containsData:@"b9300670b4c5366e95b2699e8b18bc75e5f729c5".hexToData],
                   @"[DSBloomFilter containsData:]");
     

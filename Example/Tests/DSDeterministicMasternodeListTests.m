@@ -3,7 +3,7 @@
 //  AxeSync_Tests
 //
 //  Created by Sam Westrich on 7/18/18.
-//  Copyright © 2018 Axe Core Group. All rights reserved.
+//  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
 #import <Foundation/Foundation.h>

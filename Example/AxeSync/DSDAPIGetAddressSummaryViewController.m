@@ -3,7 +3,7 @@
 //  AxeSync_Example
 //
 //  Created by Sam Westrich on 9/13/18.
-//  Copyright © 2018 Axe Core Group. All rights reserved.
+//  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
 #import "DSDAPIGetAddressSummaryViewController.h"
@@ -28,8 +28,8 @@
 
 - (IBAction)checkAddress:(id)sender {
     NSString * address = self.addressTextField.text;
-    if ([address isValidAxeAddressOnChain:self.chainPeerManager.chain]) {
-        [self.chainPeerManager.DAPIPeerManager getAddressSummary:address withSuccess:^(NSDictionary *addressInfo) {
+    if ([address isValidAxeAddressOnChain:self.chainManager.chain]) {
+        [self.chainManager.DAPIPeerManager getAddressSummary:address withSuccess:^(NSDictionary *addressInfo) {
         NSLog(@"%@",addressInfo);
     } failure:^(NSError *error) {
         [self.view addSubview:[[[BRBubbleView viewWithText:[NSString stringWithFormat:@"%@",error.localizedDescription]

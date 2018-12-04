@@ -34,7 +34,7 @@
 #import "DSKey.h"
 #import "NSData+Bitcoin.h"
 #import "DSEnvironment.h"
-#import "DSChainManager.h"
+#import "DSChainsManager.h"
 #import "DSBlockchainUser.h"
 #import "DSBlockchainUserRegistrationTransaction.h"
 #import "DSBlockchainUserResetTransaction.h"
@@ -42,6 +42,7 @@
 
 #define SEED_ENTROPY_LENGTH   (128/8)
 #define WALLET_CREATION_TIME_KEY   @"WALLET_CREATION_TIME_KEY"
+#define WALLET_CREATION_GUESS_TIME_KEY @"WALLET_CREATION_GUESS_TIME_KEY"
 #define AUTH_PRIVKEY_KEY    @"authprivkey"
 #define WALLET_MNEMONIC_KEY        @"WALLET_MNEMONIC_KEY"
 #define WALLET_MASTER_PUBLIC_KEY        @"WALLET_MASTER_PUBLIC_KEY"
@@ -53,6 +54,7 @@
 @property (nonatomic, strong) NSMutableDictionary * mAccounts;
 @property (nonatomic, copy) NSString * uniqueID;
 @property (nonatomic, assign) NSTimeInterval walletCreationTime;
+@property (nonatomic, assign) NSTimeInterval guessedWalletCreationTime;
 @property (nonatomic, strong) NSMutableDictionary<NSString *,NSNumber *> * mBlockchainUsers;
 @property (nonatomic, strong) SeedRequestBlock seedRequestBlock;
 
@@ -144,7 +146,7 @@
             completion(nil);
             return;
         }
-        DSWallet * wallet = [self.class standardWalletWithSeedPhrase:seedPhrase setCreationDate:self.walletCreationTime forChain:chain storeSeedPhrase:YES];
+        DSWallet * wallet = [self.class standardWalletWithSeedPhrase:seedPhrase setCreationDate:(self.walletCreationTime == BIP39_CREATION_TIME)?0:self.walletCreationTime forChain:chain storeSeedPhrase:YES];
         completion(wallet);
     }];
 }
@@ -163,8 +165,54 @@
     return [NSString stringWithFormat:@"%@_%@",WALLET_CREATION_TIME_KEY,uniqueID];
 }
 
++(NSString*)creationGuessTimeUniqueIDForUniqueID:(NSString*)uniqueID {
+    return [NSString stringWithFormat:@"%@_%@",WALLET_CREATION_GUESS_TIME_KEY,uniqueID];
+}
+
 -(NSString*)creationTimeUniqueID {
     return [DSWallet creationTimeUniqueIDForUniqueID:self.uniqueID];
+}
+
+-(NSString*)creationGuessTimeUniqueID {
+    return [DSWallet creationGuessTimeUniqueIDForUniqueID:self.uniqueID];
+}
+
+// MARK: - Wallet Creation Time
+
+-(NSTimeInterval)walletCreationTime {
+    if (_walletCreationTime) return _walletCreationTime;
+    NSData *d = getKeychainData(self.creationTimeUniqueID, nil);
+    
+    if (d.length == sizeof(NSTimeInterval)) {
+        NSTimeInterval potentialWalletCreationTime = *(const NSTimeInterval *)d.bytes;
+        if (potentialWalletCreationTime != BIP39_CREATION_TIME) {
+            _walletCreationTime = potentialWalletCreationTime;
+            return _walletCreationTime;
+        }
+    }
+    if ([DSEnvironment sharedInstance].watchOnly) return BIP39_WALLET_UNKNOWN_CREATION_TIME; //0
+    if ([self guessedWalletCreationTime]) return [self guessedWalletCreationTime];
+    return BIP39_CREATION_TIME;
+}
+
+-(void)wipeWalletInfo {
+    _walletCreationTime = 0;
+    setKeychainData(nil, self.creationTimeUniqueID, NO);
+    setKeychainData(nil, self.creationGuessTimeUniqueID,NO);
+}
+
+-(NSTimeInterval)guessedWalletCreationTime {
+    NSData *d = getKeychainData(self.creationGuessTimeUniqueID, nil);
+    
+    if (d.length == sizeof(NSTimeInterval)) return *(const NSTimeInterval *)d.bytes;
+    return BIP39_WALLET_UNKNOWN_CREATION_TIME; //0
+}
+
+-(void)setGuessedWalletCreationTime:(NSTimeInterval)guessedWalletCreationTime {
+    if (_walletCreationTime) return;
+    if (!setKeychainData([NSData dataWithBytes:&guessedWalletCreationTime length:sizeof(guessedWalletCreationTime)], [self creationGuessTimeUniqueID], NO)) {
+        NSAssert(FALSE, @"error setting wallet guessed creation time");
+    }
 }
 
 // MARK: - Seed
@@ -192,15 +240,6 @@
     return hasSeed;
 }
 
--(NSTimeInterval)walletCreationTime {
-    if (_walletCreationTime) return _walletCreationTime;
-    // interval since refrence date, 00:00:00 01/01/01 GMT
-    NSData *d = getKeychainData(self.creationTimeUniqueID, nil);
-    
-    if (d.length == sizeof(NSTimeInterval)) return *(const NSTimeInterval *)d.bytes;
-    return ([DSEnvironment sharedInstance].watchOnly) ? 0 : BIP39_CREATION_TIME;
-}
-
 + (NSString*)setSeedPhrase:(NSString *)seedPhrase createdAt:(NSTimeInterval)createdAt withAccounts:(NSArray*)accounts storeOnKeychain:(BOOL)storeOnKeychain forChain:(DSChain*)chain
 {
     if (!seedPhrase) return nil;
@@ -220,7 +259,7 @@
         [uniqueIDData appendData:publicKey];
         uniqueID = [NSData dataWithUInt256:[uniqueIDData SHA256]].shortHexString; //one way injective function
         if (storeOnKeychain) {
-            if (! setKeychainString(seedPhrase, [DSWallet mnemonicUniqueIDForUniqueID:uniqueID], YES) || ! setKeychainData([NSData dataWithBytes:&createdAt length:sizeof(createdAt)], [DSWallet creationTimeUniqueIDForUniqueID:uniqueID], NO)) {
+            if (! setKeychainString(seedPhrase, [DSWallet mnemonicUniqueIDForUniqueID:uniqueID], YES) || (createdAt && !setKeychainData([NSData dataWithBytes:&createdAt length:sizeof(createdAt)], [DSWallet creationTimeUniqueIDForUniqueID:uniqueID], NO))) {
                 NSAssert(FALSE, @"error setting wallet seed");
                 
                 return nil;
@@ -248,7 +287,7 @@
             } else {
                 // BUG: if user manually chooses to enter pin, the Touch ID spending limit is reset, but the tx being authorized
                 // still counts towards the next Touch ID spending limit
-                if (! touchid) setKeychainInt(self.totalSent + amount + [DSPriceManager sharedInstance].spendingLimit, SPEND_LIMIT_KEY, NO);
+                if (! touchid) setKeychainInt(self.totalSent + amount + [DSChainsManager sharedInstance].spendingLimit, SPEND_LIMIT_KEY, NO);
                 completion([[DSBIP39Mnemonic sharedInstance] deriveKeyFromPhrase:getKeychainString(self.mnemonicUniqueID, nil) withPassphrase:nil]);
             }
         }];
@@ -446,6 +485,7 @@
 }
 
 - (void)wipeBlockchainInfo {
+    [self wipeWalletInfo];
     for (DSAccount * account in self.accounts) {
         [account wipeBlockchainInfo];
     }
@@ -503,7 +543,7 @@
     [keyChainDictionary removeObjectForKey:blockchainUser.username];
     setKeychainDict(keyChainDictionary, self.walletBlockchainUsersKey, NO);
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainBlockchainUsersDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:self.chain}];
+        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainBlockchainUsersDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self.chain}];
     });
 }
 -(void)addBlockchainUser:(DSBlockchainUser *)blockchainUser {
@@ -521,7 +561,7 @@
     [keyChainDictionary setObject:@(blockchainUser.index) forKey:blockchainUser.username];
     setKeychainDict(keyChainDictionary, self.walletBlockchainUsersKey, NO);
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainBlockchainUsersDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:self.chain}];
+        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainBlockchainUsersDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self.chain}];
     });
 }
 

@@ -228,7 +228,7 @@
     NSTextAttachment *axeSymbol = [[NSTextAttachment alloc] init];
     
     axeSymbol.bounds = CGRectMake(0, 0, axeSymbolSize.width, axeSymbolSize.height);
-    axeSymbol.image = [[UIImage imageNamed:@"Axe-Light"] imageWithTintColor:color];
+    axeSymbol.image = [[UIImage imageNamed:@"Axe-Light"] ds_imageWithTintColor:color];
     return [NSAttributedString attributedStringWithAttachment:axeSymbol];
 }
 

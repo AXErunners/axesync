@@ -3,7 +3,7 @@
 //  AxeSync_Tests
 //
 //  Created by Andrew Podkovyrin on 27/06/2018.
-//  Copyright © 2018 Axe Core Group. All rights reserved.
+//  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
 #import <XCTest/XCTest.h>

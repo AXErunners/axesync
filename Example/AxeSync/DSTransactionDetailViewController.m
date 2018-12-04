@@ -3,7 +3,7 @@
 //  AxeSync_Example
 //
 //  Created by Sam Westrich on 7/8/18.
-//  Copyright © 2018 Axe Core Group. All rights reserved.
+//  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
 #import "DSTransactionDetailViewController.h"
@@ -40,7 +40,7 @@
     
     if (! self.txStatusObserver) {
         self.txStatusObserver =
-        [[NSNotificationCenter defaultCenter] addObserverForName:DSChainPeerManagerTxStatusNotification object:nil
+        [[NSNotificationCenter defaultCenter] addObserverForName:DSTransactionManagerTransactionStatusDidChangeNotification object:nil
                                                            queue:nil usingBlock:^(NSNotification *note) {
                                                                DSTransaction *tx = [self.transaction.chain
                                                                                     transactionForHash:self.transaction.txHash];
@@ -191,9 +191,9 @@
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     DSPriceManager * walletManager = [DSPriceManager sharedInstance];
-    DSChainPeerManager * peerManager = [[DSChainManager sharedInstance] peerManagerForChain:self.transaction.chain];
-    NSUInteger peerCount = peerManager.connectedPeerCount;
-    NSUInteger relayCount = [peerManager relayCountForTransaction:self.transaction.txHash];
+    DSChainManager * chainManager = [[DSChainsManager sharedInstance] chainManagerForChain:self.transaction.chain];
+    NSUInteger peerCount = chainManager.peerManager.connectedPeerCount;
+    NSUInteger relayCount = [chainManager.transactionManager relayCountForTransaction:self.transaction.txHash];
     DSAccount * account = self.transaction.account;
     NSString *s;
     

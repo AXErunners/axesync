@@ -3,7 +3,7 @@
 //  AxeSync_Example
 //
 //  Created by Sam Westrich on 9/13/18.
-//  Copyright © 2018 Axe Core Group. All rights reserved.
+//  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
 #import "DSDAPICallsViewController.h"
@@ -33,7 +33,7 @@
 }
 
 -(void)getBestBlockHeight:(id)sender {
-    [self.chainPeerManager.DAPIPeerManager getBestBlockHeightWithSuccess:^(NSNumber *blockHeight) {
+    [self.chainManager.DAPIPeerManager getBestBlockHeightWithSuccess:^(NSNumber *blockHeight) {
         [self.view addSubview:[[[BRBubbleView viewWithText:[NSString stringWithFormat:@"%@",blockHeight]
                                                     center:CGPointMake(self.view.bounds.size.width/2, self.view.bounds.size.height/2)] popIn]
                                popOutAfterDelay:2.0]];
@@ -65,10 +65,10 @@
 -(void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
     if ([segue.identifier isEqualToString:@"GetAddressSummarySegue"]) {
         DSDAPIGetAddressSummaryViewController * DAPIGetAddressSummaryViewController = (DSDAPIGetAddressSummaryViewController*)segue.destinationViewController;
-        DAPIGetAddressSummaryViewController.chainPeerManager = self.chainPeerManager;
+        DAPIGetAddressSummaryViewController.chainManager = self.chainManager;
     } else if ([segue.identifier isEqualToString:@"GetUserInfoSegue"]) {
         DSDAPIGetUserInfoViewController * DAPIGetUserInfoViewController = (DSDAPIGetUserInfoViewController*)segue.destinationViewController;
-        DAPIGetUserInfoViewController.chainPeerManager = self.chainPeerManager;
+        DAPIGetUserInfoViewController.chainManager = self.chainManager;
     }
 }
 

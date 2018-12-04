@@ -3,7 +3,7 @@
 //  AxeSync_Example
 //
 //  Created by Sam Westrich on 6/5/18.
-//  Copyright © 2018 Axe Core Group. All rights reserved.
+//  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
 #import "DSBlockchainExplorerViewController.h"
@@ -141,7 +141,7 @@
     DSMerkleBlockEntity *merkleBlockEntity = [self.fetchedResultsController objectAtIndexPath:indexPath];
     cell.blockHeightLabel.text = [NSString stringWithFormat:@"%u",merkleBlockEntity.height];
     cell.blockHashLabel.text = merkleBlockEntity.blockHash.reverse.hexString;
-    NSDate * date = [NSDate dateWithTimeIntervalSinceReferenceDate:merkleBlockEntity.timestamp];
+    NSDate * date = [NSDate dateWithTimeIntervalSince1970:merkleBlockEntity.timestamp];
     NSDateFormatter * dateFormatter = [[NSDateFormatter alloc] init];
     [dateFormatter setDateStyle:NSDateFormatterShortStyle];
     [dateFormatter setTimeStyle:NSDateFormatterMediumStyle];

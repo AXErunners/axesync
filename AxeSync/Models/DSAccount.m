@@ -41,7 +41,7 @@
 #import "DSTxOutputEntity+CoreDataClass.h"
 
 #import "DSDerivationPathEntity+CoreDataClass.h"
-#import "DSChainPeerManager.h"
+#import "DSPeerManager.h"
 #import "NSData+Bitcoin.h"
 #import "NSMutableData+Axe.h"
 #import "NSManagedObject+Sugar.h"
@@ -54,6 +54,7 @@
 #import "DSInsightManager.h"
 #import "DSKey+BIP38.h"
 #import "NSDate+Utils.h"
+#import "DSBIP39Mnemonic.h"
 
 #define AUTH_SWEEP_KEY @"AUTH_SWEEP_KEY"
 #define AUTH_SWEEP_FEE @"AUTH_SWEEP_FEE"
@@ -87,6 +88,8 @@
 @property (nonatomic, strong) DSDerivationPath * bip32DerivationPath;
 
 @property (nonatomic, assign) BOOL isViewOnlyAccount;
+
+@property (nonatomic, assign) UInt256 firstTransactionHash;
 
 
 @end
@@ -162,10 +165,10 @@
         [DSTxInputEntity setContext:self.moc];
         [DSTxOutputEntity setContext:self.moc];
         [DSDerivationPathEntity setContext:self.moc];
-        if ([DSTransactionEntity countAllObjects] > self.allTx.count) {
+        if ([DSTransactionEntity countObjectsMatching:@"transactionHash.chain == %@",self.wallet.chain.chainEntity] > self.allTx.count) {
             // pre-fetch transaction inputs and outputs
-            [DSTxInputEntity allObjects];
-            [DSTxOutputEntity allObjects];
+            [DSTxInputEntity objectsMatching:@"transaction.transactionHash.chain == %@",self.wallet.chain.chainEntity];
+            [DSTxOutputEntity objectsMatching:@"transaction.transactionHash.chain == %@",self.wallet.chain.chainEntity];
             DSAccountEntity * accountEntity = [DSAccountEntity accountEntityForWalletUniqueID:self.wallet.uniqueID index:self.accountNumber];
             for (DSTxOutputEntity *e in accountEntity.transactionOutputs) {
                 @autoreleasepool {
@@ -691,7 +694,9 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
     
     transaction.isInstant = isInstant;
     
-    feeAmount = [self.wallet.chain feeForTxSize:transaction.size + cpfpSize isInstant:isInstant inputCount:transaction.inputHashes.count]; // assume we will add a change output
+    if (!feeAmount) {
+        feeAmount = [self.wallet.chain feeForTxSize:transaction.size + TX_OUTPUT_SIZE + cpfpSize isInstant:isInstant inputCount:transaction.inputHashes.count]; // assume we will add a change output
+    }
     
     if (balance < amount + feeAmount) { // insufficient funds
         NSLog(@"Insufficient funds. %llu is less than transaction amount:%llu", balance, amount + feeAmount);
@@ -724,7 +729,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
         *internalIndexes = [NSMutableOrderedSet orderedSet];
         for (NSString *addr in transaction.inputAddresses) {
             
-            if (!(derivationPath.type == DSDerivationPathFundsType_Clear || derivationPath.type == DSDerivationPathFundsType_Anonymous)) continue;
+            if (!(derivationPath.type == DSDerivationPathType_ClearFunds || derivationPath.type == DSDerivationPathType_AnonymousFunds)) continue;
             NSInteger index = [derivationPath.allChangeAddresses indexOfObject:addr];
             if (index != NSNotFound) {
                 [internalIndexes addObject:@(index)];
@@ -777,24 +782,44 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
     return NO;
 }
 
+-(BOOL)checkIsFirstTransaction:(DSTransaction *)transaction {
+    for (DSDerivationPath * derivationPath in self.derivationPaths) {
+        if ([derivationPath type] & DSDerivationPathType_IsForFunds)  {
+            NSString * firstAddress = [derivationPath addressAtIndex:0 internal:NO];
+            if ([transaction.outputAddresses containsObject:firstAddress]) {
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
+
 // records the transaction in the account, or returns false if it isn't associated with the wallet
 - (BOOL)registerTransaction:(DSTransaction *)transaction
 {
+    NSLog(@"[DSAccount] registering transaction %@", transaction);
     UInt256 txHash = transaction.txHash;
     NSValue *hash = uint256_obj(txHash);
     
     if (uint256_is_zero(txHash)) return NO;
     
     if (![self containsTransaction:transaction]) {
-        if (transaction.blockHeight == TX_UNCONFIRMED) self.allTx[hash] = transaction;
+        //this transaction is not meant for this account
+        if (transaction.blockHeight == TX_UNCONFIRMED) {
+            if ([self checkIsFirstTransaction:transaction]) _firstTransactionHash = txHash; //it's okay if this isn't really the first, as it will be close enough (500 blocks close)
+            self.allTx[hash] = transaction;
+        }
         return NO;
     }
     
-    if (self.allTx[hash] != nil) return YES;
+    if (self.allTx[hash] != nil) {
+        NSLog(@"[DSAccount] transaction already registered %@", transaction);
+        return YES;
+    }
     
     //TODO: handle tx replacement with input sequence numbers (now replacements appear invalid until confirmation)
     NSLog(@"[DSAccount] received unseen transaction %@", transaction);
-    
+    if ([self checkIsFirstTransaction:transaction]) _firstTransactionHash = txHash; //it's okay if this isn't really the first, as it will be close enough (500 blocks close)
     self.allTx[hash] = transaction;
     [self.transactions insertObject:transaction atIndex:0];
     for (NSString * address in transaction.inputAddresses) {
@@ -825,7 +850,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
         if ([DSTransactionEntity countObjectsMatching:@"transactionHash.txHash == %@", uint256_data(txHash)] == 0) {
             
             DSTransactionEntity * transactionEntity = [transactionEntityClass managedObject];
-            [transactionEntity setAttributesFromTx:transaction];
+            [transactionEntity setAttributesFromTransaction:transaction];
             [transactionEntityClass saveContext];
         }
     }];
@@ -1069,7 +1094,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 {
     NSMutableArray *hashes = [NSMutableArray array], *updated = [NSMutableArray array];
     BOOL needsUpdate = NO;
-    
+    NSTimeInterval walletCreationTime = [self.wallet walletCreationTime];
     for (NSValue *hash in txHashes) {
         DSTransaction *tx = self.allTx[hash];
         UInt256 h;
@@ -1082,6 +1107,10 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
             [hash getValue:&h];
             [hashes addObject:[NSData dataWithBytes:&h length:sizeof(h)]];
             [updated addObject:hash];
+            
+            if ((walletCreationTime == BIP39_WALLET_UNKNOWN_CREATION_TIME || walletCreationTime == BIP39_CREATION_TIME) && uint256_eq(h, _firstTransactionHash)) {
+                [self.wallet setGuessedWalletCreationTime:tx.timestamp - HOUR_TIME_INTERVAL - (DAY_TIME_INTERVAL/arc4random()%DAY_TIME_INTERVAL)];
+            }
             if ([self.pendingTx containsObject:hash] || [self.invalidTx containsObject:hash]) needsUpdate = YES;
         }
         else if (height != TX_UNCONFIRMED) [self.allTx removeObjectForKey:hash]; // remove confirmed non-wallet tx
@@ -1169,12 +1198,12 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
     DSKey *key = [DSKey keyWithPrivateKey:privKey onChain:self.wallet.chain];
     NSString * address = [key addressForChain:self.wallet.chain];
     if (! address) {
-        completion(nil, 0, [NSError errorWithDomain:@"AxeWallet" code:187 userInfo:@{NSLocalizedDescriptionKey:
+        completion(nil, 0, [NSError errorWithDomain:@"AxeSync" code:187 userInfo:@{NSLocalizedDescriptionKey:
                                                                                           DSLocalizedString(@"not a valid private key", nil)}]);
         return;
     }
     if ([self.wallet containsAddress:address]) {
-        completion(nil, 0, [NSError errorWithDomain:@"AxeWallet" code:187 userInfo:@{NSLocalizedDescriptionKey:
+        completion(nil, 0, [NSError errorWithDomain:@"AxeSync" code:187 userInfo:@{NSLocalizedDescriptionKey:
                                                                                           DSLocalizedString(@"this private key is already in your wallet", nil)}]);
         return;
     }
@@ -1200,7 +1229,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
                                                   }
                                                   
                                                   if (balance == 0) {
-                                                      completion(nil, 0, [NSError errorWithDomain:@"AxeWallet" code:417 userInfo:@{NSLocalizedDescriptionKey:
+                                                      completion(nil, 0, [NSError errorWithDomain:@"AxeSync" code:417 userInfo:@{NSLocalizedDescriptionKey:
                                                                                                                                         DSLocalizedString(@"this private key is empty", nil)}]);
                                                       return;
                                                   }
@@ -1209,7 +1238,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
                                                   if (fee) feeAmount = [self.wallet.chain feeForTxSize:tx.size + 34 + (key.publicKey.length - 33)*tx.inputHashes.count isInstant:false inputCount:0]; //input count doesn't matter for non instant transactions
                                                   
                                                   if (feeAmount + self.wallet.chain.minOutputAmount > balance) {
-                                                      completion(nil, 0, [NSError errorWithDomain:@"AxeWallet" code:417 userInfo:@{NSLocalizedDescriptionKey:
+                                                      completion(nil, 0, [NSError errorWithDomain:@"AxeSync" code:417 userInfo:@{NSLocalizedDescriptionKey:
                                                                                                                                         DSLocalizedString(@"transaction fees would cost more than the funds available on this "
                                                                                                                                                           "private key (due to tiny \"dust\" deposits)",nil)}]);
                                                       return;
@@ -1218,7 +1247,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
                                                   [tx addOutputAddress:self.receiveAddress amount:balance - feeAmount];
                                                   
                                                   if (! [tx signWithPrivateKeys:@[privKey]]) {
-                                                      completion(nil, 0, [NSError errorWithDomain:@"AxeWallet" code:401 userInfo:@{NSLocalizedDescriptionKey:
+                                                      completion(nil, 0, [NSError errorWithDomain:@"AxeSync" code:401 userInfo:@{NSLocalizedDescriptionKey:
                                                                                                                                         DSLocalizedString(@"error signing transaction", nil)}]);
                                                       return;
                                                   }

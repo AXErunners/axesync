@@ -36,14 +36,14 @@
 #import "DSPriceManager.h"
 #import "DSChainEntity+CoreDataClass.h"
 #import "DSWallet.h"
-#import "DSChainPeerManager.h"
+#import "DSPeerManager.h"
 #import "DSChainEntity+CoreDataClass.h"
 #import "NSCoder+Axe.h"
 #import "DSAccount.h"
 #import "DSBIP39Mnemonic.h"
 #import "DSDerivationPath.h"
 #import "DSOptionsManager.h"
-#import "DSChainManager.h"
+#import "DSChainsManager.h"
 #import "DSMasternodeManager.h"
 #import "DSDerivationPathEntity+CoreDataProperties.h"
 #import "NSMutableData+Axe.h"
@@ -51,6 +51,7 @@
 #import "DSSporkManager.h"
 #import "DSSimplifiedMasternodeEntry.h"
 #import "DSSimplifiedMasternodeEntryEntity+CoreDataProperties.h"
+#import "DSChainManager.h"
 
 typedef const struct checkpoint { uint32_t height; const char *checkpointHash; uint32_t timestamp; uint32_t target; } checkpoint;
 
@@ -140,6 +141,8 @@ static checkpoint mainnet_checkpoint_array[] = {
 
 #define CHAIN_VOTING_KEYS_KEY  @"CHAIN_VOTING_KEYS_KEY"
 
+#define LOG_PREV_BLOCKS_ON_ORPHAN 0
+
 
 @interface DSChain ()
 
@@ -202,8 +205,8 @@ static checkpoint mainnet_checkpoint_array[] = {
         self.checkpoints = checkpoints;
         self.genesisHash = checkpoints[1].checkpointHash;
     }
-//    NSLog(@"%@",[NSData dataWithUInt256:self.checkpoints[0].checkpointHash]);
-//    NSLog(@"%@",[NSData dataWithUInt256:self.genesisHash]);
+    //    NSLog(@"%@",[NSData dataWithUInt256:self.checkpoints[0].checkpointHash]);
+    //    NSLog(@"%@",[NSData dataWithUInt256:self.genesisHash]);
     self.standardPort = port;
     self.standardDapiPort = dapiPort;
     self.devnetIdentifier = identifier;
@@ -757,7 +760,7 @@ static dispatch_once_t devnetToken = 0;
     setKeychainArray(keyChainArray, self.chainStandaloneDerivationPathsKey, NO);
     [self.viewingAccount removeDerivationPath:derivationPath];
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainStandaloneDerivationPathsDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:self}];
+        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainStandaloneDerivationPathsDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self}];
     });
 }
 -(void)addStandaloneDerivationPath:(DSDerivationPath*)derivationPath {
@@ -775,7 +778,7 @@ static dispatch_once_t devnetToken = 0;
     [keyChainArray addObject:derivationPath.standaloneExtendedPublicKeyUniqueID];
     setKeychainArray(keyChainArray, self.chainStandaloneDerivationPathsKey, NO);
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainStandaloneDerivationPathsDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:self}];
+        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainStandaloneDerivationPathsDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self}];
     });
 }
 
@@ -795,10 +798,10 @@ static dispatch_once_t devnetToken = 0;
 -(NSArray*)registeredMasternodes {
     NSError * error = nil;
     NSDictionary * keyChainDictionary = getKeychainDict(self.votingKeysKey, &error);
-    DSChainPeerManager * chainPeerManager = [[DSChainManager sharedInstance] peerManagerForChain:self];
+    DSChainManager * chainManager = [[DSChainsManager sharedInstance] chainManagerForChain:self];
     NSMutableArray * registeredMasternodes = [NSMutableArray array];
     for (NSData * providerRegistrationTransactionHash in keyChainDictionary) {
-        DSSimplifiedMasternodeEntry * masternode = [chainPeerManager.masternodeManager masternodeHavingProviderRegistrationTransactionHash:providerRegistrationTransactionHash];
+        DSSimplifiedMasternodeEntry * masternode = [chainManager.masternodeManager masternodeHavingProviderRegistrationTransactionHash:providerRegistrationTransactionHash];
         [registeredMasternodes addObject:masternode];
     }
     return [registeredMasternodes copy];
@@ -819,6 +822,81 @@ static dispatch_once_t devnetToken = 0;
     }];
 }
 
+// MARK: - Probabilistic Filters
+
+- (DSBloomFilter*)bloomFilterWithFalsePositiveRate:(double)falsePositiveRate withTweak:(uint32_t)tweak {
+    NSMutableSet * allAddresses = [NSMutableSet set];
+    NSMutableSet * allUTXOs = [NSMutableSet set];
+    for (DSWallet * wallet in self.wallets) {
+        // every time a new wallet address is added, the bloom filter has to be rebuilt, and each address is only used for
+        // one transaction, so here we generate some spare addresses to avoid rebuilding the filter each time a wallet
+        // transaction is encountered during the blockchain download
+        [wallet registerAddressesWithGapLimit:SEQUENCE_GAP_LIMIT_EXTERNAL + 100 internal:NO];
+        [wallet registerAddressesWithGapLimit:SEQUENCE_GAP_LIMIT_INTERNAL + 100 internal:YES];
+        NSSet *addresses = [wallet.allReceiveAddresses setByAddingObjectsFromSet:wallet.allChangeAddresses];
+        [allAddresses addObjectsFromArray:[addresses allObjects]];
+        [allUTXOs addObjectsFromArray:wallet.unspentOutputs];
+        
+        //we should also add the blockchain user public keys to the filter
+        [allAddresses addObjectsFromArray:[wallet blockchainUserAddresses]];
+    }
+    
+    for (DSDerivationPath * derivationPath in self.standaloneDerivationPaths) {
+        [derivationPath registerAddressesWithGapLimit:SEQUENCE_GAP_LIMIT_EXTERNAL + 100 internal:NO];
+        [derivationPath registerAddressesWithGapLimit:SEQUENCE_GAP_LIMIT_INTERNAL + 100 internal:YES];
+        NSArray *addresses = [derivationPath.allReceiveAddresses arrayByAddingObjectsFromArray:derivationPath.allChangeAddresses];
+        [allAddresses addObjectsFromArray:addresses];
+    }
+    
+    
+    [self clearOrphans];
+    
+    DSUTXO o;
+    NSData *d;
+    NSUInteger i, elemCount = allAddresses.count + allUTXOs.count;
+    NSMutableArray *inputs = [NSMutableArray new];
+    
+    for (DSWallet * wallet in self.wallets) {
+        for (DSTransaction *tx in wallet.allTransactions) { // find TXOs spent within the last 100 blocks
+            if (tx.blockHeight != TX_UNCONFIRMED && tx.blockHeight + 100 < self.lastBlockHeight) break;
+            i = 0;
+            
+            for (NSValue *hash in tx.inputHashes) {
+                [hash getValue:&o.hash];
+                o.n = [tx.inputIndexes[i++] unsignedIntValue];
+                
+                DSTransaction *t = [wallet transactionForHash:o.hash];
+                
+                if (o.n < t.outputAddresses.count && [wallet containsAddress:t.outputAddresses[o.n]]) {
+                    [inputs addObject:dsutxo_data(o)];
+                    elemCount++;
+                }
+            }
+        }
+    }
+    
+    DSBloomFilter *filter = [[DSBloomFilter alloc] initWithFalsePositiveRate:falsePositiveRate
+                                                             forElementCount:(elemCount < 200 ? 300 : elemCount + 100) tweak:tweak
+                                                                       flags:BLOOM_UPDATE_ALL];
+    
+    for (NSString *addr in allAddresses) {// add addresses to watch for tx receiveing money to the wallet
+        NSData *hash = addr.addressToHash160;
+        
+        if (hash && ! [filter containsData:hash]) [filter insertData:hash];
+    }
+    
+    for (NSValue *utxo in allUTXOs) { // add UTXOs to watch for tx sending money from the wallet
+        [utxo getValue:&o];
+        d = dsutxo_data(o);
+        if (! [filter containsData:d]) [filter insertData:d];
+    }
+    
+    for (d in inputs) { // also add TXOs spent within the last 100 blocks
+        if (! [filter containsData:d]) [filter insertData:d];
+    }
+    return filter;
+}
+
 // MARK: - Wallet
 
 - (void)wipeBlockchainInfo {
@@ -830,7 +908,7 @@ static dispatch_once_t devnetToken = 0;
     _blocks = nil;
     _lastBlock = nil;
     [self setLastBlockHeightForRescan];
-    [self.peerManagerDelegate chainWasWiped:self];
+    [self.chainManager chainWasWiped:self];
 }
 
 -(void)wipeWalletsAndDerivatives {
@@ -876,6 +954,7 @@ static dispatch_once_t devnetToken = 0;
 
 -(void)unregisterWallet:(DSWallet*)wallet {
     NSAssert(wallet.chain == self, @"the wallet you are trying to remove is not on this chain");
+    [wallet wipeBlockchainInfo];
     [self.mWallets removeObject:wallet];
     NSError * error = nil;
     NSMutableArray * keyChainArray = [getKeychainArray(self.chainWalletsKey, &error) mutableCopy];
@@ -883,7 +962,7 @@ static dispatch_once_t devnetToken = 0;
     [keyChainArray removeObject:wallet.uniqueID];
     setKeychainArray(keyChainArray, self.chainWalletsKey, NO);
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainWalletsDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:self}];
+        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainWalletsDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self}];
     });
 }
 -(void)addWallet:(DSWallet*)wallet {
@@ -906,11 +985,11 @@ static dispatch_once_t devnetToken = 0;
     NSMutableArray * keyChainArray = [getKeychainArray(self.chainWalletsKey, &error) mutableCopy];
     if (!keyChainArray) keyChainArray = [NSMutableArray array];
     if (![keyChainArray containsObject:wallet.uniqueID]) {
-    [keyChainArray addObject:wallet.uniqueID];
-    setKeychainArray(keyChainArray, self.chainWalletsKey, NO);
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSNotificationCenter defaultCenter] postNotificationName:DSChainWalletsDidChangeNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:self}];
-    });
+        [keyChainArray addObject:wallet.uniqueID];
+        setKeychainArray(keyChainArray, self.chainWalletsKey, NO);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [[NSNotificationCenter defaultCenter] postNotificationName:DSChainWalletsDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self}];
+        });
     }
 }
 
@@ -929,7 +1008,7 @@ static dispatch_once_t devnetToken = 0;
     return [self.mWallets copy];
 }
 
-// This is a time interval since the reference date 2001
+// This is a time interval since 1970
 -(NSTimeInterval)earliestWalletCreationTime {
     if (![self.wallets count]) return BIP39_CREATION_TIME;
     NSTimeInterval timeInterval = [[NSDate date] timeIntervalSince1970];
@@ -969,9 +1048,9 @@ static dispatch_once_t devnetToken = 0;
             UInt256 checkpointHash = checkpoint.checkpointHash;
             
             self->_blocks[uint256_obj(checkpointHash)] = [[DSMerkleBlock alloc] initWithBlockHash:checkpointHash onChain:self version:1 prevBlock:UINT256_ZERO
-                                                                                 merkleRoot:UINT256_ZERO timestamp:checkpoint.timestamp
-                                                                                     target:checkpoint.target nonce:0 totalTransactions:0 hashes:nil
-                                                                                      flags:nil height:checkpoint.height];
+                                                                                       merkleRoot:UINT256_ZERO timestamp:checkpoint.timestamp
+                                                                                           target:checkpoint.target nonce:0 totalTransactions:0 hashes:nil
+                                                                                            flags:nil height:checkpoint.height];
             self.checkpointsDictionary[@(checkpoint.height)] = uint256_obj(checkpointHash);
         }
         self.delegateQueueChainEntity = [self chainEntity];
@@ -1018,14 +1097,18 @@ static dispatch_once_t devnetToken = 0;
     if (! _lastBlock) {
         [DSMerkleBlockEntity.context performBlockAndWait:^{
             NSArray * lastBlocks = [DSMerkleBlockEntity lastBlocks:1 onChain:self.chainEntity];
-            self->_lastBlock = [[lastBlocks firstObject] merkleBlock];
+            DSMerkleBlock * lastBlock = [[lastBlocks firstObject] merkleBlock];
+            self->_lastBlock = lastBlock;
+            if (lastBlock) {
+                NSLog(@"last block at height %d recovered from db (hash is %@)",lastBlock.height,[NSData dataWithUInt256:lastBlock.blockHash].hexString);
+            }
         }];
-        
+
         if (!_lastBlock) {
             if ([[DSOptionsManager sharedInstance] syncFromGenesis]) {
                 NSUInteger genesisHeight = [self isDevnetAny]?1:0;
                 UInt256 checkpointHash = self.checkpoints[genesisHeight].checkpointHash;
-                    
+                
                 _lastBlock = self.blocks[uint256_obj(checkpointHash)];
                 
             } else if ([[DSOptionsManager sharedInstance] shouldSyncFromHeight]) {
@@ -1053,6 +1136,9 @@ static dispatch_once_t devnetToken = 0;
                                                                        target:self.checkpoints[i].target nonce:0 totalTransactions:0 hashes:nil flags:nil
                                                                        height:self.checkpoints[i].height];
                     }
+                }
+                if (_lastBlock) {
+                    NSLog(@"last block at height %d chosen from checkpoints (hash is %@)",_lastBlock.height,[NSData dataWithUInt256:_lastBlock.blockHash].hexString);
                 }
             }
             
@@ -1124,7 +1210,7 @@ static dispatch_once_t devnetToken = 0;
         }
     }
     
-    [self.peerManagerDelegate chain:self didSetBlockHeight:height andTimestamp:timestamp forTxHashes:txHashes updatedTx:updatedTx];
+    [self.chainManager chain:self didSetBlockHeight:height andTimestamp:timestamp forTxHashes:txHashes updatedTx:updatedTx];
 }
 
 - (BOOL)addBlock:(DSMerkleBlock *)block fromPeer:(DSPeer*)peer
@@ -1139,14 +1225,16 @@ static dispatch_once_t devnetToken = 0;
     BOOL syncDone = NO;
     
     if (! prev) { // block is an orphan
-        //        NSSortDescriptor * sortDescriptor = [NSSortDescriptor sortDescriptorWithKey:@"height" ascending:TRUE];
-        //        for (DSMerkleBlock * merkleBlock in [[self.blocks allValues] sortedArrayUsingDescriptors:@[sortDescriptor]]) {
-        //            NSLog(@"printing previous block at height %d : %@",merkleBlock.height,uint256_obj(merkleBlock.blockHash));
-        //        }
-        NSLog(@"%@:%d relayed orphan block %@, previous %@, height %d, last block is %@, height %d", peer.host, peer.port,
-              blockHash, prevBlock, block.height, uint256_obj(self.lastBlock.blockHash), self.lastBlockHeight);
+#if LOG_PREV_BLOCKS_ON_ORPHAN
+        NSSortDescriptor * sortDescriptor = [NSSortDescriptor sortDescriptorWithKey:@"height" ascending:TRUE];
+        for (DSMerkleBlock * merkleBlock in [[self.blocks allValues] sortedArrayUsingDescriptors:@[sortDescriptor]]) {
+            NSLog(@"printing previous block at height %d : %@",merkleBlock.height,uint256_obj(merkleBlock.blockHash));
+        }
+#endif
+        NSLog(@"%@:%d relayed orphan block %@, previous %@, height %d, last block is %@, lastBlockHeight %d, time %@", peer.host, peer.port,
+              blockHash, prevBlock, block.height, uint256_obj(self.lastBlock.blockHash), self.lastBlockHeight,[NSDate dateWithTimeIntervalSince1970:block.timestamp]);
         
-        [self.peerManagerDelegate chain:self receivedOrphanBlock:block fromPeer:peer];
+        [self.chainManager chain:self receivedOrphanBlock:block fromPeer:peer];
         
         self.orphans[prevBlock] = block; // orphans are indexed by prevBlock instead of blockHash
         self.lastOrphan = block;
@@ -1179,7 +1267,7 @@ static dispatch_once_t devnetToken = 0;
         uint32_t foundDifficulty = [block darkGravityWaveTargetWithPreviousBlocks:self.blocks];
         NSLog(@"%@:%d relayed block with invalid difficulty height %d target %x foundTarget %x, blockHash: %@", peer.host, peer.port,
               block.height,block.target,foundDifficulty, blockHash);
-        [self.peerManagerDelegate chain:self badBlockReceivedFromPeer:peer];
+        [self.chainManager chain:self badBlockReceivedFromPeer:peer];
         return FALSE;
     }
     
@@ -1189,7 +1277,7 @@ static dispatch_once_t devnetToken = 0;
     if (! uint256_is_zero(checkpoint) && ! uint256_eq(block.blockHash, checkpoint)) {
         NSLog(@"%@:%d relayed a block that differs from the checkpoint at height %d, blockHash: %@, expected: %@",
               peer.host, peer.port, block.height, blockHash, self.checkpointsDictionary[@(block.height)]);
-        [self.peerManagerDelegate chain:self badBlockReceivedFromPeer:peer];
+        [self.chainManager chain:self badBlockReceivedFromPeer:peer];
         return FALSE;
     }
     
@@ -1197,7 +1285,7 @@ static dispatch_once_t devnetToken = 0;
     
     if (uint256_eq(block.prevBlock, self.lastBlock.blockHash)) { // new block extends main chain
         if ((block.height % 500) == 0 || txHashes.count > 0 || block.height > peer.lastblock) {
-            NSLog(@"adding block at height: %d from peer %@", block.height,peer.host);
+            NSLog(@"adding block on %@ at height: %d from peer %@", self.name, block.height,peer.host);
         }
         
         self.blocks[blockHash] = block;
@@ -1278,7 +1366,7 @@ static dispatch_once_t devnetToken = 0;
     
     if (syncDone) { // chain download is complete
         [self saveBlocks];
-        [self.peerManagerDelegate chainFinishedSyncing:self fromPeer:peer onMainChain:onMainChain];
+        [self.chainManager chainFinishedSyncingTransactionsAndBlocks:self fromPeer:peer onMainChain:onMainChain];
     }
     
     if (block.height > _estimatedBlockHeight) {
@@ -1286,7 +1374,12 @@ static dispatch_once_t devnetToken = 0;
         
         // notify that transaction confirmations may have changed
         dispatch_async(dispatch_get_main_queue(), ^{
-            [[NSNotificationCenter defaultCenter] postNotificationName:DSChainPeerManagerNewBlockNotification object:nil userInfo:@{DSChainPeerManagerNotificationChainKey:self}];
+            [[NSNotificationCenter defaultCenter] postNotificationName:DSChainNewChainTipBlockNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self}];
+            [[NSNotificationCenter defaultCenter] postNotificationName:DSChainBlocksDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self}];
+        });
+    } else {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [[NSNotificationCenter defaultCenter] postNotificationName:DSChainBlocksDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self}];
         });
     }
     
@@ -1366,7 +1459,7 @@ static dispatch_once_t devnetToken = 0;
         
         // start the chain download from the most recent checkpoint that's at least a week older than earliestKeyTime
         for (long i = self.checkpoints.count - 1; ! _lastBlock && i >= 0; i--) {
-            if (i == 0 || (self.checkpoints[i].timestamp + 7*24*60*60 < self.startSyncFromTime)) {
+            if (i == 0 || (self.checkpoints[i].timestamp + WEEK_TIME_INTERVAL < self.startSyncFromTime)) {
                 UInt256 checkpointHash = self.checkpoints[i].checkpointHash;
                 
                 _lastBlock = self.blocks[uint256_obj(checkpointHash)];
@@ -1431,7 +1524,7 @@ static dispatch_once_t devnetToken = 0;
 {
     uint64_t standardFee = size*TX_FEE_PER_B; // standard fee based on tx size
     if (isInstant) {
-        DSSporkManager * sporkManager = [self peerManagerDelegate].sporkManager;
+        DSSporkManager * sporkManager = [self chainManager].sporkManager;
         if (sporkManager && [sporkManager instantSendAutoLocks] && inputCount <= 4) {
             return standardFee;
         } else {

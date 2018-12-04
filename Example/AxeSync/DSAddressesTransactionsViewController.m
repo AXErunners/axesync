@@ -3,7 +3,7 @@
 //  AxeSync_Example
 //
 //  Created by Sam Westrich on 6/22/18.
-//  Copyright © 2018 Axe Core Group. All rights reserved.
+//  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
 #import "DSAddressesTransactionsViewController.h"
@@ -167,7 +167,7 @@
         dateFormatter.dateStyle = NSDateFormatterMediumStyle;
         dateFormatter.timeStyle = NSDateFormatterMediumStyle;
     });
-    NSDate * date = [NSDate dateWithTimeIntervalSinceReferenceDate:transactionEntity.transactionHash.timestamp];
+    NSDate * date = [NSDate dateWithTimeIntervalSince1970:transactionEntity.transactionHash.timestamp];
     cell.dateLabel.text = [dateFormatter stringFromDate:date];
     cell.transactionLabel.text = transactionEntity.transactionHash.txHash.reverse.hexString;
 }

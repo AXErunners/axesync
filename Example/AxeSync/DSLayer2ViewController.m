@@ -3,7 +3,7 @@
 //  AxeSync_Example
 //
 //  Created by Sam Westrich on 9/10/18.
-//  Copyright © 2018 Axe Core Group. All rights reserved.
+//  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
 #import "DSLayer2ViewController.h"
@@ -35,10 +35,10 @@
 -(void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
     if ([segue.identifier isEqualToString:@"DAPICallsSegue"]) {
         DSDAPICallsViewController * DAPICallsViewController = (DSDAPICallsViewController*)segue.destinationViewController;
-        DAPICallsViewController.chainPeerManager = self.chainPeerManager;
+        DAPICallsViewController.chainManager = self.chainManager;
     } else if ([segue.identifier isEqualToString:@"DAPsSegue"]) {
         DSDAPListViewController * DAPListViewController = (DSDAPListViewController*)segue.destinationViewController;
-        DAPListViewController.chainPeerManager = self.chainPeerManager;
+        DAPListViewController.chainManager = self.chainManager;
     }
 }
 

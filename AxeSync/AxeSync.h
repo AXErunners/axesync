@@ -7,14 +7,16 @@
 //
 
 #import <UIKit/UIKit.h>
-#import "Reachability.h"
+#import "DSReachabilityManager.h"
 #import "DSEnvironment.h"
-#import "DSChainPeerManager.h"
+#import "DSPeerManager.h"
 #import "DSChain.h"
 #import "DSBlockchainUser.h"
 #import "DSKey.h"
 #import "DSDerivationPath.h"
+#import "DSChainsManager.h"
 #import "DSChainManager.h"
+#import "DSTransactionManager.h"
 #import "DSPriceManager.h"
 #import "DSMasternodeManager.h"
 #import "DSDAPIPeerManager.h"
@@ -64,6 +66,8 @@
 #import "DSBlockchainUserCloseTransaction.h"
 
 #import "DSBLSKey.h"
+
+#define SHAPESHIFT_ENABLED 0
 
 //! Project version number for axesync.
 FOUNDATION_EXPORT double AxeSyncVersionNumber;
