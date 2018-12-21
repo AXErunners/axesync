@@ -1,4 +1,4 @@
-//
+//  
 //  Created by Andrew Podkovyrin
 //  Copyright © 2018 Dash Core Group. All rights reserved.
 //
@@ -15,21 +15,13 @@
 //  limitations under the License.
 //
 
-#import "DSOperation.h"
-#import "DSChainableOperationProtocol.h"
+#import "DSParseResponseOperation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-extern NSString *const DSHTTPGETOperationErrorDomain;
+@interface DSParseAxeCasaResponseOperation : DSParseResponseOperation
 
-
-/**
- Chainable operation, always first in the chain
- Has side-effect of updating secure time in `DSAuthenticationManager`
- */
-@interface DSHTTPGETOperation : DSOperation <DSChainableOperationProtocol>
-
-- (instancetype)initWithRequest:(NSURLRequest *)request;
+@property (readonly, strong, nonatomic, nullable) NSNumber *axerate;
 
 @end
 

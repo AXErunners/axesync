@@ -48,6 +48,7 @@ static NSString *sanitizeString(NSString *s)
 }
 
 #define SECURE_TIME_KEY     @"SECURE_TIME"
+#define USES_AUTHENTICATION_KEY     @"USES_AUTHENTICATION"
 #define PIN_KEY             @"pin"
 #define PIN_FAIL_COUNT_KEY  @"pinfailcount"
 #define PIN_FAIL_HEIGHT_KEY @"pinfailheight"
@@ -66,6 +67,8 @@ typedef BOOL (^PinVerificationBlock)(NSString * _Nonnull currentPin,DSAuthentica
 @property (nonatomic, strong) UIAlertController *pinAlertController;
 @property (nonatomic, strong) UIAlertController *resetAlertController;
 @property (nonatomic, strong) id keyboardObserver,backgroundObserver;
+@property (nonatomic, assign) BOOL usesAuthentication;
+@property (nonatomic, assign) BOOL didAuthenticate; // true if the user authenticated after this was last set to false
 
 @end
 
@@ -88,7 +91,13 @@ typedef BOOL (^PinVerificationBlock)(NSString * _Nonnull currentPin,DSAuthentica
     if (! (self = [super init])) return nil;
     
     self.failedPins = [NSMutableSet set];
-    self.usesAuthentication = YES;
+    NSError * error = nil;
+    BOOL hasSetPin = hasKeychainData(PIN_KEY, &error);
+    if (error) {
+        self.usesAuthentication = TRUE; //just to be safe
+    } else {
+        self.usesAuthentication = [self shouldUseAuthentication] && hasSetPin;
+    }
     
     self.keyboardObserver = [[NSNotificationCenter defaultCenter] addObserverForName:UIKeyboardWillChangeFrameNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull note) {
         if ([self pinAlertControllerIsVisible]) {
@@ -146,6 +155,41 @@ typedef BOOL (^PinVerificationBlock)(NSString * _Nonnull currentPin,DSAuthentica
     NSTimeInterval now = [lastResult date].timeIntervalSince1970;
     if (now > self.secureTime) {
         [self updateSecureTime:now];
+    }
+}
+
+-(void)deauthenticate {
+    if (self.usesAuthentication) {
+        self.didAuthenticate = NO;
+    }
+}
+
+-(void)setOneTimeShouldUseAuthentication:(BOOL)requestingShouldUseAuthentication {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSError * error = nil;
+        if (!hasKeychainData(USES_AUTHENTICATION_KEY, &error)) {
+            setKeychainInt(requestingShouldUseAuthentication, USES_AUTHENTICATION_KEY, NO);
+        } else {
+            BOOL shouldUseAuthentication = getKeychainInt(USES_AUTHENTICATION_KEY, &error);
+            if (!shouldUseAuthentication && requestingShouldUseAuthentication) { //we are switching the app to use authentication in the future
+                setKeychainInt(YES, USES_AUTHENTICATION_KEY, NO);
+            }
+        }
+    });
+}
+
+-(BOOL)shouldUseAuthentication {
+    NSError * error = nil;
+    if (!hasKeychainData(USES_AUTHENTICATION_KEY, &error)) {
+        return TRUE; //default true;
+    } else {
+        BOOL shouldUseAuthentication = getKeychainInt(USES_AUTHENTICATION_KEY, &error);
+        if (!error) {
+            return shouldUseAuthentication;
+        } else {
+            return TRUE; //default
+        }
     }
 }
 
@@ -359,6 +403,7 @@ typedef BOOL (^PinVerificationBlock)(NSString * _Nonnull currentPin,DSAuthentica
         if ([currentPin isEqual:previousPin]) {
             context.pinField.text = nil;
             setKeychainString(previousPin, PIN_KEY, NO);
+            context.usesAuthentication = TRUE;
             [[NSUserDefaults standardUserDefaults] setDouble:[NSDate timeIntervalSince1970]
                                                       forKey:PIN_UNLOCK_TIME_KEY];
             [context.pinField resignFirstResponder];
@@ -388,11 +433,26 @@ typedef BOOL (^PinVerificationBlock)(NSString * _Nonnull currentPin,DSAuthentica
     return [self getSubviewForView:self.pinAlertController.view withText:self.pinAlertController.title];
 }
 
+-(void)setPinIfNeededWithCompletion:(void (^)(BOOL needed, BOOL success))completion {
+    NSError *error = nil;
+    BOOL hasPin = hasKeychainData(PIN_KEY, &error); //don't put pin in memory before needed
+    
+    if (error || hasPin) {
+        if (completion) completion(!hasPin, NO);
+        return; // error reading existing pin from keychain
+    }
+    if (!hasPin) {
+        [self setPinWithCompletion:^(BOOL success) {
+            completion(YES,success);
+        }];
+    }
+}
+
 // prompts the user to set or change their wallet pin and returns true if the pin was successfully set
 - (void)setPinWithCompletion:(void (^ _Nullable)(BOOL success))completion
 {
     NSError *error = nil;
-    NSString *pin = getKeychainString(PIN_KEY, &error);
+    BOOL hasPin = hasKeychainData(PIN_KEY, &error); //don't put pin in memory before needed
     
     if (error) {
         if (completion) completion(NO);
@@ -401,10 +461,12 @@ typedef BOOL (^PinVerificationBlock)(NSString * _Nonnull currentPin,DSAuthentica
     
     [DSEventManager saveEvent:@"wallet_manager:set_pin"];
     
-    if (pin.length == 4) { //already had a pin, replacing it
+    if (hasPin) { //already had a pin, replacing it
+        NSString *pin = getKeychainString(PIN_KEY, &error);
+        if (pin.length == 4) {
         [self authenticatePinWithTitle:DSLocalizedString(@"enter old passcode", nil) message:nil alertIfLockout:YES completion:^(BOOL authenticated,BOOL cancelled) {
             if (authenticated) {
-                self.didAuthenticate = FALSE;
+                self.didAuthenticate = NO;
                 UIView *v = [self pinTitleView].superview;
                 CGPoint p = v.center;
                 
@@ -423,10 +485,25 @@ typedef BOOL (^PinVerificationBlock)(NSString * _Nonnull currentPin,DSAuthentica
                 if (completion) completion(NO);
             }
         }];
+        } else {
+            [self setBrandNewPinWithCompletion:completion];
+        }
     }
     else { //didn't have a pin yet
         [self setBrandNewPinWithCompletion:completion];
     }
+}
+
+-(void)removePin {
+    //You can only remove pin if there are no wallets
+    if ([[DSChainsManager sharedInstance] hasAWallet]) {
+        NSLog(@"Tried to remove a pin, but wallets exist on device");
+        return;
+    }
+    setKeychainData(nil, SPEND_LIMIT_KEY, NO);
+    setKeychainData(nil, PIN_KEY, NO);
+    setKeychainData(nil, PIN_FAIL_COUNT_KEY, NO);
+    setKeychainData(nil, PIN_FAIL_HEIGHT_KEY, NO);
 }
 
 // MARK: - UITextFieldDelegate
@@ -509,7 +586,7 @@ replacementString:(NSString *)string
         @autoreleasepool {
             NSString * seedPhrase = [wallet seedPhraseIfAuthenticated];
             if (seedPhrase) {
-                completion([[DSBIP39Mnemonic sharedInstance] deriveKeyFromPhrase:seedPhrase withPassphrase:nil]);
+                completion([[DSBIP39Mnemonic sharedInstance] deriveKeyFromPhrase:seedPhrase withPassphrase:nil], NO);
             } else {
                 [wallet seedWithPrompt:authprompt forAmount:amount completion:completion];
             }
@@ -764,7 +841,7 @@ replacementString:(NSString *)string
         if (!strongSelf) {
             return NO;
         }
-
+        
         NSError * error = nil;
         uint64_t failCount = getKeychainInt(PIN_FAIL_COUNT_KEY, &error);
         

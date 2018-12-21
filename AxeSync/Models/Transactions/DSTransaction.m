@@ -4,7 +4,7 @@
 //
 //  Created by Aaron Voisine for BreadWallet on 5/16/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
-//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
+//  Copyright (c) 2018 Dash Core Group <contact@dash.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -44,6 +44,8 @@
 @interface DSTransaction ()
 
 @property (nonatomic, strong) DSChain * chain;
+@property (nonatomic, assign) BOOL instantSendReceived;
+@property (nonatomic, strong) NSDictionary<NSValue*,DSTransactionLockVote*>* transactionLockVotesDictionary;
 
 @end
 
@@ -586,11 +588,11 @@
     return [self.account feeForTransaction:self];
 }
 
-- (uint64_t)feeCostPerByte
+- (uint64_t)roundedFeeCostPerByte
 {
-    float feeUsed = [self feeUsed];
+    uint64_t feeUsed = [self feeUsed];
     if (feeUsed == UINT64_MAX) return UINT64_MAX;
-    return ceilf(feeUsed/self.size);
+    return lroundf(((float)feeUsed)/self.size);
 }
 
 #pragma mark - Polymorphic data
@@ -655,6 +657,11 @@
         }
     }
     return nil;
+}
+
+-(void)setInstantSendReceivedWithTransactionLockVotes:(NSMutableDictionary<NSValue*,DSTransactionLockVote*>*)transactionLockVotes {
+    self.instantSendReceived = TRUE;
+    self.transactionLockVotesDictionary = transactionLockVotes;
 }
 
 @end

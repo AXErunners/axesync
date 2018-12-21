@@ -4,7 +4,7 @@
 //
 //  Created by Aaron Voisine for BreadWallet on 10/9/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
-//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
+//  Copyright (c) 2018 Dash Core Group <contact@dash.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -46,6 +46,10 @@ typedef NS_ENUM(uint32_t,DSInvType) {
     DSInvType_GovernanceObject = 17,
     DSInvType_GovernanceObjectVote = 18,
     DSInvType_MasternodeVerify = 19,
+    DSInvType_CompactBlock = 20, //!< Defined in BIP152
+    DSInvType_QuorumFinalCommitment = 21,
+    DSInvType_DummyCommitment = 22, // only valid on testnet/devnet/regtest
+    DSInvType_DummyContribution = 23 // only valid on testnet/devnet/regtest
 };
 
 #define AXE_PEER_TIMEOUT_CODE  1001
@@ -70,6 +74,7 @@ typedef NS_ENUM(uint32_t,DSInvType) {
 #define MSG_GETHEADERS  @"getheaders"
 #define MSG_TX          @"tx"
 #define MSG_IX          @"ix"
+#define MSG_TXLVOTE     @"txlvote"
 #define MSG_BLOCK       @"block"
 #define MSG_HEADERS     @"headers"
 #define MSG_GETADDR     @"getaddr"
@@ -146,7 +151,7 @@ typedef NS_ENUM(uint32_t, DSGovernanceRequestState) {
 
 typedef NS_ENUM(uint32_t, DSSyncCountInfo);
 
-@class DSPeer, DSTransaction, DSMerkleBlock, DSChain,DSSpork,DSGovernanceObject,DSGovernanceVote;
+@class DSPeer, DSTransaction, DSMerkleBlock, DSChain,DSSpork,DSGovernanceObject,DSGovernanceVote,DSTransactionLockVote;
 
 @protocol DSPeerDelegate<NSObject>
 @required
@@ -172,12 +177,14 @@ typedef NS_ENUM(uint32_t, DSSyncCountInfo);
 
 // called when the peer relays either a merkleblock or a block header, headers will have 0 totalTransactions
 - (void)peer:(DSPeer *)peer relayedBlock:(DSMerkleBlock *)block;
+- (void)peer:(DSPeer *)peer relayedTooManyOrphanBlocks:(NSUInteger)orphanBlockCount;
 - (void)peer:(DSPeer *)peer relayedNotFoundMessagesWithTransactionHashes:(NSArray *)txHashes transactionLockRequestHashes:(NSArray *)transactionLockRequestHashes andBlockHashes:(NSArray *)blockhashes;
 - (DSTransaction *)peer:(DSPeer *)peer requestedTransaction:(UInt256)txHash;
 - (void)peer:(DSPeer *)peer relayedTransaction:(DSTransaction *)transaction transactionIsRequestingInstantSendLock:(BOOL)transactionIsRequestingInstantSendLock;
 - (void)peer:(DSPeer *)peer hasTransaction:(UInt256)txHash transactionIsRequestingInstantSendLock:(BOOL)transactionIsRequestingInstantSendLock;
 - (void)peer:(DSPeer *)peer rejectedTransaction:(UInt256)txHash withCode:(uint8_t)code;
-- (void)peer:(DSPeer *)peer hasTransactionLockVoteHashes:(NSSet*)transactionLockVoteHashes;
+- (void)peer:(DSPeer *)peer hasTransactionLockVoteHashes:(NSOrderedSet*)transactionLockVoteHashes;
+- (void)peer:(DSPeer *)peer relayedTransactionLockVote:(DSTransactionLockVote *)transactionLockVote;
 - (void)peer:(DSPeer *)peer setFeePerByte:(uint64_t)feePerKb;
 
 @end
@@ -275,6 +282,7 @@ services:(uint64_t)services;
 - (void)setChainDelegate:(id<DSPeerChainDelegate>)chainDelegate peerDelegate:(id<DSPeerDelegate>)peerDelegate transactionDelegate:(id<DSPeerTransactionDelegate>)transactionDelegate governanceDelegate:(id<DSPeerGovernanceDelegate>)governanceDelegate sporkDelegate:(id<DSPeerSporkDelegate>)sporkDelegate masternodeDelegate:(id<DSPeerMasternodeDelegate>)masternodeDelegate queue:(dispatch_queue_t)delegateQueue;
 - (void)connect;
 - (void)disconnect;
+- (void)receivedOrphanBlock;
 - (void)sendMessage:(NSData *)message type:(NSString *)type;
 - (void)sendFilterloadMessage:(NSData *)filter;
 - (void)sendMempoolMessage:(NSArray *)publishedTxHashes completion:(void (^)(BOOL success))completion;
@@ -282,7 +290,7 @@ services:(uint64_t)services;
 - (void)sendGetblocksMessageWithLocators:(NSArray *)locators andHashStop:(UInt256)hashStop;
 - (void)sendTransactionInvMessagesForTxHashes:(NSArray *)txInvHashes txLockRequestHashes:(NSArray*)txLockRequestInvHashes;
 - (void)sendInvMessageForHashes:(NSArray *)invHashes ofType:(DSInvType)invType;
-- (void)sendGetdataMessageWithTxHashes:(NSArray *)txHashes txLockRequestHashes:(NSArray *)txLockRequestHashes blockHashes:(NSArray *)blockHashes;
+- (void)sendGetdataMessageWithTxHashes:(NSArray *)txHashes txLockRequestHashes:(NSArray *)txLockRequestHashes txLockVoteHashes:(NSArray *)txLockVoteHashes blockHashes:(NSArray *)blockHashes;
 - (void)sendGetdataMessageWithGovernanceObjectHashes:(NSArray<NSData*> *)governanceObjectHashes;
 - (void)sendGetdataMessageWithGovernanceVoteHashes:(NSArray<NSData*> *)governanceVoteHashes;
 - (void)sendGetMasternodeListFromPreviousBlockHash:(UInt256)previousBlockHash forBlockHash:(UInt256)blockHash;

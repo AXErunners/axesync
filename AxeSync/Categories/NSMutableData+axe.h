@@ -4,7 +4,7 @@
 //
 //  Created by Aaron Voisine for BreadWallet on 5/20/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
-//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
+//  Copyright (c) 2018 Dash Core Group <contact@dash.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -29,6 +29,7 @@
 #import <Foundation/Foundation.h>
 
 #import "BigIntTypes.h"
+#import "DSChain.h"
 
 CF_IMPLICIT_BRIDGING_ENABLED
 
@@ -57,6 +58,7 @@ CF_IMPLICIT_BRIDGING_DISABLED
 - (void)appendUInt384:(UInt384)i;
 - (void)appendUInt512:(UInt512)i;
 - (void)appendUInt768:(UInt768)i;
+- (void)appendUTXO:(DSUTXO)utxo;
 - (void)appendVarInt:(uint64_t)i;
 - (void)appendString:(NSString *)s;
 

@@ -3,7 +3,7 @@
 //  AxeSync
 //
 //  Created by Sam Westrich on 10/18/17.
-//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
+//  Copyright (c) 2018 Dash Core Group <contact@dash.org>
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -90,6 +90,12 @@
     DSSpork * updateSignatureSpork = self.sporkDictionary[@(DSSporkIdentifier_Spork6NewSigs)];
     if (!updateSignatureSpork) return FALSE;//assume false
     return updateSignatureSpork.value <= self.chain.lastBlockHeight;
+}
+
+-(BOOL)deterministicMasternodeListEnabled {
+    DSSpork * dmlSpork = self.sporkDictionary[@(DSSporkIdentifier_Spork15DeterministicMasternodesEnabled)];
+    if (!dmlSpork) return FALSE;//assume false
+    return dmlSpork.value <= self.chain.lastBlockHeight;
 }
 
 

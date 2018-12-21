@@ -3,7 +3,7 @@
 //  AxeSync
 //
 //  Created by Sam Westrich on 11/21/18.
-//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
+//  Copyright (c) 2018 Dash Core Group <contact@dash.org>
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -119,6 +119,13 @@
     [DSTransactionHashEntity deleteTransactionHashesOnChain:chainEntity];
     [self.chain wipeBlockchainInfo];
     [DSTransactionEntity saveContext];
+    
+    if (![self.chain isMainnet]) {
+        [self.chain.chainManager.peerManager removeTrustedPeerHost];
+        [self.chain.chainManager.peerManager clearPeers];
+        [DSPeerEntity deletePeersForChain:chainEntity];
+        [DSPeerEntity saveContext];
+    }
     
     dispatch_async(dispatch_get_main_queue(), ^{
         [[NSNotificationCenter defaultCenter] postNotificationName:DSWalletBalanceDidChangeNotification object:nil];

@@ -10,7 +10,6 @@
 #import "DSCoinbaseTransaction.h"
 
 //Special Transaction
-
 typedef NS_ENUM(NSUInteger, DSTransactionType) {
     DSTransactionType_Classic = 0,
     DSTransactionType_ProviderRegistration = 1,

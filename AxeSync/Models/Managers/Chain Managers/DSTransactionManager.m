@@ -3,7 +3,7 @@
 //  AxeSync
 //
 //  Created by Sam Westrich on 11/21/18.
-//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
+//  Copyright (c) 2018 Dash Core Group <contact@dash.org>
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -38,16 +38,29 @@
 #import "DSBloomFilter.h"
 #import "NSString+Bitcoin.h"
 #import "DSOptionsManager.h"
+#import "DSPaymentRequest.h"
+#import "DSPaymentProtocol.h"
 #import "UIWindow+DSUtils.h"
+#import "DSAuthenticationManager.h"
+#import "DSPriceManager.h"
+#import "DSTransactionHashEntity+CoreDataClass.h"
+#import "DSTransactionLockVote.h"
+#import "DSMasternodeManager+Protected.h"
+
+#define IX_INPUT_LOCKED_KEY @"IX_INPUT_LOCKED_KEY"
 
 @interface DSTransactionManager()
 
 @property (nonatomic, strong) NSMutableDictionary *txRelays, *txRequests;
 @property (nonatomic, strong) NSMutableDictionary *publishedTx, *publishedCallback;
+@property (nonatomic, strong) NSMutableDictionary *transactionLockVoteDictionary;
 @property (nonatomic, strong) NSMutableSet *nonFalsePositiveTransactions;
 @property (nonatomic, strong) DSBloomFilter *bloomFilter;
 @property (nonatomic, assign) uint32_t filterUpdateHeight;
 @property (nonatomic, assign) double transactionsBloomFilterFalsePositiveRate;
+@property (nonatomic, readonly) DSMasternodeManager * masternodeManager;
+@property (nonatomic, readonly) DSPeerManager * peerManager;
+@property (nonatomic, readonly) DSChainManager * chainManager;
 
 @end
 
@@ -66,8 +79,14 @@
     return self;
 }
 
+// MARK: - Managers
+
 -(DSPeerManager*)peerManager {
     return self.chain.chainManager.peerManager;
+}
+
+-(DSMasternodeManager*)masternodeManager {
+    return self.chain.chainManager.masternodeManager;
 }
 
 -(DSChainManager*)chainManager {
@@ -146,7 +165,7 @@
                     if (! self.txRequests[h]) self.txRequests[h] = [NSMutableSet set];
                     [self.txRequests[h] addObject:p];
                     //todo: to get lock requests instead if sent that way
-                    [p sendGetdataMessageWithTxHashes:@[h] txLockRequestHashes:nil blockHashes:nil];
+                    [p sendGetdataMessageWithTxHashes:@[h] txLockRequestHashes:nil txLockVoteHashes:nil blockHashes:nil];
                 }
             }];
         }
@@ -171,12 +190,17 @@
     UInt256 h;
     
     // don't remove transactions until we're connected to maxConnectCount peers
-    if (self.peerManager.connectedPeerCount < self.peerManager.maxConnectCount) return;
-    
-    for (DSPeer *p in self.peerManager.connectedPeers) { // don't remove tx until all peers have finished relaying their mempools
-        if (! p.synced) return;
+    if (self.peerManager.connectedPeerCount < self.peerManager.maxConnectCount) {
+        NSLog(@"[DSTransactionManager] not removing unrelayed transactions because connected peercount is only %lu",(unsigned long)self.peerManager.connectedPeerCount);
+        return;
     }
     
+    for (DSPeer *p in self.peerManager.connectedPeers) { // don't remove tx until all peers have finished relaying their mempools
+        NSLog(@"[DSTransactionManager] not removing unrelayed transactions because %@ is not synced yet",p.host);
+        if (! p.synced) return;
+    }
+    NSLog(@"[DSTransactionManager] removing unrelayed transactions");
+    BOOL removedTransaction = NO;
     for (DSWallet * wallet in self.chain.wallets) {
         for (DSAccount * account in wallet.accounts) {
             for (DSTransaction *transaction in account.allTransactions) {
@@ -196,9 +220,12 @@
                             rescan = NO;
                             break;
                         }
+                    } else {
+                        NSLog(@"serious issue in transaction %@", transaction);
                     }
                     
                     [account removeTransaction:transaction.txHash];
+                    removedTransaction = YES;
                 }
                 else if ([self.txRelays[hash] count] < self.peerManager.maxConnectCount) {
                     // set timestamp 0 to mark as unverified
@@ -207,6 +234,7 @@
             }
         }
     }
+    if (removedTransaction) [DSTransactionHashEntity saveContext];
     
     if (notify) {
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -278,9 +306,182 @@ for (NSValue *txHash in self.txRelays.allKeys) {
 }
 }
 
+// MARK: - Front end
+
+-(void)insufficientFundsForTransaction:(DSTransaction *)tx fromAccount:(DSAccount*)account forAmount:(uint64_t)requestedSendAmount toAddress:(NSString*)address localCurrency:(NSString *)localCurrency localCurrencyAmount:(NSString *)localCurrencyAmount signedCompletion:(void (^)(NSError *error))signedCompletion publishedCompletion:(void (^)(NSError *error))publishedCompletion {
+    DSPriceManager * manager = [DSPriceManager sharedInstance];
+    uint64_t fuzz = [manager amountForLocalCurrencyString:[manager localCurrencyStringForAxeAmount:1]]*2;
+    
+    //todo: find out if this is important
+    //    UIViewController * viewControllerToShowAlert = self;
+//    if (self.presentedViewController && [self.presentedViewController isKindOfClass:[UINavigationController class]]) {
+//        UINavigationController * presentedController = (UINavigationController*)self.presentedViewController;
+//        viewControllerToShowAlert = presentedController.topViewController;
+//    }
+    
+    // if user selected an amount equal to or below wallet balance, but the fee will bring the total above the
+    // balance, offer to reduce the amount to available funds minus fee
+    if (requestedSendAmount <= account.balance + fuzz && requestedSendAmount > 0) {
+        int64_t amount = [account maxOutputAmountUsingInstantSend:tx.isInstant];
+        
+        if (amount > 0 && amount < requestedSendAmount) {
+            UIAlertController * alert = [UIAlertController
+                                         alertControllerWithTitle:DSLocalizedString(@"insufficient funds for axe network fee", nil)
+                                         message:[NSString stringWithFormat:DSLocalizedString(@"reduce payment amount by\n%@ (%@)?", nil),
+                                                  [manager stringForAxeAmount:requestedSendAmount - amount],
+                                                  [manager localCurrencyStringForAxeAmount:requestedSendAmount - amount]]
+                                         preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction* cancelButton = [UIAlertAction
+                                           actionWithTitle:DSLocalizedString(@"cancel", nil)
+                                           style:UIAlertActionStyleCancel
+                                           handler:^(UIAlertAction * action) {
+
+                                           }];
+            UIAlertAction* reduceButton = [UIAlertAction
+                                           actionWithTitle:[NSString stringWithFormat:@"%@ (%@)",
+                                                            [manager stringForAxeAmount:amount - requestedSendAmount],
+                                                            [manager localCurrencyStringForAxeAmount:amount - requestedSendAmount]]
+                                           style:UIAlertActionStyleDefault
+                                           handler:^(UIAlertAction * action) {
+                                               DSPaymentRequest * paymentRequest = [DSPaymentRequest requestWithString:address onChain:self.chain];
+                                               paymentRequest.amount = requestedSendAmount - amount;
+                                               [self confirmPaymentRequest:paymentRequest fromAccount:account forceInstantSend:tx.isInstant signedCompletion:signedCompletion publishedCompletion:publishedCompletion];
+
+                                           }];
+            
+            
+            [alert addAction:cancelButton];
+            [alert addAction:reduceButton];
+            [[self presentingViewController] presentViewController:alert animated:YES completion:nil];
+        }
+        else {
+            UIAlertController * alert = [UIAlertController
+                                         alertControllerWithTitle:DSLocalizedString(@"insufficient funds for axe network fee", nil)
+                                         message:nil
+                                         preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction* okButton = [UIAlertAction
+                                       actionWithTitle:DSLocalizedString(@"ok", nil)
+                                       style:UIAlertActionStyleCancel
+                                       handler:^(UIAlertAction * action) {
+                                           
+                                       }];
+            
+            
+            [alert addAction:okButton];
+            [[self presentingViewController] presentViewController:alert animated:YES completion:nil];
+        }
+    }
+    else {
+        UIAlertController * alert = [UIAlertController
+                                     alertControllerWithTitle:DSLocalizedString(@"insufficient funds", nil)
+                                     message:nil
+                                     preferredStyle:UIAlertControllerStyleAlert];
+        UIAlertAction* okButton = [UIAlertAction
+                                   actionWithTitle:DSLocalizedString(@"ok", nil)
+                                   style:UIAlertActionStyleCancel
+                                   handler:^(UIAlertAction * action) {
+                                       
+                                   }];
+        [alert addAction:okButton];
+        [[self presentingViewController] presentViewController:alert animated:YES completion:nil];
+    }
+}
+
+-(void)confirmPaymentRequest:(DSPaymentRequest *)paymentRequest fromAccount:(DSAccount*)account forceInstantSend:(BOOL)forceInstantSend signedCompletion:(void (^)(NSError *error))signedCompletion publishedCompletion:(void (^)(NSError *error))publishedCompletion {
+    DSPaymentProtocolRequest * protocolRequest = paymentRequest.protocolRequest;
+    DSTransaction * transaction = [account transactionForAmounts:protocolRequest.details.outputAmounts toOutputScripts:protocolRequest.details.outputScripts withFee:TRUE isInstant:forceInstantSend];
+    if (transaction) {
+        uint64_t fee = [account feeForTransaction:transaction];
+        NSString *prompt = [[DSAuthenticationManager sharedInstance] promptForAmount:paymentRequest.amount
+                                                                                 fee:fee
+                                                                             address:paymentRequest.paymentAddress
+                                                                                name:protocolRequest.commonName
+                                                                                memo:protocolRequest.details.memo
+                                                                            isSecure:TRUE//(valid && ! [protoReq.pkiType isEqual:@"none"])
+                                                                        errorMessage:nil
+                                                                       localCurrency:nil
+                                                                 localCurrencyAmount:nil];
+        CFRunLoopPerformBlock([[NSRunLoop mainRunLoop] getCFRunLoop], kCFRunLoopCommonModes, ^{
+            [self confirmTransaction:transaction fromAccount:account toAddress:paymentRequest.paymentAddress withPrompt:prompt forAmount:paymentRequest.amount localCurrency:nil localCurrencyAmount:nil signedCompletion:signedCompletion publishedCompletion:publishedCompletion];
+        });
+    }
+}
+
+- (void)confirmTransaction:(DSTransaction *)tx fromAccount:(DSAccount*)account toAddress:(NSString*)address withPrompt:(NSString *)prompt forAmount:(uint64_t)amount localCurrency:(NSString *)localCurrency localCurrencyAmount:(NSString *)localCurrencyAmount signedCompletion:(void (^)(NSError *error))signedCompletion publishedCompletion:(void (^)(NSError *error))publishedCompletion
+{
+    DSAuthenticationManager *authenticationManager = [DSAuthenticationManager sharedInstance];
+    __block BOOL previouslyWasAuthenticated = authenticationManager.didAuthenticate;
+    
+    if (! tx) { // tx is nil if there were insufficient wallet funds
+        if (authenticationManager.didAuthenticate) {
+            [self insufficientFundsForTransaction:tx fromAccount:account forAmount:amount toAddress:address localCurrency:localCurrency localCurrencyAmount:localCurrencyAmount signedCompletion:signedCompletion publishedCompletion:publishedCompletion];
+        } else {
+            [authenticationManager seedWithPrompt:prompt forWallet:account.wallet forAmount:amount forceAuthentication:NO completion:^(NSData * _Nullable seed, BOOL cancelled) {
+                if (seed) {
+                    [self insufficientFundsForTransaction:tx fromAccount:account forAmount:amount toAddress:address localCurrency:localCurrency localCurrencyAmount:localCurrencyAmount signedCompletion:signedCompletion publishedCompletion:publishedCompletion];
+                } else {
+                    signedCompletion([NSError errorWithDomain:@"AxeSync" code:401
+                                                     userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"double spend", nil)}]);
+                }
+                if (!previouslyWasAuthenticated) [authenticationManager deauthenticate];
+            }];
+        }
+    } else {
+        
+        [account signTransaction:tx withPrompt:prompt completion:^(BOOL signedTransaction) {
+            if (!signedTransaction) {
+                UIAlertController * alert = [UIAlertController
+                                             alertControllerWithTitle:DSLocalizedString(@"couldn't make payment", nil)
+                                             message:DSLocalizedString(@"error signing axe transaction", nil)
+                                             preferredStyle:UIAlertControllerStyleAlert];
+                UIAlertAction* okButton = [UIAlertAction
+                                           actionWithTitle:DSLocalizedString(@"ok", nil)
+                                           style:UIAlertActionStyleCancel
+                                           handler:^(UIAlertAction * action) {
+                                               
+                                           }];
+                [alert addAction:okButton];
+                [[self presentingViewController] presentViewController:alert animated:YES completion:nil];
+                
+            } else {
+                
+                if (! previouslyWasAuthenticated) [authenticationManager deauthenticate];
+                
+                if (! tx.isSigned) { // double check
+                    return;
+                }
+                
+                signedCompletion(nil);
+                
+                __block BOOL waiting = YES, sent = NO;
+                
+                [self publishTransaction:tx completion:^(NSError *error) {
+                    if (error) {
+                        if (! waiting && ! sent) {
+
+                            publishedCompletion(error);
+                            
+                        }
+                    }
+                    else if (! sent) { //TODO: show full screen sent dialog with tx info, "you sent b10,000 to bob"
+                        sent = YES;
+                        tx.timestamp = [NSDate timeIntervalSince1970];
+                        [account registerTransaction:tx];
+                        publishedCompletion(nil);
+                        
+                    }
+                    waiting = NO;
+                }];
+            }
+        }];
+    }
+}
+
+
 // MARK: - Mempools Sync
 
 - (void)fetchMempoolFromPeer:(DSPeer*)peer {
+    NSLog(@"[DSTransactionManager] fetching mempool from peer %@",peer.host);
     if (peer.status != DSPeerStatus_Connected) return;
     
     if ([self.chain canConstructAFilter] && (peer != self.peerManager.downloadPeer || self.transactionsBloomFilterFalsePositiveRate > BLOOM_REDUCED_FALSEPOSITIVE_RATE*5.0)) {
@@ -290,8 +491,10 @@ for (NSValue *txHash in self.txRelays.allKeys) {
     [peer sendInvMessageForHashes:self.publishedCallback.allKeys ofType:DSInvType_Tx]; // publish pending tx
     [peer sendPingMessageWithPongHandler:^(BOOL success) {
         if (success) {
+            NSLog(@"[DSTransactionManager] fetching mempool ping success peer %@",peer.host);
             [peer sendMempoolMessage:self.publishedTx.allKeys completion:^(BOOL success) {
                 if (success) {
+                    NSLog(@"[DSTransactionManager] fetching mempool message success peer %@",peer.host);
                     peer.synced = YES;
                     [self removeUnrelayedTransactions];
                     [peer sendGetaddrMessage]; // request a list of other bitcoin peers
@@ -300,6 +503,8 @@ for (NSValue *txHash in self.txRelays.allKeys) {
                         [[NSNotificationCenter defaultCenter]
                          postNotificationName:DSTransactionManagerTransactionStatusDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self.chain}];
                     });
+                } else {
+                    NSLog(@"[DSTransactionManager] fetching mempool message failure peer %@",peer.host);
                 }
                 
                 if (peer == self.peerManager.downloadPeer) {
@@ -313,12 +518,15 @@ for (NSValue *txHash in self.txRelays.allKeys) {
             }];
         }
         else if (peer == self.peerManager.downloadPeer) {
+            NSLog(@"[DSTransactionManager] fetching mempool ping failure on download peer %@",peer.host);
             [self.peerManager syncStopped];
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 [[NSNotificationCenter defaultCenter]
                  postNotificationName:DSTransactionManagerSyncFinishedNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self.chain}];
             });
+        } else {
+            NSLog(@"[DSTransactionManager] fetching mempool ping failure on peer %@",peer.host);
         }
     }];
 }
@@ -411,7 +619,20 @@ for (NSValue *txHash in self.txRelays.allKeys) {
 {
     NSValue *hash = uint256_obj(txHash);
     DSTransaction *transaction = self.publishedTx[hash];
+    BOOL transactionIsPublished = !!transaction;
     DSAccount * account = [self.chain accountContainingTransaction:transaction];
+    if (transactionIsPublished) {
+        account = [self.chain accountContainingTransaction:transaction];
+        if (!account) {
+            account = [self.chain accountForTransactionHash:txHash transaction:nil wallet:nil];
+        }
+    } else {
+        account = [self.chain accountForTransactionHash:txHash transaction:&transaction wallet:nil];
+    }
+    if (!account) {
+        NSLog(@"No transaction could be found on any account for hash %@",hash);
+        return nil;
+    }
     void (^callback)(NSError *error) = self.publishedCallback[hash];
     NSError *error = nil;
     
@@ -420,12 +641,12 @@ for (NSValue *txHash in self.txRelays.allKeys) {
     [self.nonFalsePositiveTransactions addObject:hash];
     [self.publishedCallback removeObjectForKey:hash];
     
-    if (callback && ! [account transactionIsValid:transaction]) {
+    if (callback && ![account transactionIsValid:transaction]) {
         [self.publishedTx removeObjectForKey:hash];
         error = [NSError errorWithDomain:@"AxeSync" code:401
                                 userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"double spend", nil)}];
     }
-    else if (transaction && ! [account transactionForHash:txHash] && [account registerTransaction:transaction]) {
+    else if (transaction && ![account transactionForHash:txHash] && [account registerTransaction:transaction]) {
         [[DSTransactionEntity context] performBlock:^{
             [DSTransactionEntity saveContext]; // persist transactions to core data
         }];
@@ -490,7 +711,6 @@ for (NSValue *txHash in self.txRelays.allKeys) {
             [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(txTimeout:) object:hash];
             [[NSNotificationCenter defaultCenter] postNotificationName:DSTransactionManagerTransactionStatusDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self.chain}];
             if (callback) callback(nil);
-            
         });
     }
     
@@ -612,8 +832,89 @@ for (NSValue *txHash in self.txRelays.allKeys) {
 
 // MARK: Instant Send
 
-- (void)peer:(DSPeer *)peer hasTransactionLockVoteHashes:(NSSet *)transactionLockVoteHashes {
+-(BOOL)checkAllLocksForTransaction:(DSTransaction*)transaction {
+    NSValue *transactionHashValue = uint256_obj(transaction.txHash);
+    if (!transaction.inputHashes || !transaction.inputHashes.count) return NO;
+    NSMutableDictionary * lockVotes = [NSMutableDictionary dictionary];
+    for (NSValue * transactionOutputValue in transaction.inputHashes) {
+        if (self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue][IX_INPUT_LOCKED_KEY]) {
+            BOOL lockFailed = ![self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue][IX_INPUT_LOCKED_KEY] boolValue];
+            if (lockFailed) return NO; //sanity check
+            
+        } else {
+            return NO;
+        }
+        NSMutableDictionary * inputLockVotesDictionary = [self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue] mutableCopy];
+        [inputLockVotesDictionary removeObjectForKey:IX_INPUT_LOCKED_KEY];
+        
+        lockVotes[transactionOutputValue] = [NSArray arrayWithArray:inputLockVotesDictionary.allValues];
+    }
+    [transaction setInstantSendReceivedWithTransactionLockVotes:lockVotes];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[NSNotificationCenter defaultCenter]
+         postNotificationName:DSTransactionManagerTransactionStatusDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self.chain}];
+    });
+    return YES;
+}
+
+-(void)checkLocksForTransactionHash:(UInt256)transactionHash forInput:(DSUTXO)transactionOutput {
+    //first check to see if transaction is known
+    DSTransaction * transaction = nil;
+    DSWallet * wallet = nil;
+    DSAccount * account = [self.chain accountForTransactionHash:transactionHash transaction:&transaction wallet:&wallet];
+    if (account && transaction) {
+        //transaction and account are known
+        NSValue *transactionHashValue = uint256_obj(transactionHash);
+        NSValue *transactionOutputValue = dsutxo_obj(transactionOutput);
+        if (self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue][IX_INPUT_LOCKED_KEY]) {
+            BOOL lockFailed = ![self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue][IX_INPUT_LOCKED_KEY] boolValue];
+            if (lockFailed) return; //sanity check
+            //this input is alredy locked, let's check other inputs to see if they are locked as well
+            [self checkAllLocksForTransaction:transaction];
+            
+        } else if ([self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue] count] > 6) {
+            //there are over 6 votes already, check to see that the votes are coming from the right masternodes
+            int yesVotes = 0;
+            int noVotes = 0;//these might not be no votes, but they are a no for the masternode (might be an signature error)
+            for (NSObject * value in self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue]) {
+                if ([value isEqual:IX_INPUT_LOCKED_KEY]) continue;
+                DSTransactionLockVote * lockVote = self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue][value];
+                DSSimplifiedMasternodeEntry * masternode = [self.masternodeManager masternodeHavingProviderRegistrationTransactionHash:uint256_data(lockVote.masternodeProviderTransactionHash)];
+                if (!masternode) continue;
+                BOOL verified = [lockVote verifySignature];
+                if (verified) yesVotes++;
+                if (!verified) noVotes++;
+                if (yesVotes > 5) { // 6 or more
+                    self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue][IX_INPUT_LOCKED_KEY] = @YES;
+                    [self checkAllLocksForTransaction:transaction];
+                } else if (noVotes > 4) { // 5 or more
+                    self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue][IX_INPUT_LOCKED_KEY] = @NO;
+                }
+            }
+        }
+    }
+}
+
+- (void)peer:(DSPeer *)peer hasTransactionLockVoteHashes:(NSOrderedSet *)transactionLockVoteHashes {
     
+}
+
+- (void)peer:(DSPeer *)peer relayedTransactionLockVote:(DSTransactionLockVote *)transactionLockVote {
+    NSValue *transactionHashValue = uint256_obj(transactionLockVote.transactionHash);
+    DSUTXO transactionOutput = transactionLockVote.transactionOutpoint;
+    UInt256 masternodeProviderTransactionHash = transactionLockVote.masternodeProviderTransactionHash;
+    NSValue *transactionOutputValue = dsutxo_obj(transactionOutput);
+    NSValue *masternodeProviderTransactionHashValue = uint256_obj(masternodeProviderTransactionHash);
+    if (!self.transactionLockVoteDictionary[transactionHashValue]) {
+        self.transactionLockVoteDictionary[transactionHashValue] = [NSMutableDictionary dictionary];
+    }
+    if (!self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue]) {
+        self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue] = [NSMutableDictionary dictionary];
+    }
+    
+    self.transactionLockVoteDictionary[transactionHashValue][transactionOutputValue][masternodeProviderTransactionHashValue] = transactionLockVote;
+    
+    [self checkLocksForTransactionHash:transactionLockVote.transactionHash forInput:transactionOutput];
 }
 
 // MARK: Blocks
@@ -654,6 +955,10 @@ for (NSValue *txHash in self.txRelays.allKeys) {
     }
     
     [self.chain addBlock:block fromPeer:peer];
+}
+
+- (void)peer:(DSPeer *)peer relayedTooManyOrphanBlocks:(NSUInteger)orphanBlockCount {
+    [self.peerManager peerMisbehaving:peer];
 }
 
 // MARK: Fees

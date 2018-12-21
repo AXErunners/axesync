@@ -3,7 +3,7 @@
 //  AxeSync
 //
 //  Created by Sam Westrich on 5/6/18.
-//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
+//  Copyright (c) 2018 Dash Core Group <contact@dash.org>
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSChainsDidChangeNotification;
 @property (nonatomic,strong) DSChainManager * mainnetManager;
 @property (nonatomic,strong) DSChainManager * testnetManager;
 @property (nonatomic,strong) NSArray * devnetManagers;
+@property (nonatomic,readonly) BOOL hasAWallet;
 @property (nonatomic,readonly) NSArray * chains;
 @property (nonatomic,readonly) NSArray * devnetChains;
 @property (nonatomic,readonly) uint64_t spendingLimit;

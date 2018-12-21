@@ -4,7 +4,7 @@
 //
 //  Created by Aaron Voisine for BreadWallet on 10/6/13.
 //  Copyright (c) 2013 Aaron Voisine <voisine@gmail.com>
-//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
+//  Copyright (c) 2018 Dash Core Group <contact@dash.org>
 //  Updated by Quantum Explorer on 05/11/18.
 //  Copyright (c) 2018 Quantum Explorer <quantum@dash.org>
 //
@@ -55,6 +55,7 @@
 #import "DSTransactionManager+Protected.h"
 #import "DSChainManager+Protected.h"
 #import "DSBloomFilter.h"
+#import <arpa/inet.h>
 
 #define PEER_LOGGING 1
 
@@ -64,7 +65,9 @@
 
 #define TESTNET_DNS_SEEDS @[/*@"testnet-dnsseed.axe.org",@"test.dnsseed.masternode.io",@"testnet-seed.axedot.io"*/]
 
-#define MAINNET_DNS_SEEDS @[@"seed1.0313370.xyz"]
+#define MAINNET_DNS_SEEDS @[@"dnsseed.axe.org"]
+
+#define TESTNET_MAIN_PEER @"" //@"18.202.52.170:19999"
 
 
 #define FIXED_PEERS          @"FixedPeers"
@@ -286,9 +289,24 @@
                 [self sortPeers];
                 return _peers;
             }
-
             // if DNS peer discovery fails, fall back on a hard coded list of peers (list taken from satoshi client)
             if (_peers.count < PEER_MAX_CONNECTIONS) {
+            if (![self.chain isMainnet] && ![TESTNET_MAIN_PEER isEqualToString:@""]) {
+                NSArray * serviceArray = [TESTNET_MAIN_PEER componentsSeparatedByString:@":"];
+                NSString * address = serviceArray[0];
+                NSString * port = ([serviceArray count] > 1)? serviceArray[1]:nil;
+                UInt128 ipAddress = { .u32 = { 0, 0, CFSwapInt32HostToBig(0xffff), 0 } };
+                struct in_addr addrV4;
+                if (inet_aton([address UTF8String], &addrV4) != 0) {
+                    uint32_t ip = ntohl(addrV4.s_addr);
+                    ipAddress.u32[3] = CFSwapInt32HostToBig(ip);
+                } else {
+                    NSLog(@"invalid address");
+                }
+                [_peers addObject:[[DSPeer alloc] initWithAddress:ipAddress port:port?[port intValue]:self.chain.standardPort onChain:self.chain
+                                                        timestamp:now - (WEEK_TIME_INTERVAL + arc4random_uniform(WEEK_TIME_INTERVAL))
+                                                         services:SERVICES_NODE_NETWORK | SERVICES_NODE_BLOOM]];
+            } else {
                 UInt128 addr = { .u32 = { 0, 0, CFSwapInt32HostToBig(0xffff), 0 } };
 
                 NSString *bundlePath = [[NSBundle bundleForClass:self.class] pathForResource:@"AxeSync" ofType:@"bundle"];
@@ -298,9 +316,10 @@
                     // give hard coded peers a timestamp between 7 and 14 days ago
                     addr.u32[3] = CFSwapInt32HostToBig(address.unsignedIntValue);
                     [_peers addObject:[[DSPeer alloc] initWithAddress:addr port:self.chain.standardPort onChain:self.chain
-                                                            timestamp:now - (7*24*60*60 + arc4random_uniform(7*24*60*60))
+                                                            timestamp:now - (WEEK_TIME_INTERVAL + arc4random_uniform(WEEK_TIME_INTERVAL))
                                                              services:SERVICES_NODE_NETWORK | SERVICES_NODE_BLOOM]];
                 }
+            }
             }
 
             [self sortPeers];
@@ -468,7 +487,7 @@
         if (! success) return;
         //we are on chainPeerManagerQueue
         NSLog(@"updating filter with newly created wallet addresses");
-        [self.transactionManager clearBloomFilter];
+        [self.transactionManager clearTransactionsBloomFilter];
 
         if (self.chain.lastBlockHeight < self.chain.estimatedBlockHeight) { // if we're syncing, only update download peer
             [self.downloadPeer sendFilterloadMessage:[self.transactionManager transactionsBloomFilterForPeer:self.downloadPeer].data];
@@ -709,9 +728,17 @@
                 [peer sendFilterloadMessage:[DSBloomFilter emptyBloomFilterData]];
             }
             [peer sendPingMessageWithPongHandler:^(BOOL success) {
-                if (! success) return;
+                if (! success) {
+                    NSLog(@"[DSTransactionManager] fetching mempool ping on connection failure peer %@",peer.host);
+                    return;
+                }
+                NSLog(@"[DSTransactionManager] fetching mempool ping on connection success peer %@",peer.host);
                 [peer sendMempoolMessage:self.transactionManager.publishedTx.allKeys completion:^(BOOL success) {
-                    if (! success) return;
+                    if (! success) {
+                        NSLog(@"[DSTransactionManager] fetching mempool message on connection failure peer %@",peer.host);
+                        return;
+                    }
+                    NSLog(@"[DSTransactionManager] fetching mempool message on connection success peer %@",peer.host);
                     peer.synced = YES;
                     [self.transactionManager removeUnrelayedTransactions];
                     [peer sendGetaddrMessage]; // request a list of other axe peers

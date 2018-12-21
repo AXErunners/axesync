@@ -25,17 +25,20 @@
 #import "DSParseBitPayResponseOperation.h"
 #import "DSParseAxeCentralResponseOperation.h"
 #import "DSParsePoloniexResponseOperation.h"
+#import "DSParseAxeCasaResponseOperation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 #define BITPAY_TICKER_URL @"https://bitpay.com/rates"
 #define POLONIEX_TICKER_URL @"https://poloniex.com/public?command=returnOrderBook&currencyPair=BTC_AXE&depth=1"
 #define AXECENTRAL_TICKER_URL @"https://www.axecentral.org/api/v1/public"
+#define AXECASA_TICKER_URL @"http://axe.casa/api/?cur=VES"
 
 #define CURRENCY_CODES_KEY @"CURRENCY_CODES"
 #define CURRENCY_PRICES_KEY @"CURRENCY_PRICES"
 #define POLONIEX_AXE_BTC_PRICE_KEY @"POLONIEX_AXE_BTC_PRICE"
 #define AXECENTRAL_AXE_BTC_PRICE_KEY @"AXECENTRAL_AXE_BTC_PRICE"
+#define AXECASA_AXE_PRICE_KEY @"AXECASA_AXE_PRICE"
 
 #pragma mark - Cache
 
@@ -46,6 +49,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (strong, nonatomic) NSNumber *poloniexLastPrice;
 @property (strong, nonatomic) NSNumber *axecentralLastPrice;
+@property (strong, nonatomic) NSNumber *axecasaLastPrice;
 
 @end
 
@@ -55,6 +59,7 @@ NS_ASSUME_NONNULL_BEGIN
 @dynamic currencyPrices;
 @dynamic poloniexLastPrice;
 @dynamic axecentralLastPrice;
+@dynamic axecasaLastPrice;
 
 + (instancetype)sharedInstance {
     static DSFetchSecondFallbackPricesOperationCache *_sharedInstance = nil;
@@ -71,6 +76,7 @@ NS_ASSUME_NONNULL_BEGIN
         @"currencyPrices" : CURRENCY_PRICES_KEY,
         @"poloniexLastPrice" : POLONIEX_AXE_BTC_PRICE_KEY,
         @"axecentralLastPrice" : AXECENTRAL_AXE_BTC_PRICE_KEY,
+        @"axecasaLastPrice" : AXECASA_AXE_PRICE_KEY,
     };
     NSString *defaultsKey = defaultsKeyByProperty[propertyName];
     NSParameterAssert(defaultsKey);
@@ -86,9 +92,11 @@ NS_ASSUME_NONNULL_BEGIN
 @property (strong, nonatomic) DSParseBitPayResponseOperation *parseBitPayOperation;
 @property (strong, nonatomic) DSParsePoloniexResponseOperation *parsePoloniexOperation;
 @property (strong, nonatomic) DSParseAxeCentralResponseOperation *parseAxecentralOperation;
+@property (strong, nonatomic) DSParseAxeCasaResponseOperation *parseAxeCasaOperation;
 @property (strong, nonatomic) DSChainedOperation *chainBitPayOperation;
 @property (strong, nonatomic) DSChainedOperation *chainPoloniexOperation;
 @property (strong, nonatomic) DSChainedOperation *chainAxecentralOperation;
+@property (strong, nonatomic) DSChainedOperation *chainAxeCasaOperation;
 
 @property (copy, nonatomic) void (^fetchCompletion)(NSArray<DSCurrencyPriceObject *> *_Nullable);
 
@@ -132,6 +140,17 @@ NS_ASSUME_NONNULL_BEGIN
             _chainAxecentralOperation = chainOperation;
             [self addOperation:chainOperation];
         }
+        {
+            NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:AXECASA_TICKER_URL]
+                                                     cachePolicy:NSURLRequestReloadIgnoringCacheData
+                                                 timeoutInterval:30.0];
+            DSHTTPGETOperation *getOperation = [[DSHTTPGETOperation alloc] initWithRequest:request];
+            DSParseAxeCasaResponseOperation *parseOperation = [[DSParseAxeCasaResponseOperation alloc] init];
+            DSChainedOperation *chainOperation = [DSChainedOperation operationWithOperations:@[ getOperation, parseOperation ]];
+            _parseAxeCasaOperation = parseOperation;
+            _chainAxeCasaOperation = chainOperation;
+            [self addOperation:chainOperation];
+        }
 
         _fetchCompletion = [completion copy];
     }
@@ -164,6 +183,12 @@ NS_ASSUME_NONNULL_BEGIN
             cache.axecentralLastPrice = axecentralPrice;
         }
     }
+    else if (operation == self.chainAxeCasaOperation) {
+        NSNumber *axecasaLastPrice = self.parseAxeCasaOperation.axerate;
+        if (axecasaLastPrice) {
+            cache.axecasaLastPrice = axecasaLastPrice;
+        }
+    }
 }
 
 - (void)finishedWithErrors:(NSArray<NSError *> *)errors {
@@ -176,6 +201,7 @@ NS_ASSUME_NONNULL_BEGIN
     NSArray<NSNumber *> *currencyPrices = cache.currencyPrices;
     NSNumber *poloniexPriceNumber = cache.poloniexLastPrice;
     NSNumber *axecentralPriceNumber = cache.axecentralLastPrice;
+    NSNumber *axecasaLastPrice = cache.axecasaLastPrice;
 
     // not enough data to build prices
     if (!currencyCodes ||
@@ -214,6 +240,9 @@ NS_ASSUME_NONNULL_BEGIN
         NSUInteger index = [currencyCodes indexOfObject:code];
         NSNumber *btcPrice = currencyPrices[index];
         NSNumber *price = @(btcPrice.doubleValue * btcAxePrice);
+        if ([code isEqualToString:@"VES"] && axecasaLastPrice) {
+            price = axecasaLastPrice;
+        }
         DSCurrencyPriceObject *priceObject = [[DSCurrencyPriceObject alloc] initWithCode:code price:price];
         if (priceObject) {
             [prices addObject:priceObject];

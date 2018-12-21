@@ -3,7 +3,7 @@
 //  AxeSync
 //
 //  Created by Sam Westrich on 11/21/18.
-//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
+//  Copyright (c) 2018 Dash Core Group <contact@dash.org>
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)clearTransactionRelaysForPeer:(DSPeer*)peer;
 - (void)removeUnrelayedTransactions;
 - (void)updateTransactionsBloomFilter;
-- (void)clearBloomFilter;
+- (void)clearTransactionsBloomFilter;
 
 @end
 

@@ -3,7 +3,7 @@
 //  AxeSync
 //
 //  Created by Sam Westrich on 10/18/17.
-//  Copyright (c) 2018 Axe Core Group <contact@axe.org>
+//  Copyright (c) 2018 Dash Core Group <contact@dash.org>
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSSporkListDidUpdateNotification;
     
 @property (nonatomic,readonly) BOOL instantSendActive;
 @property (nonatomic,readonly) BOOL instantSendAutoLocks;
+@property (nonatomic,readonly) BOOL deterministicMasternodeListEnabled;
 
 @property (nonatomic,readonly) NSDictionary * sporkDictionary;
 @property (nonatomic,readonly) DSChain * chain;
