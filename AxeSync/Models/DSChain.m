@@ -381,6 +381,10 @@ static dispatch_once_t devnetToken = 0;
     }];
 }
 
+-(NSString*)debugDescription {
+    return [[super debugDescription] stringByAppendingString:[NSString stringWithFormat:@" {%@}",self.name]];
+}
+
 // MARK: - Check Type
 
 -(BOOL)isMainnet {
@@ -965,6 +969,7 @@ static dispatch_once_t devnetToken = 0;
         [[NSNotificationCenter defaultCenter] postNotificationName:DSChainWalletsDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self}];
     });
 }
+
 -(void)addWallet:(DSWallet*)wallet {
     [self.mWallets addObject:wallet];
 }
@@ -1235,6 +1240,7 @@ static dispatch_once_t devnetToken = 0;
               blockHash, prevBlock, block.height, uint256_obj(self.lastBlock.blockHash), self.lastBlockHeight,[NSDate dateWithTimeIntervalSince1970:block.timestamp]);
         
         [self.chainManager chain:self receivedOrphanBlock:block fromPeer:peer];
+        [peer receivedOrphanBlock];
         
         self.orphans[prevBlock] = block; // orphans are indexed by prevBlock instead of blockHash
         self.lastOrphan = block;
