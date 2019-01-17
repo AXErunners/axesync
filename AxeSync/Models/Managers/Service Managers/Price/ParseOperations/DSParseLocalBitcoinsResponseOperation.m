@@ -1,6 +1,6 @@
 //
 //  Created by Andrew Podkovyrin
-//  Copyright © 2018 Dash Core Group. All rights reserved.
+//  Copyright © 2019 Axe Core Group. All rights reserved.
 //
 //  Licensed under the MIT License (the "License");
 //  you may not use this file except in compliance with the License.
@@ -15,35 +15,48 @@
 //  limitations under the License.
 //
 
-#import "DSParseAxeVesCCResponseOperation.h"
+#import "DSParseLocalBitcoinsResponseOperation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface DSParseAxeVesCCResponseOperation ()
+@interface DSParseLocalBitcoinsResponseOperation ()
 
 @property (strong, nonatomic, nullable) NSNumber *vesPrice;
 
 @end
 
-@implementation DSParseAxeVesCCResponseOperation
+@implementation DSParseLocalBitcoinsResponseOperation
 
 - (void)execute {
-    NSParameterAssert(self.responseToParse);
+    NSParameterAssert(self.httpOperationResult.parsedResponse);
 
-    NSDictionary *response = (NSDictionary *)self.responseToParse;
+    NSDictionary *response = (NSDictionary *)self.httpOperationResult.parsedResponse;
     if (![response isKindOfClass:NSDictionary.class]) {
         [self cancelWithError:[self.class invalidResponseErrorWithUserInfo:@{NSDebugDescriptionErrorKey : response}]];
 
         return;
     }
 
-    NSNumber *vesPrice = response[@"VES"];
-    if (![vesPrice isKindOfClass:NSNumber.class]) {
+    NSDictionary *exchangeData = response[@"VES"];
+    if (![exchangeData isKindOfClass:NSDictionary.class]) {
         [self cancelWithError:[self.class invalidResponseErrorWithUserInfo:@{NSDebugDescriptionErrorKey : response}]];
 
         return;
     }
 
+    NSNumber *vesPrice = nil;
+    if (exchangeData[@"avg_1h"]) {
+        vesPrice = exchangeData[@"avg_1h"];
+    }
+    else if (exchangeData[@"avg_6h"]) {
+        vesPrice = exchangeData[@"avg_6h"];
+    }
+    else if (exchangeData[@"avg_12h"]) {
+        vesPrice = exchangeData[@"avg_12h"];
+    }
+    else if (exchangeData[@"avg_24h"]) {
+        vesPrice = exchangeData[@"avg_24h"];
+    }
     self.vesPrice = vesPrice;
 
     [self finish];

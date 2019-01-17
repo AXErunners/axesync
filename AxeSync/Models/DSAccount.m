@@ -56,6 +56,8 @@
 #import "NSDate+Utils.h"
 #import "DSBIP39Mnemonic.h"
 
+#define LOG_BALANCE_UPDATE 0
+
 #define AUTH_SWEEP_KEY @"AUTH_SWEEP_KEY"
 #define AUTH_SWEEP_FEE @"AUTH_SWEEP_FEE"
 
@@ -163,6 +165,7 @@
 }
 
 -(void)loadTransactions {
+    if (_wallet.isTransient) return;
     [self.moc performBlockAndWait:^{
         [DSTransactionEntity setContext:self.moc];
         [DSAccountEntity setContext:self.moc];
@@ -176,13 +179,23 @@
             DSAccountEntity * accountEntity = [DSAccountEntity accountEntityForWalletUniqueID:self.wallet.uniqueID index:self.accountNumber];
             for (DSTxOutputEntity *e in accountEntity.transactionOutputs) {
                 @autoreleasepool {
-                    
                     DSTransaction *transaction = [e.transaction transactionForChain:self.wallet.chain];
                     NSValue *hash = (transaction) ? uint256_obj(transaction.txHash) : nil;
                     
                     if (! transaction || self.allTx[hash] != nil) continue;
                     self.allTx[hash] = transaction;
                     [self.transactions addObject:transaction];
+                
+                DSTxInputEntity * spentInInput = e.spentInInput;
+                if (spentInInput) { //this has been spent, also add the transaction where it is being spent
+                    
+                    DSTransaction *transaction = [spentInInput.transaction transactionForChain:self.wallet.chain];
+                    NSValue *hash = (transaction) ? uint256_obj(transaction.txHash) : nil;
+                    
+                    if (! transaction || self.allTx[hash] != nil) continue;
+                    self.allTx[hash] = transaction;
+                    [self.transactions addObject:transaction];
+                }
                 }
             }
         }
@@ -231,8 +244,10 @@
 }
 
 - (void)loadDerivationPaths {
+    if (!_wallet.isTransient) {
     for (DSDerivationPath * derivationPath in self.derivationPaths) {
         [derivationPath loadAddresses];
+    }
     }
     if (!self.isViewOnlyAccount) {
         if (self.bip44DerivationPath) {
@@ -358,6 +373,9 @@
     }
     
     for (DSTransaction *tx in [self.transactions reverseObjectEnumerator]) {
+#if LOG_BALANCE_UPDATE
+        DSDLog(@"updating balance after transaction %@",[NSData dataWithUInt256:tx.txHash].reverse.hexString);
+#endif
         @autoreleasepool {
             NSMutableSet *spent = [NSMutableSet set];
             NSSet *inputs;
@@ -456,6 +474,20 @@
             if (balance < prevBalance) totalSent += prevBalance - balance;
             [balanceHistory insertObject:@(balance) atIndex:0];
             prevBalance = balance;
+#if LOG_BALANCE_UPDATE
+            DSDLog(@"===UTXOS===");
+            for (NSValue * utxo in utxos) {
+                DSUTXO o;
+                [utxo getValue:&o];
+                DSDLog(@"--%@ (%lu)",[NSData dataWithUInt256:o.hash].reverse.hexString,o.n);
+            }
+            DSDLog(@"===Spent Outputs===");
+            for (NSValue * utxo in spentOutputs) {
+                DSUTXO o;
+                [utxo getValue:&o];
+                DSDLog(@"--%@ (%lu)",[NSData dataWithUInt256:o.hash].reverse.hexString,o.n);
+            }
+#endif
         }
     }
     
@@ -664,7 +696,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
             
             // check for sufficient total funds before building a smaller transaction
             if (self.balance < amount + [self.wallet.chain feeForTxSize:txSize + cpfpSize isInstant:isInstant inputCount:transaction.inputHashes.count]) {
-                NSLog(@"Insufficient funds. %llu is less than transaction amount:%llu", self.balance,
+                DSDLog(@"Insufficient funds. %llu is less than transaction amount:%llu", self.balance,
                       amount + [self.wallet.chain feeForTxSize:txSize + cpfpSize isInstant:isInstant inputCount:transaction.inputHashes.count]);
                 return nil;
             }
@@ -701,14 +733,14 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
         if (balance == amount + feeAmount || balance >= amount + feeAmount + self.wallet.chain.minOutputAmount) break;
     }
     
-    transaction.isInstant = isInstant;
+    transaction.desiresInstantSendSending = isInstant;
     
     if (!feeAmount) {
         feeAmount = [self.wallet.chain feeForTxSize:transaction.size + TX_OUTPUT_SIZE + cpfpSize isInstant:isInstant inputCount:transaction.inputHashes.count]; // assume we will add a change output
     }
     
     if (balance < amount + feeAmount) { // insufficient funds
-        NSLog(@"Insufficient funds. %llu is less than transaction amount:%llu", balance, amount + feeAmount);
+        DSDLog(@"Insufficient funds. %llu is less than transaction amount:%llu", balance, amount + feeAmount);
         return nil;
     }
     
@@ -863,7 +895,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // records the transaction in the account, or returns false if it isn't associated with the wallet
 - (BOOL)registerTransaction:(DSTransaction *)transaction
 {
-    NSLog(@"[DSAccount] registering transaction %@", transaction);
+    DSDLog(@"[DSAccount] registering transaction %@", transaction);
     UInt256 txHash = transaction.txHash;
     NSValue *hash = uint256_obj(txHash);
     
@@ -879,12 +911,12 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
     }
     
     if (self.allTx[hash] != nil) {
-        NSLog(@"[DSAccount] transaction already registered %@", transaction);
+        DSDLog(@"[DSAccount] transaction already registered %@", transaction);
         return YES;
     }
     
     //TODO: handle tx replacement with input sequence numbers (now replacements appear invalid until confirmation)
-    NSLog(@"[DSAccount] received unseen transaction %@", transaction);
+    DSDLog(@"[DSAccount] received unseen transaction %@", transaction);
     if ([self checkIsFirstTransaction:transaction]) _firstTransactionHash = txHash; //it's okay if this isn't really the first, as it will be close enough (500 blocks close)
     self.allTx[hash] = transaction;
     [self.transactions insertObject:transaction atIndex:0];
@@ -1208,12 +1240,12 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
                 //                    }
                 //                }
                 for (DSTransactionHashEntity *e in entities) {
-                    NSLog(@"blockHeight is %u for %@",e.blockHeight,e.txHash);
+                    DSDLog(@"blockHeight is %u for %@",e.blockHeight,e.txHash);
                 }
                 NSError * error = nil;
                 [self.moc save:&error];
                 if (error) {
-                    NSLog(@"Issue Saving DB when setting Block Height");
+                    DSDLog(@"Issue Saving DB when setting Block Height");
                 }
             }
         }];

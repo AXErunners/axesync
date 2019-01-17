@@ -27,13 +27,13 @@
 "\ntry again in %d %@" = "\ntente novamente em %1$d %2$@";
 
 /* No comment provided by engineer. */
-"Are you sure you would like to register the username %@ and spend %@ on credits?" = "Are you sure you would like to register the username %1$@ and spend %2$@ on credits?";
+"Are you sure you would like to register the username %@ and spend %@ on credits?" = "Tem certeza de que gostaria de registrar o nome de usuário %1$@ e gastar %2$@ em créditos?";
 
 /* No comment provided by engineer. */
-"Are you sure you would like to reset this user?" = "Are you sure you would like to reset this user?";
+"Are you sure you would like to reset this user?" = "Tem certeza de que deseja redefinir este usuário?";
 
 /* No comment provided by engineer. */
-"Are you sure you would like to topup %@ and spend %@ on credits?" = "Are you sure you would like to topup %1$@ and spend %2$@ on credits?";
+"Are you sure you would like to topup %@ and spend %@ on credits?" = "Tem certeza de que gostaria de recarregar %1$@ e gastar %2$@ em créditos?";
 
 /* No comment provided by engineer. */
 "bad password, try again" = "senha incorreta, tente novamente";
@@ -51,7 +51,7 @@
 "choose passcode for %@" = "escolha a senha para %@";
 
 /* No comment provided by engineer. */
-"confirm" = "confirm";
+"confirm" = "confirmar:";
 
 /* No comment provided by engineer. */
 "connect timeout" = "tempo limite de conexão alcançado";
@@ -126,7 +126,7 @@
 "password protected key" = "chave protegida por senha";
 
 /* No comment provided by engineer. */
-"recovery phrase" = "recovery phrase";
+"recovery phrase" = "frase de recuperação";
 
 /* No comment provided by engineer. */
 "recovery phrase doesn't match" = "frase de recuperação não corresponde";
@@ -138,7 +138,7 @@
 "request expired" = "solicitação expirou";
 
 /* No comment provided by engineer. */
-"requested network \"%@\" not currently in use" = "requested network \"%@\" not currently in use";
+"requested network \"%@\" not currently in use" = "rede solicitada \"%@\" não está atualmente em uso";
 
 /* No comment provided by engineer. */
 "rescan" = "reescanear";

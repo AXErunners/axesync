@@ -40,12 +40,13 @@
 #import "DSAccount.h"
 #import "DSTransactionEntity+CoreDataClass.h"
 #import "DSTransactionLockVote.h"
+#import "DSChainEntity+CoreDataClass.h"
+#import "DSTransactionHashEntity+CoreDataClass.h"
 
 @interface DSTransaction ()
 
 @property (nonatomic, strong) DSChain * chain;
-@property (nonatomic, assign) BOOL instantSendReceived;
-@property (nonatomic, strong) NSDictionary<NSValue*,DSTransactionLockVote*>* transactionLockVotesDictionary;
+@property (nonatomic, strong) NSDictionary<NSValue*,NSArray<DSTransactionLockVote*>*>* transactionLockVotesDictionary;
 
 @end
 
@@ -64,9 +65,9 @@
     NSMutableData * outputScript = [NSMutableData data];
     [outputScript appendUInt8:OP_RETURN];
     [transaction addOutputScript:outputScript amount:chain.baseReward];
-    //    NSLog(@"we are hashing %@",transaction.toData);
+    //    DSDLog(@"we are hashing %@",transaction.toData);
     transaction.txHash = transaction.toData.SHA256_2;
-    //    NSLog(@"data is %@",[NSData dataWithUInt256:transaction.txHash]);
+    //    DSDLog(@"data is %@",[NSData dataWithUInt256:transaction.txHash]);
     return transaction;
 }
 
@@ -407,7 +408,7 @@
     
     //    for (NSData * data in self.signatures) {
     //        NSString * addr = [NSString addressWithScriptSig:data onChain:self.chain];
-    //                           NSLog(@"%@",addr);
+    //                           DSDLog(@"%@",addr);
     //    }
     
     for (NSData *script in self.inScripts) {
@@ -579,7 +580,7 @@
 
 - (BOOL)isEqual:(id)object
 {
-    return self == object || ([object isKindOfClass:[DSTransaction class]] && uint256_eq(_txHash, [object txHash]));
+    return self == object || ([object isKindOfClass:[DSTransaction class]] && uint256_eq(_txHash, [((DSTransaction*)object) txHash]));
 }
 
 // returns the fee for the given transaction if all its inputs are from wallet transactions, UINT64_MAX otherwise
@@ -659,9 +660,56 @@
     return nil;
 }
 
--(void)setInstantSendReceivedWithTransactionLockVotes:(NSMutableDictionary<NSValue*,DSTransactionLockVote*>*)transactionLockVotes {
-    self.instantSendReceived = TRUE;
+-(void)setInstantSendReceivedWithTransactionLockVotes:(NSMutableDictionary<NSValue*,NSArray<DSTransactionLockVote*>*>*)transactionLockVotes {
+    BOOL instantSendReceived = !!transactionLockVotes.count;
     self.transactionLockVotesDictionary = transactionLockVotes;
+    for (NSValue * key in transactionLockVotes) {
+        NSUInteger inputLockVotes = 0;
+        NSArray * lockVotesForInput = transactionLockVotes[key];
+        for (DSTransactionLockVote * transactionLockVote in lockVotesForInput) {
+            if (transactionLockVote.quorumVerified && transactionLockVote.signatureVerified) {
+                [transactionLockVote save]; //only save the good ones
+                inputLockVotes++;
+            } else {
+                DSDLog(@"A transaction lock vote was bad");
+            }
+        }
+        BOOL inputLocked = inputLockVotes > 5;
+        if (!inputLocked) {
+            DSDLog(@"The input could not be locked");
+        }
+        instantSendReceived &= inputLocked;
+    }
+    self.instantSendReceived = instantSendReceived;
+}
+
+-(void)save {
+    NSManagedObjectContext * context = [DSTransactionEntity context];
+    [context performBlockAndWait:^{ // add the transaction to core data
+        [DSChainEntity setContext:context];
+        Class transactionEntityClass = [self entityClass];
+        [transactionEntityClass setContext:context];
+        [DSTransactionHashEntity setContext:context];
+        if ([DSTransactionEntity countObjectsMatching:@"transactionHash.txHash == %@", uint256_data(self.txHash)] == 0) {
+            
+            DSTransactionEntity * transactionEntity = [transactionEntityClass managedObject];
+            [transactionEntity setAttributesFromTransaction:self];
+            [transactionEntityClass saveContext];
+        } else {
+            DSTransactionEntity * transactionEntity = [DSTransactionEntity anyObjectMatching:@"transactionHash.txHash == %@", uint256_data(self.txHash)];
+            [transactionEntity setAttributesFromTransaction:self];
+            [transactionEntityClass saveContext];
+        }
+    }];
+}
+
+-(NSArray*)transactionLockVotes {
+    NSMutableArray * array = [NSMutableArray array];
+    for (NSValue * key in self.transactionLockVotesDictionary) {
+        NSArray * votesForInput = self.transactionLockVotesDictionary[key];
+        [array addObjectsFromArray:votesForInput];
+    }
+    return array;
 }
 
 @end

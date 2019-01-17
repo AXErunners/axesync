@@ -12,7 +12,7 @@
 "\n%d attempts remaining\n" = "\nnog %d pogingen\n";
 
 /* No comment provided by engineer. */
-"\n(local requested amount: %@)" = "\n(lokaal gevraagd bedrag: %@)";
+"\n(local requested amount: %@)" = "\n(lokaal verzocht bedrag: %@)";
 
 /* No comment provided by engineer. */
 "\n1 attempt remaining\n" = "\nnog 1 poging\n";
@@ -27,13 +27,13 @@
 "\ntry again in %d %@" = "\nprobeer opnieuw over %1$d %2$@";
 
 /* No comment provided by engineer. */
-"Are you sure you would like to register the username %@ and spend %@ on credits?" = "Are you sure you would like to register the username %1$@ and spend %2$@ on credits?";
+"Are you sure you would like to register the username %@ and spend %@ on credits?" = "Weet je zeker dat je je wil registreren onder de gebruikersnaam %1$@ en %2$@ aan krediet wil uitgeven?";
 
 /* No comment provided by engineer. */
-"Are you sure you would like to reset this user?" = "Are you sure you would like to reset this user?";
+"Are you sure you would like to reset this user?" = "Weet je zeker dat je deze gebruiker wil resetten?";
 
 /* No comment provided by engineer. */
-"Are you sure you would like to topup %@ and spend %@ on credits?" = "Are you sure you would like to topup %1$@ and spend %2$@ on credits?";
+"Are you sure you would like to topup %@ and spend %@ on credits?" = "Weet je zeker dat je %1$@ wil topup'en en %2$@ aan krediet wil uitgeven?";
 
 /* No comment provided by engineer. */
 "bad password, try again" = "onjuist wachtwoord, probeer opnieuw";
@@ -51,7 +51,7 @@
 "choose passcode for %@" = "kies toegangscode voor %@";
 
 /* No comment provided by engineer. */
-"confirm" = "confirm";
+"confirm" = "bevestig";
 
 /* No comment provided by engineer. */
 "connect timeout" = "verbindingstime-out";
@@ -126,7 +126,7 @@
 "password protected key" = "met wachtwoord beveiligde sleutel";
 
 /* No comment provided by engineer. */
-"recovery phrase" = "recovery phrase";
+"recovery phrase" = "herstelzin";
 
 /* No comment provided by engineer. */
 "recovery phrase doesn't match" = "de herstelzin komt niet overeen";
@@ -138,7 +138,7 @@
 "request expired" = "verzoek verlopen";
 
 /* No comment provided by engineer. */
-"requested network \"%@\" not currently in use" = "requested network \"%@\" not currently in use";
+"requested network \"%@\" not currently in use" = "verzocht netwerk \"%@\" momenteel niet in gebruik";
 
 /* No comment provided by engineer. */
 "rescan" = "scan opnieuw";

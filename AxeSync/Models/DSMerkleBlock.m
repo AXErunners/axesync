@@ -35,6 +35,7 @@
 
 #define MAX_TIME_DRIFT    (2*60*60)     // the furthest in the future a block is allowed to be timestamped
 #define LOG_MERKLE_BLOCKS 0
+#define LOG_MERKLE_BLOCKS_FULL (LOG_MERKLE_BLOCKS && 1)
 
 // from https://en.bitcoin.it/wiki/Protocol_specification#Merkle_Trees
 // Merkle trees are binary trees of hashes. Merkle trees in bitcoin use a double SHA-256, the SHA-256 hash of the
@@ -124,8 +125,12 @@ inline static int ceil_log2(int x)
     _blockHash = d.x11;
     self.chain = chain;
     
-#if LOG_MERKLE_BLOCKS
-    NSLog(@"%d - merkle block %@ has %d transactions",_height,[NSData dataWithUInt256:_blockHash].hexString,_totalTransactions);
+#if LOG_MERKLE_BLOCKS || LOG_MERKLE_BLOCKS_FULL
+#if LOG_MERKLE_BLOCKS_FULL
+    DSDLog(@"%d - merkle block %@ (%@) has %d transactions",_height,[NSData dataWithUInt256:_blockHash].hexString,message.hexString,_totalTransactions);
+#else
+    DSDLog(@"%d - merkle block %@ has %d transactions",_height,[NSData dataWithUInt256:_blockHash].hexString,_totalTransactions);
+#endif
 #endif
     
     return self;
@@ -244,8 +249,8 @@ inline static int ceil_log2(int x)
 - (BOOL)containsTxHash:(UInt256)txHash
 {
     for (NSUInteger i = 0; i < _hashes.length/sizeof(UInt256); i += sizeof(UInt256)) {
-        NSLog(@"transaction Hash %@",[NSData dataWithUInt256:[_hashes hashAtOffset:i]].hexString);
-        NSLog(@"looking for %@",[NSData dataWithUInt256:txHash].hexString);
+        DSDLog(@"transaction Hash %@",[NSData dataWithUInt256:[_hashes hashAtOffset:i]].hexString);
+        DSDLog(@"looking for %@",[NSData dataWithUInt256:txHash].hexString);
         if (uint256_eq(txHash, [_hashes hashAtOffset:i])) return YES;
     }
     
@@ -272,13 +277,13 @@ inline static int ceil_log2(int x)
     uint32_t darkGravityWaveTarget = [self darkGravityWaveTargetWithPreviousBlocks:previousBlocks];
     int32_t diff = self.target - darkGravityWaveTarget;
     if (abs(diff) > 1) {
-        NSLog(@"weird difficulty for block at height %u (off by %u)",self.height,diff);
+        DSDLog(@"weird difficulty for block at height %u (off by %u)",self.height,diff);
     }
     return (abs(diff) < 2); //the core client is less precise with a rounding error that can sometimes cause a problem. We are very rarely 1 off
 }
 
 -(int32_t)darkGravityWaveTargetWithPreviousBlocks:(NSMutableDictionary *)previousBlocks {
-    /* current difficulty formula, darkcoin - based on DarkGravity v3, original work done by evan duffield, modified for iOS */
+    /* current difficulty formula, darkcoin - based on DarkGravity v3, original work done by evan hakield, modified for iOS */
     DSMerkleBlock *previousBlock = previousBlocks[uint256_obj(self.prevBlock)];
     
     int32_t nActualTimespan = 0;
@@ -300,7 +305,7 @@ inline static int ceil_log2(int x)
         if(blockCount <= DGW_PAST_BLOCKS_MIN) {
             UInt256 currentTarget = setCompact(currentBlock.target);
             //if (self.height == 1070917)
-            //NSLog(@"%d",currentTarget);
+            //DSDLog(@"%d",currentTarget);
             if (blockCount == 1) {
                 sumTargets = uInt256Add(currentTarget,currentTarget);
             } else {

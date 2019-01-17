@@ -126,7 +126,7 @@
 "password protected key" = "προστατευμένο κλειδί με κωδικό πρόσβασης";
 
 /* No comment provided by engineer. */
-"recovery phrase" = "recovery phrase";
+"recovery phrase" = "φράση ανάκτησης";
 
 /* No comment provided by engineer. */
 "recovery phrase doesn't match" = "δεν ταιριάζει η φράση ανάκτησης";

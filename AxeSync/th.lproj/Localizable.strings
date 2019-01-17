@@ -1,6 +1,6 @@
 
 /* No comment provided by engineer. */
-" and " = "และ";
+" and " = " และ ";
 
 /* No comment provided by engineer. */
 ", " = ",";
@@ -9,7 +9,7 @@
 "\n         total %@ (%@)" = "\nยอดรวม %1$@ (%2$@)";
 
 /* No comment provided by engineer. */
-"\n%d attempts remaining\n" = "\n%d พยายามที่เหลืออยู่";
+"\n%d attempts remaining\n" = "\n%d พยายามที่เหลืออยู่ \n";
 
 /* No comment provided by engineer. */
 "\n(local requested amount: %@)" = "\n(จำนวนที่ขอในบริเวณท้องถิ่น : %@ )";
@@ -27,19 +27,19 @@
 "\ntry again in %d %@" = "\nลองเข้าอีกครั้ง %1$d%2$@";
 
 /* No comment provided by engineer. */
-"Are you sure you would like to register the username %@ and spend %@ on credits?" = "Are you sure you would like to register the username %1$@ and spend %2$@ on credits?";
+"Are you sure you would like to register the username %@ and spend %@ on credits?" = "คุณแน่ใจหรือไม่ว่าคุณต้องการลงทะเบียนชื่อผู้ใช้ %1$@และใช้จ่าย %2$@ในเครดิต ?";
 
 /* No comment provided by engineer. */
-"Are you sure you would like to reset this user?" = "Are you sure you would like to reset this user?";
+"Are you sure you would like to reset this user?" = "คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตผู้ใช้นี้?";
 
 /* No comment provided by engineer. */
-"Are you sure you would like to topup %@ and spend %@ on credits?" = "Are you sure you would like to topup %1$@ and spend %2$@ on credits?";
+"Are you sure you would like to topup %@ and spend %@ on credits?" = "คุณแน่ใจหรือไม่ว่าต้องการเติมเงิน%1$@และใช้จ่าย%2$@ ในเครดิต?";
 
 /* No comment provided by engineer. */
 "bad password, try again" = "รหัสไม่ถูกต้อง, ลองอีกครั้ง";
 
 /* No comment provided by engineer. */
-"bad payment request URL" = "URL ใบชำระเงินไม่ถูกต้อง";
+"bad payment request URL" = "URL คำขอชำระเงินไม่ถูกต้อง";
 
 /* No comment provided by engineer. */
 "bad payment URL" = "URL ใบชำระเงินไม่ถูกต้อง";
@@ -51,7 +51,7 @@
 "choose passcode for %@" = "เลือกรหัสผ่านสำหรับ %@";
 
 /* No comment provided by engineer. */
-"confirm" = "confirm";
+"confirm" = "ยืนยัน";
 
 /* No comment provided by engineer. */
 "connect timeout" = "หมดเวลาเชื่อมต่อ";
@@ -114,7 +114,7 @@
 "ok" = "โอเค";
 
 /* No comment provided by engineer. */
-"passcode" = "รหัสผ่าน";
+"passcode" = "รหัสการเข้าถึง";
 
 /* No comment provided by engineer. */
 "passcode for %@" = "รหัสการเข้าถึงสำหรับ %@";
@@ -126,7 +126,7 @@
 "password protected key" = "คีย์ที่ป้องกันด้วยรหัสผ่าน";
 
 /* No comment provided by engineer. */
-"recovery phrase" = "recovery phrase";
+"recovery phrase" = "วลีกู้คืน";
 
 /* No comment provided by engineer. */
 "recovery phrase doesn't match" = "วลีกู้คืนไม่ตรงกัน";
@@ -138,7 +138,7 @@
 "request expired" = "คำขอหมดอายุ";
 
 /* No comment provided by engineer. */
-"requested network \"%@\" not currently in use" = "requested network \"%@\" not currently in use";
+"requested network \"%@\" not currently in use" = "เครือข่ายที่ขอ \"%@\" ไม่ได้ใช้อยู่ในปัจจุบัน";
 
 /* No comment provided by engineer. */
 "rescan" = "สแกนอีกครั้ง";

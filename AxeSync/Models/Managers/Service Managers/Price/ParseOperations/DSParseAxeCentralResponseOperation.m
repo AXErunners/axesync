@@ -28,16 +28,16 @@ NS_ASSUME_NONNULL_BEGIN
 @implementation DSParseAxeCentralResponseOperation
 
 - (void)execute {
-    NSParameterAssert(self.responseToParse);
+    NSParameterAssert(self.httpOperationResult.parsedResponse);
 
-    NSDictionary *response = (NSDictionary *)self.responseToParse;
+    NSDictionary *response = (NSDictionary *)self.httpOperationResult.parsedResponse;
     if (![response isKindOfClass:NSDictionary.class]) {
         [self cancelWithError:[self.class invalidResponseErrorWithUserInfo:@{NSDebugDescriptionErrorKey : response}]];
 
         return;
     }
 
-    NSNumber *btcAxePrice = self.responseToParse[@"exchange_rates"][@"btc_axe"];
+    NSNumber *btcAxePrice = response[@"exchange_rates"][@"btc_axe"];
     if (btcAxePrice.doubleValue > 0.0) {
         self.btcAxePrice = btcAxePrice;
 

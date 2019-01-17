@@ -404,10 +404,12 @@ typedef BOOL (^PinVerificationBlock)(NSString * _Nonnull currentPin,DSAuthentica
             context.pinField.text = nil;
             setKeychainString(previousPin, PIN_KEY, NO);
             context.usesAuthentication = TRUE;
+            context.didAuthenticate = TRUE;
             [[NSUserDefaults standardUserDefaults] setDouble:[NSDate timeIntervalSince1970]
                                                       forKey:PIN_UNLOCK_TIME_KEY];
             [context.pinField resignFirstResponder];
             [context.pinAlertController dismissViewControllerAnimated:TRUE completion:^{
+                context.pinAlertController = nil;
                 if (completion) completion(YES);
             }];
             return TRUE;
@@ -497,13 +499,15 @@ typedef BOOL (^PinVerificationBlock)(NSString * _Nonnull currentPin,DSAuthentica
 -(void)removePin {
     //You can only remove pin if there are no wallets
     if ([[DSChainsManager sharedInstance] hasAWallet]) {
-        NSLog(@"Tried to remove a pin, but wallets exist on device");
+        DSDLog(@"Tried to remove a pin, but wallets exist on device");
         return;
     }
     setKeychainData(nil, SPEND_LIMIT_KEY, NO);
     setKeychainData(nil, PIN_KEY, NO);
     setKeychainData(nil, PIN_FAIL_COUNT_KEY, NO);
     setKeychainData(nil, PIN_FAIL_HEIGHT_KEY, NO);
+    self.didAuthenticate = NO;
+    self.usesAuthentication = NO;
 }
 
 // MARK: - UITextFieldDelegate
@@ -546,7 +550,7 @@ replacementString:(NSString *)string
             NSData * oldData = getKeychainData(EXTENDED_0_PUBKEY_KEY_BIP44_V0, nil);
             NSData * seed = [[DSBIP39Mnemonic sharedInstance] deriveKeyFromPhrase:[[DSBIP39Mnemonic sharedInstance]
                                                                                    normalizePhrase:phrase] withPassphrase:nil];
-            DSWallet * wallet = [DSWallet standardWalletWithSeedPhrase:phrase setCreationDate:[NSDate timeIntervalSince1970] forChain:[DSChain mainnet] storeSeedPhrase:NO];
+            DSWallet * wallet = [DSWallet standardWalletWithSeedPhrase:phrase setCreationDate:[NSDate timeIntervalSince1970] forChain:[DSChain mainnet] storeSeedPhrase:NO isTransient:YES];
             DSAccount * account = [wallet accountWithNumber:0];
             DSDerivationPath * derivationPath = [account bip44DerivationPath];
             NSData * extendedPublicKey = derivationPath.extendedPublicKey;
@@ -654,7 +658,7 @@ replacementString:(NSString *)string
             }
         }
         else {
-            NSLog(@"[LAContext canEvaluatePolicy:] %@", error.localizedDescription);
+            DSDLog(@"[LAContext canEvaluatePolicy:] %@", error.localizedDescription);
             
             [self authenticateWithPrompt:authprompt
                               andTouchId:NO
@@ -668,6 +672,7 @@ replacementString:(NSString *)string
                                         DISPLAY_NAME] message:authprompt alertIfLockout:alertIfLockout completion:^(BOOL authenticated, BOOL cancelled) {
             if (authenticated) {
                 [self.pinAlertController dismissViewControllerAnimated:TRUE completion:^{
+                    self.pinAlertController = nil;
                     completion(YES,NO);
                 }];
             } else {
@@ -804,7 +809,7 @@ replacementString:(NSString *)string
             completion(NO,NO);
             return; // error reading failHeight from keychain
         }
-        NSLog(@"locked out for %f more seconds",failHeight + pow(6, failCount - 3)*60.0 - self.secureTime);
+        DSDLog(@"locked out for %f more seconds",failHeight + pow(6, failCount - 3)*60.0 - self.secureTime);
         if (self.secureTime < failHeight + pow(6, failCount - 3)*60.0) { // locked out
             if (alertIfLockout) {
                 [self userLockedOut];
@@ -831,6 +836,7 @@ replacementString:(NSString *)string
                                    actionWithTitle:DSLocalizedString(@"cancel", nil)
                                    style:UIAlertActionStyleCancel
                                    handler:^(UIAlertAction * action) {
+                                       self.pinAlertController = nil;
                                        completion(NO,YES);
                                    }];
     [self.pinAlertController addAction:cancelButton];
@@ -847,7 +853,11 @@ replacementString:(NSString *)string
         
         if (error) {
             completion(NO,NO); // error reading failCount from keychain
-            [alert dismissViewControllerAnimated:TRUE completion:nil];
+            [alert dismissViewControllerAnimated:TRUE completion:^{
+                if (weakSelf.pinAlertController == alert) {
+                    weakSelf.pinAlertController = nil;
+                }
+            }];
             return FALSE;
         }
         
@@ -855,7 +865,11 @@ replacementString:(NSString *)string
         
         if (error) {
             completion(NO,NO); // error reading pin from keychain
-            [alert dismissViewControllerAnimated:TRUE completion:nil];
+            [alert dismissViewControllerAnimated:TRUE completion:^{
+                if (weakSelf.pinAlertController == alert) {
+                    weakSelf.pinAlertController = nil;
+                }
+            }];
             return FALSE;
         }
         // count unique attempts before checking success

@@ -27,13 +27,13 @@
 "\ntry again in %d %@" = "\n%1$d %2$@ içinde tekrar deneyin";
 
 /* No comment provided by engineer. */
-"Are you sure you would like to register the username %@ and spend %@ on credits?" = "Are you sure you would like to register the username %1$@ and spend %2$@ on credits?";
+"Are you sure you would like to register the username %@ and spend %@ on credits?" = "%1$@ kullanıcı adını kaydedip kredi olarak %2$@ harcamak istediğinize emin misiniz?";
 
 /* No comment provided by engineer. */
-"Are you sure you would like to reset this user?" = "Are you sure you would like to reset this user?";
+"Are you sure you would like to reset this user?" = "Bu kullanıcıyı sıfırlamak istediğinize emin misiniz?";
 
 /* No comment provided by engineer. */
-"Are you sure you would like to topup %@ and spend %@ on credits?" = "Are you sure you would like to topup %1$@ and spend %2$@ on credits?";
+"Are you sure you would like to topup %@ and spend %@ on credits?" = "%1$@ ekleyip kredi olarak %2$@ harcamak istediğinize emin misiniz?";
 
 /* No comment provided by engineer. */
 "bad password, try again" = "hatalı şifre, yeniden deneyin";
@@ -51,7 +51,7 @@
 "choose passcode for %@" = "%@ için şifre seçin";
 
 /* No comment provided by engineer. */
-"confirm" = "confirm";
+"confirm" = "onayla";
 
 /* No comment provided by engineer. */
 "connect timeout" = "bağlantı zaman aşımı";
@@ -90,7 +90,7 @@
 "insufficient funds for axe network fee" = "insufficient funds for axe network fee";
 
 /* No comment provided by engineer. */
-"Mainnet" = "Mainnet";
+"Mainnet" = "Ananet";
 
 /* No comment provided by engineer. */
 "minute" = "dakika";
@@ -126,7 +126,7 @@
 "password protected key" = "şifre korumalı anahtar";
 
 /* No comment provided by engineer. */
-"recovery phrase" = "recovery phrase";
+"recovery phrase" = "kurtarma cümlesi";
 
 /* No comment provided by engineer. */
 "recovery phrase doesn't match" = "kurtarma cümlesi eşleşmiyor";
@@ -138,7 +138,7 @@
 "request expired" = "istek süresi bitti";
 
 /* No comment provided by engineer. */
-"requested network \"%@\" not currently in use" = "requested network \"%@\" not currently in use";
+"requested network \"%@\" not currently in use" = "istenen ağ \"%@\" şu anda kullanımda değil";
 
 /* No comment provided by engineer. */
 "rescan" = "yeniden tara";
