@@ -133,7 +133,7 @@ static checkpoint mainnet_checkpoint_array[] = {
 #define REGISTERED_PEERS_KEY  @"REGISTERED_PEERS_KEY"
 
 #define PROTOCOL_VERSION_LOCATION  @"PROTOCOL_VERSION_LOCATION"
-#define MIN_PROTOCOL_VERSION_LOCATION  @"MIN_PROTOCOL_VERSION_LOCATION"
+#define DEFAULT_MIN_PROTOCOL_VERSION_LOCATION  @"MIN_PROTOCOL_VERSION_LOCATION"
 
 #define SPORK_PUBLIC_KEY_LOCATION  @"SPORK_PUBLIC_KEY_LOCATION"
 #define SPORK_ADDRESS_LOCATION  @"SPORK_ADDRESS_LOCATION"
@@ -156,6 +156,8 @@ static checkpoint mainnet_checkpoint_array[] = {
 @property (nonatomic, strong) DSChainEntity * delegateQueueChainEntity;
 @property (nonatomic, strong) NSString * devnetIdentifier;
 @property (nonatomic, strong) DSAccount * viewingAccount;
+@property (nonatomic, strong) NSMutableDictionary * estimatedBlockHeights;
+@property (nonatomic, assign) uint32_t bestEstimatedBlockHeight;
 
 @end
 
@@ -169,10 +171,12 @@ static checkpoint mainnet_checkpoint_array[] = {
     self.orphans = [NSMutableDictionary dictionary];
     self.genesisHash = self.checkpoints[0].checkpointHash;
     self.mWallets = [NSMutableArray array];
+    self.estimatedBlockHeights = [NSMutableDictionary dictionary];
     
     self.feePerByte = DEFAULT_FEE_PER_B;
     uint64_t feePerByte = [[NSUserDefaults standardUserDefaults] doubleForKey:FEE_PER_BYTE_KEY];
     if (feePerByte >= MIN_FEE_PER_B && feePerByte <= MAX_FEE_PER_B) self.feePerByte = feePerByte;
+    
     return self;
 }
 
@@ -205,8 +209,8 @@ static checkpoint mainnet_checkpoint_array[] = {
         self.checkpoints = checkpoints;
         self.genesisHash = checkpoints[1].checkpointHash;
     }
-    //    NSLog(@"%@",[NSData dataWithUInt256:self.checkpoints[0].checkpointHash]);
-    //    NSLog(@"%@",[NSData dataWithUInt256:self.genesisHash]);
+    //    DSDLog(@"%@",[NSData dataWithUInt256:self.checkpoints[0].checkpointHash]);
+    //    DSDLog(@"%@",[NSData dataWithUInt256:self.genesisHash]);
     self.standardPort = port;
     self.standardDapiPort = dapiPort;
     self.devnetIdentifier = identifier;
@@ -304,7 +308,7 @@ static checkpoint mainnet_checkpoint_array[] = {
         _mainnet = [[DSChain alloc] initWithType:DSChainType_MainNet checkpoints:[DSChain createCheckpointsArrayFromCheckpoints:mainnet_checkpoint_array count:(sizeof(mainnet_checkpoint_array)/sizeof(*mainnet_checkpoint_array))] port:MAINNET_STANDARD_PORT dapiPort:MAINNET_DAPI_STANDARD_PORT];
         
         inSetUp = TRUE;
-        //NSLog(@"%@",[NSData dataWithUInt256:_mainnet.checkpoints[0].checkpointHash]);
+        //DSDLog(@"%@",[NSData dataWithUInt256:_mainnet.checkpoints[0].checkpointHash]);
     });
     if (inSetUp) {
         [[DSChainEntity context] performBlockAndWait:^{
@@ -500,15 +504,25 @@ static dispatch_once_t devnetToken = 0;
 -(uint32_t)minProtocolVersion {
     switch ([self chainType]) {
         case DSChainType_MainNet:
-            return MIN_PROTOCOL_VERSION_MAINNET;
+        {
+            NSError * error = nil;
+            uint32_t minProtocolVersion = (uint32_t)getKeychainInt([NSString stringWithFormat:@"MAINNET_%@",DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], &error);
+            if (!error && minProtocolVersion) return minProtocolVersion;
+            else return DEFAULT_MIN_PROTOCOL_VERSION_MAINNET;
+        }
         case DSChainType_TestNet:
-            return MIN_PROTOCOL_VERSION_TESTNET;
+        {
+            NSError * error = nil;
+            uint32_t minProtocolVersion = (uint32_t)getKeychainInt([NSString stringWithFormat:@"TESTNET_%@",DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], &error);
+            if (!error && minProtocolVersion) return minProtocolVersion;
+            else return DEFAULT_MIN_PROTOCOL_VERSION_TESTNET;
+        }
         case DSChainType_DevNet:
         {
             NSError * error = nil;
-            uint32_t minProtocolVersion = (uint32_t)getKeychainInt([NSString stringWithFormat:@"%@%@",self.devnetIdentifier,MIN_PROTOCOL_VERSION_LOCATION], &error);
+            uint32_t minProtocolVersion = (uint32_t)getKeychainInt([NSString stringWithFormat:@"%@%@",self.devnetIdentifier,DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], &error);
             if (!error && minProtocolVersion) return minProtocolVersion;
-            else return MIN_PROTOCOL_VERSION_DEVNET;
+            else return DEFAULT_MIN_PROTOCOL_VERSION_DEVNET;
         }
         default:
             break;
@@ -518,14 +532,15 @@ static dispatch_once_t devnetToken = 0;
 
 -(void)setMinProtocolVersion:(uint32_t)minProtocolVersion
 {
+    if (minProtocolVersion < MIN_VALID_MIN_PROTOCOL_VERSION || minProtocolVersion > MAX_VALID_MIN_PROTOCOL_VERSION) return;
     switch ([self chainType]) {
         case DSChainType_MainNet:
-            return;
+            setKeychainInt(minProtocolVersion,[NSString stringWithFormat:@"MAINNET_%@",DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], NO);
         case DSChainType_TestNet:
-            return;
+            setKeychainInt(minProtocolVersion,[NSString stringWithFormat:@"TESTNET_%@",DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], NO);
         case DSChainType_DevNet:
         {
-            setKeychainInt(minProtocolVersion,[NSString stringWithFormat:@"%@%@",self.devnetIdentifier,MIN_PROTOCOL_VERSION_LOCATION], NO);
+            setKeychainInt(minProtocolVersion,[NSString stringWithFormat:@"%@%@",self.devnetIdentifier,DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], NO);
         }
         default:
             break;
@@ -959,6 +974,7 @@ static dispatch_once_t devnetToken = 0;
 -(void)unregisterWallet:(DSWallet*)wallet {
     NSAssert(wallet.chain == self, @"the wallet you are trying to remove is not on this chain");
     [wallet wipeBlockchainInfo];
+    [wallet wipeWalletInfo];
     [self.mWallets removeObject:wallet];
     NSError * error = nil;
     NSMutableArray * keyChainArray = [getKeychainArray(self.chainWalletsKey, &error) mutableCopy];
@@ -1105,7 +1121,7 @@ static dispatch_once_t devnetToken = 0;
             DSMerkleBlock * lastBlock = [[lastBlocks firstObject] merkleBlock];
             self->_lastBlock = lastBlock;
             if (lastBlock) {
-                NSLog(@"last block at height %d recovered from db (hash is %@)",lastBlock.height,[NSData dataWithUInt256:lastBlock.blockHash].hexString);
+                DSDLog(@"last block at height %d recovered from db (hash is %@)",lastBlock.height,[NSData dataWithUInt256:lastBlock.blockHash].hexString);
             }
         }];
 
@@ -1143,7 +1159,7 @@ static dispatch_once_t devnetToken = 0;
                     }
                 }
                 if (_lastBlock) {
-                    NSLog(@"last block at height %d chosen from checkpoints (hash is %@)",_lastBlock.height,[NSData dataWithUInt256:_lastBlock.blockHash].hexString);
+                    DSDLog(@"last block at height %d chosen from checkpoints (hash is %@)",_lastBlock.height,[NSData dataWithUInt256:_lastBlock.blockHash].hexString);
                 }
             }
             
@@ -1151,7 +1167,7 @@ static dispatch_once_t devnetToken = 0;
         
         
         
-        if (_lastBlock.height > _estimatedBlockHeight) _estimatedBlockHeight = _lastBlock.height;
+        if (_lastBlock.height > self.estimatedBlockHeight) _bestEstimatedBlockHeight = _lastBlock.height;
     }
     
     return _lastBlock;
@@ -1233,10 +1249,10 @@ static dispatch_once_t devnetToken = 0;
 #if LOG_PREV_BLOCKS_ON_ORPHAN
         NSSortDescriptor * sortDescriptor = [NSSortDescriptor sortDescriptorWithKey:@"height" ascending:TRUE];
         for (DSMerkleBlock * merkleBlock in [[self.blocks allValues] sortedArrayUsingDescriptors:@[sortDescriptor]]) {
-            NSLog(@"printing previous block at height %d : %@",merkleBlock.height,uint256_obj(merkleBlock.blockHash));
+            DSDLog(@"printing previous block at height %d : %@",merkleBlock.height,uint256_obj(merkleBlock.blockHash));
         }
 #endif
-        NSLog(@"%@:%d relayed orphan block %@, previous %@, height %d, last block is %@, lastBlockHeight %d, time %@", peer.host, peer.port,
+        DSDLog(@"%@:%d relayed orphan block %@, previous %@, height %d, last block is %@, lastBlockHeight %d, time %@", peer.host, peer.port,
               blockHash, prevBlock, block.height, uint256_obj(self.lastBlock.blockHash), self.lastBlockHeight,[NSDate dateWithTimeIntervalSince1970:block.timestamp]);
         
         [self.chainManager chain:self receivedOrphanBlock:block fromPeer:peer];
@@ -1263,7 +1279,7 @@ static dispatch_once_t devnetToken = 0;
             b = self.blocks[uint256_obj(b.prevBlock)];
         }
         [self.blocks removeObjectsForKeys:blocksToRemove];
-        //NSLog(@"%lu blocks remaining",(unsigned long)[self.blocks count]);
+        //DSDLog(@"%lu blocks remaining",(unsigned long)[self.blocks count]);
     }
     
     // verify block difficulty if block is past last checkpoint
@@ -1271,7 +1287,7 @@ static dispatch_once_t devnetToken = 0;
     if ((block.height > (lastCheckpoint.height + DGW_PAST_BLOCKS_MAX)) && [self isMainnet] &&
         ![block verifyDifficultyWithPreviousBlocks:self.blocks]) {
         uint32_t foundDifficulty = [block darkGravityWaveTargetWithPreviousBlocks:self.blocks];
-        NSLog(@"%@:%d relayed block with invalid difficulty height %d target %x foundTarget %x, blockHash: %@", peer.host, peer.port,
+        DSDLog(@"%@:%d relayed block with invalid difficulty height %d target %x foundTarget %x, blockHash: %@", peer.host, peer.port,
               block.height,block.target,foundDifficulty, blockHash);
         [self.chainManager chain:self badBlockReceivedFromPeer:peer];
         return FALSE;
@@ -1281,7 +1297,7 @@ static dispatch_once_t devnetToken = 0;
     
     // verify block chain checkpoints
     if (! uint256_is_zero(checkpoint) && ! uint256_eq(block.blockHash, checkpoint)) {
-        NSLog(@"%@:%d relayed a block that differs from the checkpoint at height %d, blockHash: %@, expected: %@",
+        DSDLog(@"%@:%d relayed a block that differs from the checkpoint at height %d, blockHash: %@, expected: %@",
               peer.host, peer.port, block.height, blockHash, self.checkpointsDictionary[@(block.height)]);
         [self.chainManager chain:self badBlockReceivedFromPeer:peer];
         return FALSE;
@@ -1291,19 +1307,19 @@ static dispatch_once_t devnetToken = 0;
     
     if (uint256_eq(block.prevBlock, self.lastBlock.blockHash)) { // new block extends main chain
         if ((block.height % 500) == 0 || txHashes.count > 0 || block.height > peer.lastblock) {
-            NSLog(@"adding block on %@ at height: %d from peer %@", self.name, block.height,peer.host);
+            DSDLog(@"adding block on %@ at height: %d from peer %@", self.name, block.height,peer.host);
         }
         
         self.blocks[blockHash] = block;
         self.lastBlock = block;
         [self setBlockHeight:block.height andTimestamp:txTime forTxHashes:txHashes];
         peer.currentBlockHeight = block.height; //might be download peer instead
-        if (block.height == _estimatedBlockHeight) syncDone = YES;
+        if (block.height == self.estimatedBlockHeight) syncDone = YES;
         onMainChain = TRUE;
     }
     else if (self.blocks[blockHash] != nil) { // we already have the block (or at least the header)
         if ((block.height % 500) == 0 || txHashes.count > 0 || block.height > peer.lastblock) {
-            NSLog(@"%@:%d relayed existing block at height %d", peer.host, peer.port, block.height);
+            DSDLog(@"%@:%d relayed existing block at height %d", peer.host, peer.port, block.height);
         }
         
         self.blocks[blockHash] = block;
@@ -1319,20 +1335,20 @@ static dispatch_once_t devnetToken = 0;
     }
     else { // new block is on a fork
         if (block.height <= [self lastCheckpoint].height) { // fork is older than last checkpoint
-            NSLog(@"ignoring block on fork older than most recent checkpoint, fork height: %d, blockHash: %@",
+            DSDLog(@"ignoring block on fork older than most recent checkpoint, fork height: %d, blockHash: %@",
                   block.height, blockHash);
             return TRUE;
         }
         
         // special case, if a new block is mined while we're rescanning the chain, mark as orphan til we're caught up
         if (self.lastBlockHeight < peer.lastblock && block.height > self.lastBlockHeight + 1) {
-            NSLog(@"marking new block at height %d as orphan until rescan completes", block.height);
+            DSDLog(@"marking new block at height %d as orphan until rescan completes", block.height);
             self.orphans[prevBlock] = block;
             self.lastOrphan = block;
             return TRUE;
         }
         
-        NSLog(@"chain fork to height %d", block.height);
+        DSDLog(@"chain fork to height %d", block.height);
         self.blocks[blockHash] = block;
         if (block.height <= self.lastBlockHeight) return TRUE; // if fork is shorter than main chain, ignore it for now
         
@@ -1344,7 +1360,7 @@ static dispatch_once_t devnetToken = 0;
             if (b.height < b2.height) b2 = self.blocks[uint256_obj(b2.prevBlock)];
         }
         
-        NSLog(@"reorganizing chain from height %d, new height is %d", b.height, block.height);
+        DSDLog(@"reorganizing chain from height %d, new height is %d", b.height, block.height);
         
         // mark transactions after the join point as unconfirmed
         for (DSWallet * wallet in self.wallets) {
@@ -1364,10 +1380,10 @@ static dispatch_once_t devnetToken = 0;
         }
         
         self.lastBlock = block;
-        if (block.height == _estimatedBlockHeight) syncDone = YES;
+        if (block.height == self.estimatedBlockHeight) syncDone = YES;
     }
     
-    //NSLog(@"%@:%d added block at height %d target %x blockHash: %@", peer.host, peer.port,
+    //DSDLog(@"%@:%d added block at height %d target %x blockHash: %@", peer.host, peer.port,
     //      block.height,block.target, blockHash);
     
     if (syncDone) { // chain download is complete
@@ -1375,8 +1391,8 @@ static dispatch_once_t devnetToken = 0;
         [self.chainManager chainFinishedSyncingTransactionsAndBlocks:self fromPeer:peer onMainChain:onMainChain];
     }
     
-    if (block.height > _estimatedBlockHeight) {
-        _estimatedBlockHeight = block.height;
+    if (block.height > self.estimatedBlockHeight) {
+        _bestEstimatedBlockHeight = block.height;
         
         // notify that transaction confirmations may have changed
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -1401,7 +1417,7 @@ static dispatch_once_t devnetToken = 0;
 
 - (void)saveBlocks
 {
-    NSLog(@"[DSChain] save blocks");
+    DSDLog(@"[DSChain] save blocks");
     NSMutableDictionary *blocks = [NSMutableDictionary dictionary];
     DSMerkleBlock *b = self.lastBlock;
     uint32_t startHeight = 0;
@@ -1415,7 +1431,7 @@ static dispatch_once_t devnetToken = 0;
         if ([[DSOptionsManager sharedInstance] keepHeaders]) {
             //only remove orphan chains
             NSArray<DSMerkleBlockEntity *> * recentOrphans = [DSMerkleBlockEntity objectsMatching:@"(chain == %@) && (height > %u) && !(blockHash in %@) ",self.delegateQueueChainEntity,startHeight,blocks.allKeys];
-            if ([recentOrphans count])  NSLog(@"%lu recent orphans will be removed from disk",(unsigned long)[recentOrphans count]);
+            if ([recentOrphans count])  DSDLog(@"%lu recent orphans will be removed from disk",(unsigned long)[recentOrphans count]);
             [DSMerkleBlockEntity deleteObjects:recentOrphans];
         } else {
             NSArray<DSMerkleBlockEntity *> * oldBlockHeaders = [DSMerkleBlockEntity objectsMatching:@"(chain == %@) && !(blockHash in %@)",self.delegateQueueChainEntity,blocks.allKeys];
@@ -1474,8 +1490,61 @@ static dispatch_once_t devnetToken = 0;
     }
 }
 
+-(uint32_t)estimatedBlockHeight {
+    if (_bestEstimatedBlockHeight) return _bestEstimatedBlockHeight;
+    uint32_t maxCount = 0;
+    uint32_t tempBestEstimatedBlockHeight = 0;
+    for (NSNumber * height in self.estimatedBlockHeights) {
+        NSArray * announcers = self.estimatedBlockHeights[height];
+        if (announcers.count > maxCount) {
+            tempBestEstimatedBlockHeight = [height intValue];
+        }
+    }
+    _bestEstimatedBlockHeight = tempBestEstimatedBlockHeight;
+    return _bestEstimatedBlockHeight;
+}
+
 -(void)setEstimatedBlockHeight:(uint32_t)estimatedBlockHeight fromPeer:(DSPeer*)peer {
-    _estimatedBlockHeight = estimatedBlockHeight;
+    _bestEstimatedBlockHeight = 0; //lazy loading
+    
+    //remove from other heights
+    for (NSNumber * height in [self.estimatedBlockHeights copy]) {
+        if ([height intValue] == estimatedBlockHeight) continue;
+        NSMutableArray * announcers = self.estimatedBlockHeights[height];
+        if ([announcers containsObject:peer]) {
+            [announcers removeObject:peer];
+        }
+        if (![announcers count]) {
+            if (self.estimatedBlockHeights[height]) {
+                [self.estimatedBlockHeights removeObjectForKey:height];
+            }
+        }
+    }
+    if (![self estimatedBlockHeights][@(estimatedBlockHeight)]) {
+        [self estimatedBlockHeights][@(estimatedBlockHeight)] = [NSMutableArray arrayWithObject:peer];
+    } else {
+        NSMutableArray * peersAnnouncingHeight = [self estimatedBlockHeights][@(estimatedBlockHeight)];
+        if (![peersAnnouncingHeight containsObject:peer]) {
+            [peersAnnouncingHeight addObject:peer];
+        }
+    }
+}
+
+-(void)removeEstimatedBlockHeightOfPeer:(DSPeer*)peer {
+    for (NSNumber * height in [self.estimatedBlockHeights copy]) {
+        NSMutableArray * announcers = self.estimatedBlockHeights[height];
+        if ([announcers containsObject:peer]) {
+            [announcers removeObject:peer];
+        }
+        if (![announcers count]) {
+            if (self.estimatedBlockHeights[height]) {
+                [self.estimatedBlockHeights removeObjectForKey:height];
+            }
+        }
+        if ([self.estimatedBlockHeights count]) { //keep best estimate if no other peers reporting on estimate
+            if ([height intValue] == _bestEstimatedBlockHeight) _bestEstimatedBlockHeight = 0;
+        }
+    }
 }
 
 - (DSTransaction *)transactionForHash:(UInt256)txHash {
