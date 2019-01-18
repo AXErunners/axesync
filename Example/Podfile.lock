@@ -17,10 +17,10 @@ PODS:
   - AxeSync (0.1.0):
     - AFNetworking (~> 3.0)
     - bls-signatures-pod (= 0.2.9)
-    - secp256k1_axe (= 0.1.2.2)
+    - secp256k1_axe (= 0.1.2.3)
   - bls-signatures-pod (0.2.9)
   - KVO-MVVM (0.5.1)
-  - secp256k1_axe (0.1.2.2)
+  - secp256k1_axe (0.1.2.3)
 
 DEPENDENCIES:
   - AxeSync (from `../`)
@@ -39,10 +39,10 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   AFNetworking: b6f891fdfaed196b46c7a83cf209e09697b94057
-  AxeSync: 96bb5c461b55359fe2855550bad6f1006402e300
+  AxeSync: 06aca25ae1f99bfd2e08ed6f0f055995b524b59b
   bls-signatures-pod: 56adce76843f10f484ff996c33aee36cfd98ae5e
   KVO-MVVM: 4df3afd1f7ebcb69735458b85db59c4271ada7c6
-  secp256k1_axe: 0ba64d09bec2bd9a8355b0f6bd01a3844902ed94
+  secp256k1_axe: 56f8e87fdd07149f6454ec7a4c4cf53a34b2d87b
 
 PODFILE CHECKSUM: 6cc99188b1da0ed49dd217ea6d4546acc9cb0254
 
