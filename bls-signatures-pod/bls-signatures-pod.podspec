@@ -4,7 +4,7 @@
 #
 # To submit podspec to the CocoaPods trunk:
 # pod trunk push --allow-warnings --skip-import-validation
-#
+# 
 # Requirements: cmake
 #
 
@@ -22,7 +22,7 @@ Implements BLS signatures with aggregation as in Boneh, Drijvers, Neven 2018, us
   s.author           = { 'Chia Network' => 'hello@chia.net' }
   s.social_media_url = 'https://twitter.com/ChiaNetworkInc'
 
-  s.source           = {
+  s.source           = { 
     :git => 'https://github.com/Chia-Network/bls-signatures.git',
     :commit => 'f114ffeff4653e5522d1b3e28687fa9f384a557f',
     :submodules => true
@@ -245,19 +245,19 @@ EOF
                 WSIZE=64
                 OPTIMIZATIONFLAGS=-fomit-frame-pointer
             fi
-
+            
             COMPILER_ARGS=""
             if [[ $ARCH != "i386" ]]; then
                 COMPILER_ARGS=$(version_min_flag $PLATFORM)
             fi
-
+            
             EXTRA_ARGS=""
             if [[ $PLATFORM = $MACOS ]]; then
-                EXTRA_ARGS="-DOPSYS=MACOSX"
+                EXTRA_ARGS="-DOPSYS=MACOSX"    
             else
                 EXTRA_ARGS="-DOPSYS=NONE -DIOS_PLATFORM=$IOS_PLATFORM -DCMAKE_TOOLCHAIN_FILE=../ios.toolchain.cmake"
             fi
-
+            
             if [[ $ARCH = "i386" ]]; then
                 EXTRA_ARGS+=" -DARCH=X86"
             elif [[ $ARCH = "x86_64" ]]; then
@@ -287,7 +287,7 @@ EOF
 
         BUILD_IN=$1
         IFS='|' read -ra BUILD_PAIRS <<< "$BUILD_IN"
-
+        
         pushd contrib/relic
 
         LIPOARGS=""
@@ -381,7 +381,7 @@ EOF
         > "contrib/relic/${RELIC_TARGET_DIR}/include/relic_conf.h.new"
 
         rm "contrib/relic/${RELIC_TARGET_DIR}/include/relic_conf.h"
-        mv "contrib/relic/${RELIC_TARGET_DIR}/include/relic_conf.h.new" "contrib/relic/${RELIC_TARGET_DIR}/include/relic_conf.h"
+        mv "contrib/relic/${RELIC_TARGET_DIR}/include/relic_conf.h.new" "contrib/relic/${RELIC_TARGET_DIR}/include/relic_conf.h"   
     }
 
     prepare

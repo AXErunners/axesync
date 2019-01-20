@@ -23,7 +23,7 @@
 #import "DSOperationQueue.h"
 #import "DSParseBitPayResponseOperation.h"
 #import "DSParseAxeCentralResponseOperation.h"
-#import "DSParseLocalBitcoinsResponseOperation.h"
+#import "DSParseAxeVesCCResponseOperation.h"
 #import "DSParsePoloniexResponseOperation.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -31,46 +31,18 @@ NS_ASSUME_NONNULL_BEGIN
 #define BITPAY_TICKER_URL @"https://bitpay.com/rates"
 #define POLONIEX_TICKER_URL @"https://poloniex.com/public?command=returnOrderBook&currencyPair=BTC_AXE&depth=1"
 #define AXECENTRAL_TICKER_URL @"https://www.axecentral.org/api/v1/public"
-#define LOCALBITCOINS_TICKER_URL @"https://localbitcoins.com/bitcoinaverage/ticker-all-currencies/"
-
-#pragma mark - Cache
-
-@interface DSFetchSecondFallbackPricesOperationCache : NSObject
-
-@property (nonatomic, copy, nullable) NSArray<NSString *> *currencyCodes;
-@property (nonatomic, copy, nullable) NSArray<NSNumber *> *currencyPrices;
-
-@property (strong, nonatomic, nullable) NSNumber *poloniexLastPrice;
-@property (strong, nonatomic, nullable) NSNumber *axecentralLastPrice;
-@property (strong, nonatomic, nullable) NSNumber *vesPrice;
-
-@end
-
-@implementation DSFetchSecondFallbackPricesOperationCache
-
-+ (instancetype)sharedInstance {
-    static DSFetchSecondFallbackPricesOperationCache *_sharedInstance = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        _sharedInstance = [[self alloc] init];
-    });
-    return _sharedInstance;
-}
-
-@end
-
-#pragma mark - Operation
+#define AXEVESCC_TICKER_URL @"https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=VES"
 
 @interface DSFetchSecondFallbackPricesOperation ()
 
 @property (strong, nonatomic) DSParseBitPayResponseOperation *parseBitPayOperation;
 @property (strong, nonatomic) DSParsePoloniexResponseOperation *parsePoloniexOperation;
 @property (strong, nonatomic) DSParseAxeCentralResponseOperation *parseAxecentralOperation;
-@property (strong, nonatomic) DSParseLocalBitcoinsResponseOperation *parseLocalBitcoinsOperation;
+@property (strong, nonatomic) DSParseAxeVesCCResponseOperation *parseAxeVesCCOperation;
 @property (strong, nonatomic) DSChainedOperation *chainBitPayOperation;
 @property (strong, nonatomic) DSChainedOperation *chainPoloniexOperation;
 @property (strong, nonatomic) DSChainedOperation *chainAxecentralOperation;
-@property (strong, nonatomic) DSChainedOperation *chainLocalBitcoinsOperation;
+@property (strong, nonatomic) DSChainedOperation *chainAxeVesCCOperation;
 
 @property (copy, nonatomic) void (^fetchCompletion)(NSArray<DSCurrencyPriceObject *> *_Nullable);
 
@@ -115,14 +87,14 @@ NS_ASSUME_NONNULL_BEGIN
             [self addOperation:chainOperation];
         }
         {
-            NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:LOCALBITCOINS_TICKER_URL]
+            NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:AXEVESCC_TICKER_URL]
                                                      cachePolicy:NSURLRequestReloadIgnoringCacheData
                                                  timeoutInterval:30.0];
             DSHTTPOperation *getOperation = [[DSHTTPOperation alloc] initWithRequest:request];
-            DSParseLocalBitcoinsResponseOperation *parseOperation = [[DSParseLocalBitcoinsResponseOperation alloc] init];
+            DSParseAxeVesCCResponseOperation *parseOperation = [[DSParseAxeVesCCResponseOperation alloc] init];
             DSChainedOperation *chainOperation = [DSChainedOperation operationWithOperations:@[ getOperation, parseOperation ]];
-            _parseLocalBitcoinsOperation = parseOperation;
-            _chainLocalBitcoinsOperation = chainOperation;
+            _parseAxeVesCCOperation = parseOperation;
+            _chainAxeVesCCOperation = chainOperation;
             [self addOperation:chainOperation];
         }
 
@@ -136,32 +108,11 @@ NS_ASSUME_NONNULL_BEGIN
         return;
     }
 
-    DSFetchSecondFallbackPricesOperationCache *cache = [DSFetchSecondFallbackPricesOperationCache sharedInstance];
-    if (operation == self.chainBitPayOperation) {
-        NSArray *currencyCodes = self.parseBitPayOperation.currencyCodes;
-        NSArray *currencyPrices = self.parseBitPayOperation.currencyPrices;
-        if (currencyCodes && currencyPrices) {
-            cache.currencyCodes = currencyCodes;
-            cache.currencyPrices = currencyPrices;
-        }
-    }
-    else if (operation == self.chainPoloniexOperation) {
-        NSNumber *poloniexPrice = self.parsePoloniexOperation.lastTradePriceNumber;
-        if (poloniexPrice) {
-            cache.poloniexLastPrice = poloniexPrice;
-        }
-    }
-    else if (operation == self.chainAxecentralOperation) {
-        NSNumber *axecentralPrice = self.parseAxecentralOperation.btcAxePrice;
-        if (axecentralPrice) {
-            cache.axecentralLastPrice = axecentralPrice;
-        }
-    }
-    else if (operation == self.chainLocalBitcoinsOperation) {
-        NSNumber *vesPrice = self.parseLocalBitcoinsOperation.vesPrice;
-        if (vesPrice) {
-            cache.vesPrice = vesPrice;
-        }
+    if (errors.count > 0) {
+        [self.chainBitPayOperation cancel];
+        [self.chainPoloniexOperation cancel];
+        [self.chainAxecentralOperation cancel];
+        [self.chainAxeVesCCOperation cancel];
     }
 }
 
@@ -170,17 +121,23 @@ NS_ASSUME_NONNULL_BEGIN
         return;
     }
 
-    DSFetchSecondFallbackPricesOperationCache *cache = [DSFetchSecondFallbackPricesOperationCache sharedInstance];
-    NSArray<NSString *> *currencyCodes = cache.currencyCodes;
-    NSArray<NSNumber *> *currencyPrices = cache.currencyPrices;
-    NSNumber *poloniexPriceNumber = cache.poloniexLastPrice;
-    NSNumber *axecentralPriceNumber = cache.axecentralLastPrice;
-    NSNumber *vesPrice = cache.vesPrice;
+    if (errors.count > 0) {
+        self.fetchCompletion(nil);
+
+        return;
+    }
+
+    NSArray *currencyCodes = self.parseBitPayOperation.currencyCodes;
+    NSArray *currencyPrices = self.parseBitPayOperation.currencyPrices;
+    NSNumber *poloniexPriceNumber = self.parsePoloniexOperation.lastTradePriceNumber;
+    NSNumber *axecentralPriceNumber = self.parseAxecentralOperation.btcAxePrice;
+    NSNumber *vesPriceNumber = self.parseAxeVesCCOperation.vesPrice;
 
     // not enough data to build prices
     if (!currencyCodes ||
         !currencyPrices ||
         !(poloniexPriceNumber || axecentralPriceNumber) ||
+        !vesPriceNumber ||
         currencyCodes.count != currencyPrices.count) {
 
         self.fetchCompletion(nil);
@@ -190,20 +147,20 @@ NS_ASSUME_NONNULL_BEGIN
 
     double poloniexPrice = poloniexPriceNumber.doubleValue;
     double axecentralPrice = axecentralPriceNumber.doubleValue;
-    double btcAxePrice = 0.0;
+    double axeBtcPrice = 0.0;
     if (poloniexPrice > 0.0) {
         if (axecentralPrice > 0.0) {
-            btcAxePrice = (poloniexPrice + axecentralPrice) / 2.0;
+            axeBtcPrice = (poloniexPrice + axecentralPrice) / 2.0;
         }
         else {
-            btcAxePrice = poloniexPrice;
+            axeBtcPrice = poloniexPrice;
         }
     }
     else if (axecentralPrice > 0.0) {
-        btcAxePrice = axecentralPrice;
+        axeBtcPrice = axecentralPrice;
     }
 
-    if (btcAxePrice < DBL_EPSILON) {
+    if (axeBtcPrice < DBL_EPSILON) {
         self.fetchCompletion(nil);
 
         return;
@@ -211,11 +168,14 @@ NS_ASSUME_NONNULL_BEGIN
 
     NSMutableArray<DSCurrencyPriceObject *> *prices = [NSMutableArray array];
     for (NSString *code in currencyCodes) {
-        NSUInteger index = [currencyCodes indexOfObject:code];
-        NSNumber *btcPrice = currencyPrices[index];
-        double price = btcPrice.doubleValue * btcAxePrice;
-        if ([code isEqualToString:@"VES"] && vesPrice) {
-            price = vesPrice.doubleValue * btcAxePrice;
+        double price = 0.0;
+        if ([code isEqualToString:@"VES"]) {
+            price = vesPriceNumber.doubleValue * axeBtcPrice;
+        }
+        else {
+            NSUInteger index = [currencyCodes indexOfObject:code];
+            NSNumber *btcPrice = currencyPrices[index];
+            price = btcPrice.doubleValue * axeBtcPrice;
         }
 
         if (price > DBL_EPSILON) {

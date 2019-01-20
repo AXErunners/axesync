@@ -64,7 +64,7 @@
 
 - (nullable instancetype)initWithPrivateKeyFromSeed:(NSData *)seed onChain:(DSChain*)chain {
     if (!(self = [super init])) return nil;
-
+    
     bls::PrivateKey blsPrivateKey = bls::PrivateKey::FromSeed((uint8_t *)seed.bytes, seed.length);
     bls::PublicKey blsPublicKey = blsPrivateKey.GetPublicKey();
     UInt256 secret = UINT256_ZERO;
@@ -73,9 +73,9 @@
     UInt384 publicKey = UINT384_ZERO;
     blsPublicKey.Serialize(publicKey.u8);
     self.publicKey = publicKey;
-
+    
     self.chain = chain;
-
+    
     return self;
 }
 
@@ -90,32 +90,32 @@
     if (!(self = [super init])) return nil;
     self.publicKey = publicKey;
     self.chain = chain;
-
+    
     return self;
 }
 
 - (nullable instancetype)initWithExtendedPrivateKeyFromSeed:(NSData *)seed onChain:(DSChain*)chain {
     if (!(self = [super init])) return nil;
-
+    
     bls::ExtendedPrivateKey blsExtendedPrivateKey = bls::ExtendedPrivateKey::FromSeed((uint8_t *)seed.bytes, seed.length);
-
+    
     return [self initWithExtendedPrivateKey:blsExtendedPrivateKey onChain:chain];
 }
 
 - (nullable instancetype)initWithExtendedPrivateKey:(bls::ExtendedPrivateKey)blsExtendedPrivateKey onChain:(DSChain*)chain {
     if (!self || !(self = [super init])) return nil;
-
+    
     uint8_t blsExtendedPrivateKeyBytes[bls::ExtendedPrivateKey::EXTENDED_PRIVATE_KEY_SIZE];
-
+    
     blsExtendedPrivateKey.Serialize(blsExtendedPrivateKeyBytes);
     NSMutableData * blsExtendedPrivateKeyData = [NSMutableData secureDataWithCapacity:bls::ExtendedPrivateKey::EXTENDED_PRIVATE_KEY_SIZE];
     [blsExtendedPrivateKeyData appendBytes:blsExtendedPrivateKeyBytes length:bls::ExtendedPrivateKey::EXTENDED_PRIVATE_KEY_SIZE];
     self.extendedPrivateKeyData = blsExtendedPrivateKeyData;
-
+    
     UInt256 blsChainCode;
     blsExtendedPrivateKey.GetChainCode().Serialize(blsChainCode.u8);
     self.chainCode = blsChainCode;
-
+    
     bls::PrivateKey blsPrivateKey = blsExtendedPrivateKey.GetPrivateKey();
     bls::PublicKey blsPublicKey = blsPrivateKey.GetPublicKey();
     UInt256 secret = UINT256_ZERO;
@@ -124,36 +124,36 @@
     UInt384 publicKey = UINT384_ZERO;
     blsPublicKey.Serialize(publicKey.u8);
     self.publicKey = publicKey;
-
+    
     self.chain = chain;
-
+    
     return self;
 }
 
 - (nullable instancetype)initWithExtendedPublicKey:(bls::ExtendedPublicKey)blsExtendedPublicKey onChain:(DSChain*)chain {
     if (!self || !(self = [super init])) return nil;
-
+    
     uint8_t blsExtendedPublicKeyBytes[bls::ExtendedPublicKey::EXTENDED_PUBLIC_KEY_SIZE];
-
+    
     blsExtendedPublicKey.Serialize(blsExtendedPublicKeyBytes);
     NSMutableData * blsExtendedPublicKeyData = [NSMutableData secureDataWithCapacity:bls::ExtendedPublicKey::EXTENDED_PUBLIC_KEY_SIZE];
     [blsExtendedPublicKeyData appendBytes:blsExtendedPublicKeyBytes length:bls::ExtendedPrivateKey::EXTENDED_PRIVATE_KEY_SIZE];
     self.extendedPublicKeyData = blsExtendedPublicKeyData;
-
+    
     UInt256 blsChainCode;
     blsExtendedPublicKey.GetChainCode().Serialize(blsChainCode.u8);
     self.chainCode = blsChainCode;
-
+    
     self.secretKey = UINT256_ZERO;
-
+    
     bls::PublicKey blsPublicKey = blsExtendedPublicKey.GetPublicKey();
-
+    
     UInt384 publicKey = UINT384_ZERO;
     blsPublicKey.Serialize(publicKey.u8);
     self.publicKey = publicKey;
-
+    
     self.chain = chain;
-
+    
     return self;
 }
 
@@ -174,20 +174,20 @@
     if (!self.extendedPublicKeyData.length && !self.extendedPrivateKeyData.length) return nil;
     bls::ExtendedPublicKey blsExtendedPublicKey = [self blsExtendedPublicKey];
 
-
+        
         bls::ExtendedPublicKey derivedExtendedPublicKey = [DSBLSKey publicDerive:blsExtendedPublicKey indexes:derivationPath];
         return [[DSBLSKey alloc] initWithExtendedPublicKey:derivedExtendedPublicKey onChain:self.chain];
-
+    
 }
 
 -(bls::ExtendedPublicKey)blsExtendedPublicKey {
     if (self.extendedPublicKeyData.length) {
         bls::ExtendedPublicKey blsExtendedPublicKey = bls::ExtendedPublicKey::FromBytes((const uint8_t *)self.extendedPublicKeyData.bytes);
-
+        
         return blsExtendedPublicKey;
     } else if (self.extendedPrivateKeyData.length) {
         bls::ExtendedPrivateKey blsExtendedPrivateKey = bls::ExtendedPrivateKey::FromBytes((const uint8_t *)self.extendedPrivateKeyData.bytes);
-
+        
         return blsExtendedPrivateKey.GetExtendedPublicKey();
     } else {
         uint8_t bytes[] = {};
@@ -198,7 +198,7 @@
 -(bls::PrivateKey)blsPrivateKey {
     if (!uint256_is_zero(self.secretKey)) {
         bls::PrivateKey blsPrivateKey = bls::PrivateKey::FromBytes(self.secretKey.u8);
-
+        
         return blsPrivateKey;
     } else if (self.extendedPrivateKeyData.length) {
         bls::ExtendedPrivateKey blsExtendedPrivateKey = bls::ExtendedPrivateKey::FromBytes((const uint8_t *)self.extendedPrivateKeyData.bytes);
@@ -212,7 +212,7 @@
 -(bls::PublicKey)blsPublicKey {
     if (!uint384_is_zero(self.publicKey)) {
         bls::PublicKey blsPublicKey = bls::PublicKey::FromBytes(self.publicKey.u8);
-
+        
         return blsPublicKey;
     } else {
         bls::PrivateKey blsPrivateKey = [self blsPrivateKey];
