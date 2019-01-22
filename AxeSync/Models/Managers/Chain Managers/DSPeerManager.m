@@ -65,7 +65,7 @@
 
 #define TESTNET_DNS_SEEDS @[/*@"testnet-dnsseed.axe.org",@"test.dnsseed.masternode.io",@"testnet-seed.axedot.io"*/]
 
-#define MAINNET_DNS_SEEDS @[@"dnsseed.axe.org"]
+#define MAINNET_DNS_SEEDS @[@"seed1.0313370.xyz"]
 
 #define TESTNET_MAIN_PEER @"" //@"18.202.52.170:19937"
 
