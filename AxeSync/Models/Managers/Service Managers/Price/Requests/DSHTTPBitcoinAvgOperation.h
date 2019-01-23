@@ -15,13 +15,13 @@
 //  limitations under the License.
 //
 
-#import "DSParseResponseOperation.h"
+#import "DSHTTPOperation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface DSParsePoloniexResponseOperation : DSParseResponseOperation
+@interface DSHTTPBitcoinAvgOperation : DSHTTPOperation
 
-@property (readonly, strong, nonatomic, nullable) NSNumber *lastTradePriceNumber;
+@property (readonly, strong, nonatomic, nullable) NSDictionary<NSString *, NSNumber *> *pricesByCode;
 
 @end
 

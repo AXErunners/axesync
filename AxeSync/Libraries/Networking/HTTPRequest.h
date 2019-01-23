@@ -20,7 +20,7 @@
 //  specific language governing permissions and limitations
 //  under the License.
 //
-//  Copyright © 2018-2019 Axe Core Group. All rights reserved.
+//  Copyright © 2018-2019 Dash Core Group. All rights reserved.
 //
 //  Licensed under the MIT License (the "License");
 //  you may not use this file except in compliance with the License.
@@ -90,6 +90,10 @@ extern NSString *const HTTPRequestErrorDomain;
 + (instancetype)requestWithURL:(NSURL *)URL
                         method:(HTTPRequestMethod)method
                     parameters:(nullable NSDictionary *)parameters;
++ (instancetype)requestWithURL:(NSURL *)URL
+                        method:(HTTPRequestMethod)method
+                   contentType:(HTTPContentType)contentType
+                    parameters:(nullable NSDictionary *)parameters;
 - (instancetype)initWithURL:(NSURL *)URL
                      method:(HTTPRequestMethod)method
                 contentType:(HTTPContentType)contentType
@@ -105,6 +109,7 @@ extern NSString *const HTTPRequestErrorDomain;
 
 - (void)addValue:(NSString *)value forHeader:(NSString *)header;
 - (void)removeHeader:(NSString *)header;
+- (void)setBasicAuthWithUsername:(NSString *)username password:(NSString *)password;
 
 @end
 

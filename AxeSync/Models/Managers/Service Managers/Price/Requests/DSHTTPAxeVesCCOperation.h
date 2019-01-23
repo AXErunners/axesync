@@ -15,13 +15,13 @@
 //  limitations under the License.
 //
 
-#import "DSParseResponseOperation.h"
+#import "DSHTTPOperation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface DSParseAxeCentralResponseOperation : DSParseResponseOperation
+@interface DSHTTPAxeVesCCOperation : DSHTTPOperation
 
-@property (readonly, strong, nonatomic, nullable) NSNumber *btcAxePrice;
+@property (readonly, strong, nonatomic, nullable) NSNumber *vesPrice;
 
 @end
 

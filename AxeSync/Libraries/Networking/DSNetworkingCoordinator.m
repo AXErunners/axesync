@@ -1,6 +1,6 @@
 //
 //  Created by Andrew Podkovyrin
-//  Copyright © 2019 Axe Core Group. All rights reserved.
+//  Copyright © 2019 Dash Core Group. All rights reserved.
 //
 //  Licensed under the MIT License (the "License");
 //  you may not use this file except in compliance with the License.
@@ -34,10 +34,13 @@ NS_ASSUME_NONNULL_BEGIN
     self = [super init];
     if (self) {
         NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
-        HTTPService *httpService = [[HTTPService alloc] initWithConfiguration:configuration];
+        HTTPService *service = [[HTTPService alloc] initWithConfiguration:configuration];
+        HTTPLoaderFactory *loaderFactory = [service createHTTPLoaderFactoryWithAuthorisers:nil];
+        HTTPLoaderManager *loaderManager = [[HTTPLoaderManager alloc] initWithFactory:loaderFactory];
 
-        _httpService = httpService;
-        _loaderFactory = [httpService createHTTPLoaderFactoryWithAuthorisers:nil];
+        _service = service;
+        _loaderFactory = loaderFactory;
+        _loaderManager = loaderManager;
     }
     return self;
 }

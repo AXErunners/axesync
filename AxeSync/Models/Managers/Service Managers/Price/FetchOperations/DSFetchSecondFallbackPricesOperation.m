@@ -17,14 +17,11 @@
 
 #import "DSFetchSecondFallbackPricesOperation.h"
 
-#import "DSChainedOperation.h"
 #import "DSCurrencyPriceObject.h"
-#import "DSHTTPOperation.h"
-#import "DSOperationQueue.h"
-#import "DSParseBitPayResponseOperation.h"
-#import "DSParseAxeCentralResponseOperation.h"
-#import "DSParseAxeVesCCResponseOperation.h"
-#import "DSParsePoloniexResponseOperation.h"
+#import "DSHTTPBitPayOperation.h"
+#import "DSHTTPAxeCentralOperation.h"
+#import "DSHTTPAxeVesCCOperation.h"
+#import "DSHTTPPoloniexOperation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -35,14 +32,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface DSFetchSecondFallbackPricesOperation ()
 
-@property (strong, nonatomic) DSParseBitPayResponseOperation *parseBitPayOperation;
-@property (strong, nonatomic) DSParsePoloniexResponseOperation *parsePoloniexOperation;
-@property (strong, nonatomic) DSParseAxeCentralResponseOperation *parseAxecentralOperation;
-@property (strong, nonatomic) DSParseAxeVesCCResponseOperation *parseAxeVesCCOperation;
-@property (strong, nonatomic) DSChainedOperation *chainBitPayOperation;
-@property (strong, nonatomic) DSChainedOperation *chainPoloniexOperation;
-@property (strong, nonatomic) DSChainedOperation *chainAxecentralOperation;
-@property (strong, nonatomic) DSChainedOperation *chainAxeVesCCOperation;
+@property (strong, nonatomic) DSHTTPBitPayOperation *bitPayOperation;
+@property (strong, nonatomic) DSHTTPPoloniexOperation *poloniexOperation;
+@property (strong, nonatomic) DSHTTPAxeCentralOperation *axecentralOperation;
+@property (strong, nonatomic) DSHTTPAxeVesCCOperation *axeVesCCOperation;
 
 @property (copy, nonatomic) void (^fetchCompletion)(NSArray<DSCurrencyPriceObject *> *_Nullable);
 
@@ -54,48 +47,48 @@ NS_ASSUME_NONNULL_BEGIN
     self = [super initWithOperations:nil];
     if (self) {
         {
-            NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:BITPAY_TICKER_URL]
-                                                     cachePolicy:NSURLRequestReloadIgnoringCacheData
-                                                 timeoutInterval:10.0];
-            DSHTTPOperation *getOperation = [[DSHTTPOperation alloc] initWithRequest:request];
-            DSParseBitPayResponseOperation *parseOperation = [[DSParseBitPayResponseOperation alloc] init];
-            DSChainedOperation *chainOperation = [DSChainedOperation operationWithOperations:@[ getOperation, parseOperation ]];
-            _parseBitPayOperation = parseOperation;
-            _chainBitPayOperation = chainOperation;
-            [self addOperation:chainOperation];
+            HTTPRequest *request = [HTTPRequest requestWithURL:[NSURL URLWithString:BITPAY_TICKER_URL]
+                                                        method:HTTPRequestMethod_GET
+                                                    parameters:nil];
+            request.timeout = 30.0;
+            request.cachePolicy = NSURLRequestReloadIgnoringCacheData;
+
+            DSHTTPBitPayOperation *operation = [[DSHTTPBitPayOperation alloc] initWithRequest:request];
+            _bitPayOperation = operation;
+            [self addOperation:operation];
         }
         {
-            NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:POLONIEX_TICKER_URL]
-                                                     cachePolicy:NSURLRequestReloadIgnoringCacheData
-                                                 timeoutInterval:30.0];
-            DSHTTPOperation *getOperation = [[DSHTTPOperation alloc] initWithRequest:request];
-            DSParsePoloniexResponseOperation *parseOperation = [[DSParsePoloniexResponseOperation alloc] init];
-            DSChainedOperation *chainOperation = [DSChainedOperation operationWithOperations:@[ getOperation, parseOperation ]];
-            _parsePoloniexOperation = parseOperation;
-            _chainPoloniexOperation = chainOperation;
-            [self addOperation:chainOperation];
+            HTTPRequest *request = [HTTPRequest requestWithURL:[NSURL URLWithString:POLONIEX_TICKER_URL]
+                                                        method:HTTPRequestMethod_GET
+                                                    parameters:nil];
+            request.timeout = 30.0;
+            request.cachePolicy = NSURLRequestReloadIgnoringCacheData;
+
+            DSHTTPPoloniexOperation *operation = [[DSHTTPPoloniexOperation alloc] initWithRequest:request];
+            _poloniexOperation = operation;
+            [self addOperation:operation];
         }
         {
-            NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:AXECENTRAL_TICKER_URL]
-                                                     cachePolicy:NSURLRequestReloadIgnoringCacheData
-                                                 timeoutInterval:30.0];
-            DSHTTPOperation *getOperation = [[DSHTTPOperation alloc] initWithRequest:request];
-            DSParseAxeCentralResponseOperation *parseOperation = [[DSParseAxeCentralResponseOperation alloc] init];
-            DSChainedOperation *chainOperation = [DSChainedOperation operationWithOperations:@[ getOperation, parseOperation ]];
-            _parseAxecentralOperation = parseOperation;
-            _chainAxecentralOperation = chainOperation;
-            [self addOperation:chainOperation];
+            HTTPRequest *request = [HTTPRequest requestWithURL:[NSURL URLWithString:AXECENTRAL_TICKER_URL]
+                                                        method:HTTPRequestMethod_GET
+                                                    parameters:nil];
+            request.timeout = 30.0;
+            request.cachePolicy = NSURLRequestReloadIgnoringCacheData;
+
+            DSHTTPAxeCentralOperation *operation = [[DSHTTPAxeCentralOperation alloc] initWithRequest:request];
+            _axecentralOperation = operation;
+            [self addOperation:operation];
         }
         {
-            NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:AXEVESCC_TICKER_URL]
-                                                     cachePolicy:NSURLRequestReloadIgnoringCacheData
-                                                 timeoutInterval:30.0];
-            DSHTTPOperation *getOperation = [[DSHTTPOperation alloc] initWithRequest:request];
-            DSParseAxeVesCCResponseOperation *parseOperation = [[DSParseAxeVesCCResponseOperation alloc] init];
-            DSChainedOperation *chainOperation = [DSChainedOperation operationWithOperations:@[ getOperation, parseOperation ]];
-            _parseAxeVesCCOperation = parseOperation;
-            _chainAxeVesCCOperation = chainOperation;
-            [self addOperation:chainOperation];
+            HTTPRequest *request = [HTTPRequest requestWithURL:[NSURL URLWithString:AXEVESCC_TICKER_URL]
+                                                        method:HTTPRequestMethod_GET
+                                                    parameters:nil];
+            request.timeout = 30.0;
+            request.cachePolicy = NSURLRequestReloadIgnoringCacheData;
+
+            DSHTTPAxeVesCCOperation *operation = [[DSHTTPAxeVesCCOperation alloc] init];
+            _axeVesCCOperation = operation;
+            [self addOperation:operation];
         }
 
         _fetchCompletion = [completion copy];
@@ -109,10 +102,10 @@ NS_ASSUME_NONNULL_BEGIN
     }
 
     if (errors.count > 0) {
-        [self.chainBitPayOperation cancel];
-        [self.chainPoloniexOperation cancel];
-        [self.chainAxecentralOperation cancel];
-        [self.chainAxeVesCCOperation cancel];
+        [self.bitPayOperation cancel];
+        [self.poloniexOperation cancel];
+        [self.axecentralOperation cancel];
+        [self.axeVesCCOperation cancel];
     }
 }
 
@@ -127,11 +120,11 @@ NS_ASSUME_NONNULL_BEGIN
         return;
     }
 
-    NSArray *currencyCodes = self.parseBitPayOperation.currencyCodes;
-    NSArray *currencyPrices = self.parseBitPayOperation.currencyPrices;
-    NSNumber *poloniexPriceNumber = self.parsePoloniexOperation.lastTradePriceNumber;
-    NSNumber *axecentralPriceNumber = self.parseAxecentralOperation.btcAxePrice;
-    NSNumber *vesPriceNumber = self.parseAxeVesCCOperation.vesPrice;
+    NSArray *currencyCodes = self.bitPayOperation.currencyCodes;
+    NSArray *currencyPrices = self.bitPayOperation.currencyPrices;
+    NSNumber *poloniexPriceNumber = self.poloniexOperation.lastTradePriceNumber;
+    NSNumber *axecentralPriceNumber = self.axecentralOperation.btcAxePrice;
+    NSNumber *vesPriceNumber = self.axeVesCCOperation.vesPrice;
 
     // not enough data to build prices
     if (!currencyCodes ||

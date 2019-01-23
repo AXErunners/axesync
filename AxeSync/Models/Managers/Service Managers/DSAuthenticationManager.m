@@ -59,6 +59,8 @@ static NSString *sanitizeString(NSString *s)
 
 typedef BOOL (^PinVerificationBlock)(NSString * _Nonnull currentPin,DSAuthenticationManager * context);
 
+NSString *const DSApplicationTerminationRequestNotification = @"DSApplicationTerminationRequestNotification";
+
 @interface DSAuthenticationManager()
 
 @property (nonatomic, strong) UITextField *pinField;
@@ -142,8 +144,8 @@ typedef BOOL (^PinVerificationBlock)(NSString * _Nonnull currentPin,DSAuthentica
     [[NSUserDefaults standardUserDefaults] setDouble:secureTime forKey:SECURE_TIME_KEY];
 }
 
-- (void)updateSecureTimeFromResponseIfNeeded:(NSHTTPURLResponse *)response {
-    NSString *date = response.allHeaderFields[@"Date"];
+- (void)updateSecureTimeFromResponseIfNeeded:(NSDictionary<NSString *, NSString *> *)responseHeaders {
+    NSString *date = responseHeaders[@"Date"];
     if (!date) {
         return;
     }
@@ -895,7 +897,7 @@ replacementString:(NSString *)string
                 [[DSVersionManager sharedInstance] clearKeychainWalletData];
                 
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/10), dispatch_get_main_queue(), ^{
-                    exit(0);
+                    [[NSNotificationCenter defaultCenter] postNotificationName:DSApplicationTerminationRequestNotification object:nil];
                 });
                 if (completion) completion(NO,NO);
                 return FALSE;

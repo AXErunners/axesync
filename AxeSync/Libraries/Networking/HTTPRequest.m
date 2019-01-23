@@ -20,7 +20,7 @@
 //  specific language governing permissions and limitations
 //  under the License.
 //
-//  Copyright © 2018-2019 Axe Core Group. All rights reserved.
+//  Copyright © 2018-2019 Dash Core Group. All rights reserved.
 //
 //  Licensed under the MIT License (the "License");
 //  you may not use this file except in compliance with the License.
@@ -79,6 +79,18 @@ static NSString *NSStringFromHTTPRequestMethod(HTTPRequestMethod requestMethod) 
     return [[[self class] alloc] initWithURL:URL
                                       method:method
                                  contentType:HTTPContentType_UrlEncoded
+                                  parameters:parameters
+                                        body:nil
+                            sourceIdentifier:nil];
+}
+
++ (instancetype)requestWithURL:(NSURL *)URL
+                        method:(HTTPRequestMethod)method
+                   contentType:(HTTPContentType)contentType
+                    parameters:(nullable NSDictionary *)parameters {
+    return [[[self class] alloc] initWithURL:URL
+                                      method:method
+                                 contentType:contentType
                                   parameters:parameters
                                         body:nil
                             sourceIdentifier:nil];
@@ -214,6 +226,14 @@ static NSString *NSStringFromHTTPRequestMethod(HTTPRequestMethod requestMethod) 
     @synchronized(self.mutableHeaders) {
         [self.mutableHeaders removeObjectForKey:header];
     }
+}
+
+- (void)setBasicAuthWithUsername:(NSString *)username password:(NSString *)password {
+    NSString *userPassword = [NSString stringWithFormat:@"%@:%@", username, password];
+    NSData *userPasswordData = [userPassword dataUsingEncoding:NSUTF8StringEncoding];
+    NSString *base64EncodedCredential = [userPasswordData base64EncodedStringWithOptions:0];
+    NSString *authString = [NSString stringWithFormat:@"Basic %@", base64EncodedCredential];
+    [self addValue:authString forHeader:@"Authorization"];
 }
 
 #pragma mark Private

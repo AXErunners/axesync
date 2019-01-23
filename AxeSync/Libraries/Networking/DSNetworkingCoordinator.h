@@ -1,6 +1,6 @@
 //
 //  Created by Andrew Podkovyrin
-//  Copyright © 2019 Axe Core Group. All rights reserved.
+//  Copyright © 2019 Dash Core Group. All rights reserved.
 //
 //  Licensed under the MIT License (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,14 +16,16 @@
 //
 
 #import "HTTPLoaderFactory.h"
+#import "HTTPLoaderManager.h"
 #import "HTTPService.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface DSNetworkingCoordinator : NSObject
 
-@property (readonly, strong, nonatomic) HTTPService *httpService;
+@property (readonly, strong, nonatomic) HTTPService *service;
 @property (readonly, strong, nonatomic) HTTPLoaderFactory *loaderFactory;
+@property (readonly, strong, nonatomic) HTTPLoaderManager *loaderManager;
 
 + (instancetype)sharedInstance;
 

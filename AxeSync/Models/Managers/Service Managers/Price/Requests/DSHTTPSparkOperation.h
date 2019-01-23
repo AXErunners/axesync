@@ -1,4 +1,4 @@
-//  
+//
 //  Created by Andrew Podkovyrin
 //  Copyright © 2018 Dash Core Group. All rights reserved.
 //
@@ -15,13 +15,15 @@
 //  limitations under the License.
 //
 
-#import "DSParseResponseOperation.h"
+#import "DSHTTPOperation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface DSParseAxeCasaResponseOperation : DSParseResponseOperation
+@class DSCurrencyPriceObject;
 
-@property (readonly, strong, nonatomic, nullable) NSNumber *axerate;
+@interface DSHTTPSparkOperation : DSHTTPOperation
+
+@property (readonly, copy, nonatomic, nullable) NSArray<DSCurrencyPriceObject *> *prices;
 
 @end
 

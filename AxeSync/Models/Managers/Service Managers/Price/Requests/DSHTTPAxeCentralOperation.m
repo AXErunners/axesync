@@ -15,28 +15,24 @@
 //  limitations under the License.
 //
 
-#import "DSParseAxeCentralResponseOperation.h"
+#import "DSHTTPAxeCentralOperation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface DSParseAxeCentralResponseOperation ()
+@interface DSHTTPAxeCentralOperation ()
 
 @property (strong, nonatomic, nullable) NSNumber *btcAxePrice;
 
 @end
 
-@implementation DSParseAxeCentralResponseOperation
+@implementation DSHTTPAxeCentralOperation
 
-- (void)execute {
-    if (!self.httpOperationResult) {
-        return;
-    }
+- (void)processSuccessResponse:(id)parsedData responseHeaders:(NSDictionary *)responseHeaders statusCode:(NSInteger)statusCode {
+    NSParameterAssert(parsedData);
 
-    NSParameterAssert(self.httpOperationResult.parsedResponse);
-
-    NSDictionary *response = (NSDictionary *)self.httpOperationResult.parsedResponse;
+    NSDictionary *response = (NSDictionary *)parsedData;
     if (![response isKindOfClass:NSDictionary.class]) {
-        [self cancelWithError:[self.class invalidResponseErrorWithUserInfo:@{NSDebugDescriptionErrorKey : response}]];
+        [self cancelWithInvalidResponse:response];
 
         return;
     }
@@ -48,7 +44,7 @@ NS_ASSUME_NONNULL_BEGIN
         [self finish];
     }
     else {
-        [self cancelWithError:[self.class invalidResponseErrorWithUserInfo:@{NSDebugDescriptionErrorKey : response}]];
+        [self cancelWithInvalidResponse:response];
     }
 }
 

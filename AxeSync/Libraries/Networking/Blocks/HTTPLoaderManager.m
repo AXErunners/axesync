@@ -1,6 +1,6 @@
 //
 //  Created by Andrew Podkovyrin
-//  Copyright © 2018-2019 Axe Core Group. All rights reserved.
+//  Copyright © 2018-2019 Dash Core Group. All rights reserved.
 //
 //  Licensed under the MIT License (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 
 #import "HTTPLoaderManager.h"
 
+#import "DSAuthenticationManager+Private.h"
 #import "HTTPLoaderFactory.h"
 #import "HTTPLoaderOperation.h"
 #import "HTTPRequest.h"
@@ -59,6 +60,9 @@ NS_ASSUME_NONNULL_BEGIN
             NSError *_Nullable error = nil;
             id _Nullable parsedData = [self parseResponse:response.body statusCode:response.statusCode request:httpRequest error:&error];
             NSAssert((!error && parsedData) || (error && !parsedData), nil); // sanity check
+
+            // store server timestamp
+            [[DSAuthenticationManager sharedInstance] updateSecureTimeFromResponseIfNeeded:response.responseHeaders];
 
             if (completion) {
                 completion(parsedData, response.responseHeaders, response.statusCode, error ?: response.error);
