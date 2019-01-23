@@ -589,8 +589,8 @@ static dispatch_once_t devnetToken = 0;
 }
 
 -(uint64_t)baseReward {
-    if ([self chainType] == DSChainType_MainNet) return 5 * DUFFS;
-    return 50 * DUFFS;
+    if ([self chainType] == DSChainType_MainNet) return 5 * HAKS;
+    return 50 * HAKS;
 }
 
 -(uint32_t)peerMisbehavingThreshold {
