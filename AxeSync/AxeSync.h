@@ -3,7 +3,7 @@
 //  axesync
 //
 //  Created by Sam Westrich on 3/4/18.
-//  Copyright © 2018 axecore. All rights reserved.
+//  Copyright © 2019 axecore. All rights reserved.
 //
 
 #import <UIKit/UIKit.h>
