@@ -1,6 +1,6 @@
 //
 //  Created by Andrew Podkovyrin
-//  Copyright © 2018 Dash Core Group. All rights reserved.
+//  Copyright © 2019 Dash Core Group. All rights reserved.
 //
 //  Licensed under the MIT License (the "License");
 //  you may not use this file except in compliance with the License.
@@ -21,20 +21,20 @@
 #import "DSCurrencyPriceObject.h"
 #import "DSHTTPBitcoinAvgOperation.h"
 #import "DSHTTPAxeBtcCCOperation.h"
-#import "DSHTTPAxeCasaOperation.h"
+#import "DSHTTPAxeVesCCOperation.h"
 #import "DSOperationQueue.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 #define AXEBTCCC_TICKER_URL @"https://min-api.cryptocompare.com/data/generateAvg?fsym=AXE&tsym=BTC&e=Binance,Kraken,Poloniex,Bitfinex"
 #define BITCOINAVG_TICKER_URL @"https://apiv2.bitcoinaverage.com/indices/global/ticker/short?crypto=BTC"
-#define AXECASA_TICKER_URL @"http://axe.casa/api/?cur=VES"
+#define AXEVESCC_TICKER_URL @"https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=VES"
 
 @interface DSFetchFirstFallbackPricesOperation ()
 
 @property (strong, nonatomic) DSHTTPAxeBtcCCOperation *axeBtcCCOperation;
 @property (strong, nonatomic) DSHTTPBitcoinAvgOperation *bitcoinAvgOperation;
-@property (strong, nonatomic) DSHTTPAxeCasaOperation *axeCasaOperation;
+@property (strong, nonatomic) DSHTTPAxeVesCCOperation *axeVesCCOperation;
 
 @property (copy, nonatomic) void (^fetchCompletion)(NSArray<DSCurrencyPriceObject *> *_Nullable);
 
@@ -66,13 +66,14 @@ NS_ASSUME_NONNULL_BEGIN
             [self addOperation:operation];
         }
         {
-            HTTPRequest *request = [HTTPRequest requestWithURL:[NSURL URLWithString:AXECASA_TICKER_URL]
+            HTTPRequest *request = [HTTPRequest requestWithURL:[NSURL URLWithString:AXEVESCC_TICKER_URL]
                                                         method:HTTPRequestMethod_GET
                                                     parameters:nil];
             request.timeout = 30.0;
             request.cachePolicy = NSURLRequestReloadIgnoringCacheData;
-            DSHTTPAxeCasaOperation *operation = [[DSHTTPAxeCasaOperation alloc] initWithRequest:request];
-            _axeCasaOperation = operation;
+
+            DSHTTPAxeVesCCOperation *operation = [[DSHTTPAxeVesCCOperation alloc] initWithRequest:request];
+            _axeVesCCOperation = operation;
             [self addOperation:operation];
         }
 
@@ -89,7 +90,7 @@ NS_ASSUME_NONNULL_BEGIN
     if (errors.count > 0) {
         [self.axeBtcCCOperation cancel];
         [self.bitcoinAvgOperation cancel];
-        [self.axeCasaOperation cancel];
+        [self.axeVesCCOperation cancel];
     }
 }
 
@@ -106,9 +107,9 @@ NS_ASSUME_NONNULL_BEGIN
 
     double axeBtcPrice = self.axeBtcCCOperation.axeBtcPrice.doubleValue;
     NSDictionary<NSString *, NSNumber *> *pricesByCode = self.bitcoinAvgOperation.pricesByCode;
-    NSNumber *axecasaPrice = self.axeCasaOperation.axerate;
+    NSNumber *vesPriceNumber = self.axeVesCCOperation.vesPrice;
 
-    if (!pricesByCode || axeBtcPrice < DBL_EPSILON || !axecasaPrice) {
+    if (!pricesByCode || axeBtcPrice < DBL_EPSILON || !vesPriceNumber) {
         self.fetchCompletion(nil);
 
         return;
@@ -118,7 +119,7 @@ NS_ASSUME_NONNULL_BEGIN
     for (NSString *code in pricesByCode) {
         double price = 0.0;
         if ([code isEqualToString:@"VES"]) {
-            price = axecasaPrice.doubleValue;
+            price = vesPriceNumber.doubleValue * axeBtcPrice;
         }
         else {
             double btcPrice = [pricesByCode[code] doubleValue];

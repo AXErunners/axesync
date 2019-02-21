@@ -31,6 +31,9 @@ typedef void (^PinCompletionBlock)(BOOL authenticatedOrSuccess, BOOL cancelled);
 typedef void (^SeedPhraseCompletionBlock)(NSString * _Nullable seedPhrase);
 typedef void (^SeedCompletionBlock)(NSData * _Nullable seed, BOOL cancelled);
 
+typedef void (^ResetCancelHandlerBlock)(void);
+typedef void (^ResetWipeHandlerBlock)(void);
+
 extern NSString *const DSApplicationTerminationRequestNotification;
 
 @class DSWallet,DSChain,DSTransaction;
@@ -46,6 +49,10 @@ extern NSString *const DSApplicationTerminationRequestNotification;
 @property (nonatomic ,readonly) BOOL lockedOut;
 @property (nonatomic, copy) NSDictionary * _Nullable userAccount; // client api user id and auth token
 @property (nonatomic, readonly) NSTimeInterval secureTime; // last known time from an ssl server connection
+/**
+ Secure time was updated by HTTP response since app starts
+ */
+@property (nonatomic, readonly) BOOL secureTimeUpdated;
 @property (nonatomic, readonly) NSTimeInterval lockoutWaitTime;
 
 + (instancetype _Nullable)sharedInstance;
@@ -63,5 +70,7 @@ extern NSString *const DSApplicationTerminationRequestNotification;
 -(void)deauthenticate;
 
 -(void)setOneTimeShouldUseAuthentication:(BOOL)shouldUseAuthentication; // you can not set this to false after it being true
+
+-(void)showResetWalletWithWipeHandler:(ResetWipeHandlerBlock)resetWipeHandlerBlock cancelHandler:(ResetCancelHandlerBlock)resetCancelHandlerBlock;
 
 @end
