@@ -47,14 +47,20 @@
 #define WALLET_MNEMONIC_KEY        @"WALLET_MNEMONIC_KEY"
 #define WALLET_MASTER_PUBLIC_KEY        @"WALLET_MASTER_PUBLIC_KEY"
 #define WALLET_BLOCKCHAIN_USERS_KEY  @"WALLET_BLOCKCHAIN_USERS_KEY"
+#define VERIFIED_WALLET_CREATION_TIME_KEY @"VERIFIED_WALLET_CREATION_TIME"
+#define REFERENCE_DATE_2001 978307200
 
-@interface DSWallet()
+@interface DSWallet() {
+    NSTimeInterval _lGuessedWalletCreationTime;
+}
 
 @property (nonatomic, strong) DSChain * chain;
 @property (nonatomic, strong) NSMutableDictionary * mAccounts;
 @property (nonatomic, copy) NSString * uniqueID;
 @property (nonatomic, assign) NSTimeInterval walletCreationTime;
-@property (nonatomic, assign) NSTimeInterval guessedWalletCreationTime;
+@property (nonatomic, assign) BOOL checkedWalletCreationTime;
+@property (nonatomic, assign) BOOL checkedGuessedWalletCreationTime;
+@property (nonatomic, assign) BOOL checkedVerifyWalletCreationTime;
 @property (nonatomic, strong) NSMutableDictionary<NSString *,NSNumber *> * mBlockchainUsers;
 @property (nonatomic, strong) SeedRequestBlock seedRequestBlock;
 @property (nonatomic, assign, getter=isTransient) BOOL transient;
@@ -72,7 +78,11 @@
 }
 
 + (DSWallet*)standardWalletWithRandomSeedPhraseForChain:(DSChain*)chain storeSeedPhrase:(BOOL)store isTransient:(BOOL)isTransient {
-    return [self standardWalletWithSeedPhrase:[self generateRandomSeed] setCreationDate:[NSDate timeIntervalSince1970] forChain:chain storeSeedPhrase:store isTransient:isTransient];
+    return [self standardWalletWithRandomSeedPhraseInLanguage:DSBIP39Language_Default forChain:chain storeSeedPhrase:store isTransient:isTransient];
+}
+
++ (DSWallet*)standardWalletWithRandomSeedPhraseInLanguage:(DSBIP39Language)language forChain:(DSChain*)chain storeSeedPhrase:(BOOL)store isTransient:(BOOL)isTransient {
+    return [self standardWalletWithSeedPhrase:[self generateRandomSeedForLanguage:language] setCreationDate:[NSDate timeIntervalSince1970] forChain:chain storeSeedPhrase:store isTransient:isTransient];
 }
 
 -(instancetype)initWithChain:(DSChain*)chain {
@@ -81,6 +91,9 @@
     self.mAccounts = [NSMutableDictionary dictionary];
     self.chain = chain;
     self.mBlockchainUsers = [NSMutableDictionary dictionary];
+    self.checkedWalletCreationTime = NO;
+    self.checkedGuessedWalletCreationTime = NO;
+    self.checkedVerifyWalletCreationTime = NO;
     return self;
 }
 
@@ -174,6 +187,10 @@
     return [NSString stringWithFormat:@"%@_%@",WALLET_CREATION_GUESS_TIME_KEY,uniqueID];
 }
 
++(NSString*)didVerifyCreationTimeUniqueIDForUniqueID:(NSString*)uniqueID {
+    return [NSString stringWithFormat:@"%@_%@",VERIFIED_WALLET_CREATION_TIME_KEY,uniqueID];
+}
+
 -(NSString*)creationTimeUniqueID {
     return [DSWallet creationTimeUniqueIDForUniqueID:self.uniqueID];
 }
@@ -182,19 +199,29 @@
     return [DSWallet creationGuessTimeUniqueIDForUniqueID:self.uniqueID];
 }
 
+-(NSString*)didVerifyCreationTimeUniqueID {
+    return [DSWallet didVerifyCreationTimeUniqueIDForUniqueID:self.uniqueID];
+}
+
 // MARK: - Wallet Creation Time
 
 -(NSTimeInterval)walletCreationTime {
+    [self verifyWalletCreationTime];
     if (_walletCreationTime) return _walletCreationTime;
-    NSData *d = getKeychainData(self.creationTimeUniqueID, nil);
     
-    if (d.length == sizeof(NSTimeInterval)) {
-        NSTimeInterval potentialWalletCreationTime = *(const NSTimeInterval *)d.bytes;
-        if (potentialWalletCreationTime != BIP39_CREATION_TIME) {
-            _walletCreationTime = potentialWalletCreationTime;
-            return _walletCreationTime;
+    if (!self.checkedWalletCreationTime) {
+        NSData *d = getKeychainData(self.creationTimeUniqueID, nil);
+        
+        if (d.length == sizeof(NSTimeInterval)) {
+            NSTimeInterval potentialWalletCreationTime = *(const NSTimeInterval *)d.bytes;
+            if (potentialWalletCreationTime > BIP39_CREATION_TIME) {
+                _walletCreationTime = potentialWalletCreationTime;
+                return _walletCreationTime;
+            }
         }
+        self.checkedWalletCreationTime = TRUE;
     }
+
     if ([DSEnvironment sharedInstance].watchOnly) return BIP39_WALLET_UNKNOWN_CREATION_TIME; //0
     if ([self guessedWalletCreationTime]) return [self guessedWalletCreationTime];
     return BIP39_CREATION_TIME;
@@ -204,12 +231,20 @@
     _walletCreationTime = 0;
     setKeychainData(nil, self.creationTimeUniqueID, NO);
     setKeychainData(nil, self.creationGuessTimeUniqueID,NO);
+    setKeychainData(nil, self.didVerifyCreationTimeUniqueID,NO);
 }
 
 -(NSTimeInterval)guessedWalletCreationTime {
-    NSData *d = getKeychainData(self.creationGuessTimeUniqueID, nil);
-    
-    if (d.length == sizeof(NSTimeInterval)) return *(const NSTimeInterval *)d.bytes;
+    if (_lGuessedWalletCreationTime) return _lGuessedWalletCreationTime;
+    if (!self.checkedGuessedWalletCreationTime) {
+        NSData *d = getKeychainData(self.creationGuessTimeUniqueID, nil);
+        
+        if (d.length == sizeof(NSTimeInterval)) {
+            _lGuessedWalletCreationTime = *(const NSTimeInterval *)d.bytes;
+            return _lGuessedWalletCreationTime;
+        }
+        self.checkedGuessedWalletCreationTime = YES;
+    }
     return BIP39_WALLET_UNKNOWN_CREATION_TIME; //0
 }
 
@@ -218,20 +253,61 @@
     if (!setKeychainData([NSData dataWithBytes:&guessedWalletCreationTime length:sizeof(guessedWalletCreationTime)], [self creationGuessTimeUniqueID], NO)) {
         NSAssert(FALSE, @"error setting wallet guessed creation time");
     }
+    _lGuessedWalletCreationTime = guessedWalletCreationTime;
+}
+
+-(void)migrateWalletCreationTime {
+    NSData *d = getKeychainData(self.creationTimeUniqueID, nil);
+    
+    if (d.length == sizeof(NSTimeInterval)) {
+        NSTimeInterval potentialWalletCreationTime = *(const NSTimeInterval *)d.bytes;
+        if (potentialWalletCreationTime < BIP39_CREATION_TIME) { //it was from reference date for sure
+            NSDate * realWalletCreationDate = [NSDate dateWithTimeIntervalSinceReferenceDate:potentialWalletCreationTime];
+            NSTimeInterval realWalletCreationTime = [realWalletCreationDate timeIntervalSince1970];
+            if (realWalletCreationTime && (realWalletCreationTime != REFERENCE_DATE_2001)) {
+                _walletCreationTime = MAX(realWalletCreationTime,BIP39_CREATION_TIME); //safeguard
+                DSDLog(@"real wallet creation set to %@",realWalletCreationDate);
+                setKeychainData([NSData dataWithBytes:&realWalletCreationTime length:sizeof(realWalletCreationTime)], self.creationTimeUniqueID, NO);
+            } else if (realWalletCreationTime == REFERENCE_DATE_2001) {
+                realWalletCreationTime = 0;
+                setKeychainData([NSData dataWithBytes:&realWalletCreationTime length:sizeof(realWalletCreationTime)], self.creationTimeUniqueID, NO);
+            }
+        }
+    }
+}
+
+-(void)verifyWalletCreationTime {
+    if (!self.checkedVerifyWalletCreationTime) {
+        NSError * error = nil;
+        BOOL didVerifyAlready = hasKeychainData(self.didVerifyCreationTimeUniqueID, &error);
+        if (!didVerifyAlready) {
+            [self migrateWalletCreationTime];
+            setKeychainInt(1, self.didVerifyCreationTimeUniqueID, NO);
+        }
+        self.checkedVerifyWalletCreationTime = YES;
+    }
 }
 
 // MARK: - Seed
 
 // generates a random seed, saves to keychain and returns the associated seedPhrase
-+ (NSString *)generateRandomSeed
++ (NSString *)generateRandomSeedForLanguage:(DSBIP39Language)language
 {
     NSMutableData *entropy = [NSMutableData secureDataWithLength:SEED_ENTROPY_LENGTH];
     
     if (SecRandomCopyBytes(kSecRandomDefault, entropy.length, entropy.mutableBytes) != 0) return nil;
     
+    if (language != DSBIP39Language_Default) {
+        [[DSBIP39Mnemonic sharedInstance] setDefaultLanguage:language];
+    }
+    
     NSString *phrase = [[DSBIP39Mnemonic sharedInstance] encodePhrase:entropy];
     
     return phrase;
+}
+
++ (NSString *)generateRandomSeed {
+    return [self generateRandomSeedForLanguage:DSBIP39Language_Default];
 }
 
 - (void)seedPhraseAfterAuthentication:(void (^)(NSString * _Nullable))completion
@@ -269,6 +345,9 @@
                 
                 return nil;
             }
+            
+            //in version 2.0.0 wallet creation times were migrated from reference date, since this is now fixed just add this line so verification only happens once
+            setKeychainInt(1, [DSWallet didVerifyCreationTimeUniqueIDForUniqueID:uniqueID], NO);
             
             for (DSAccount * account in accounts) {
                 for (DSDerivationPath * derivationPath in account.derivationPaths) {
