@@ -60,7 +60,7 @@ CFSwapInt32HostToLittle((uint32_t)o.n) }) length:sizeof(UInt256) + sizeof(uint32
 #define MIN_VALID_MIN_PROTOCOL_VERSION 70210
 
 #define AXE_MAGIC_NUMBER_TESTNET 0xffcae2ce
-#define AXE_MAGIC_NUMBER_MAINNET 0xb5ce6b04
+#define AXE_MAGIC_NUMBER_MAINNET 0x046bceb5
 #define AXE_MAGIC_NUMBER_DEVNET 0xceffcae2
 
 #define MAX_PROOF_OF_WORK_MAINNET 0x1e0fffffu   // highest value for difficulty target (higher values are less difficult)
