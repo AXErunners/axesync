@@ -25,7 +25,7 @@ let skipBitPayCurrencies = ["BTC", "BCH", "XAG", "XAU", "VEF"]
 let bitPayItems = bitPayRates.items.filter { !skipBitPayCurrencies.contains($0.code) }
 var currenciesBitPay = bitPayItems.map { $0.code }
 
-let sparkRatesData = try! Data(contentsOf: URL(string: "https://api.get-spark.com/list")!)
+let sparkRatesData = try! Data(contentsOf: URL(string: "https://api.axerunners.com/list")!)
 let sparkRates: [String:Any] = try! JSONSerialization.jsonObject(with: sparkRatesData, options: .init(rawValue: 0)) as! [String:Any]
 let currenciesSpark = sparkRates.keys
 
