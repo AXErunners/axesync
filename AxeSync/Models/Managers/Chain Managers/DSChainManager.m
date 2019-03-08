@@ -63,8 +63,10 @@
     if (! (self = [super init])) return nil;
     
     self.chain = chain;
+    chain.chainManager = self;
     self.sporkManager = [[DSSporkManager alloc] initWithChain:chain];
     self.masternodeManager = [[DSMasternodeManager alloc] initWithChain:chain];
+    [self.masternodeManager setUp];
     self.governanceSyncManager = [[DSGovernanceSyncManager alloc] initWithChain:chain];
     self.transactionManager = [[DSTransactionManager alloc] initWithChain:chain];
     self.peerManager = [[DSPeerManager alloc] initWithChain:chain];
@@ -87,7 +89,18 @@
     if (! self.peerManager.downloadPeer && self.syncStartHeight == 0) return 0.0;
     //if (self.downloadPeer.status != DSPeerStatus_Connected) return 0.05;
     if (self.chain.lastBlockHeight >= self.chain.estimatedBlockHeight) return 1.0;
-    return MIN(1.0,MAX(0.0,0.1 + 0.9*(self.chain.lastBlockHeight - self.syncStartHeight)/(self.chain.estimatedBlockHeight - self.syncStartHeight)));
+    
+    double lastBlockHeight = self.chain.lastBlockHeight;
+    double estimatedBlockHeight = self.chain.estimatedBlockHeight;
+    double syncStartHeight = self.syncStartHeight;
+    double progress;
+    if (syncStartHeight > lastBlockHeight) {
+        progress = lastBlockHeight / estimatedBlockHeight;
+    }
+    else {
+        progress = (lastBlockHeight - syncStartHeight) / (estimatedBlockHeight - syncStartHeight);
+    }
+    return MIN(1.0, MAX(0.0, 0.1 + 0.9 * progress));
 }
 
 -(void)resetSyncStartHeight {
@@ -194,6 +207,10 @@
         DSDLog(@"%@:%d calling getblocks", peer.host, peer.port);
         [peer sendGetblocksMessageWithLocators:[self.chain blockLocatorArray] andHashStop:UINT256_ZERO];
     }
+}
+
+-(void)chain:(DSChain*)chain wasExtendedWithBlock:(DSMerkleBlock*)merkleBlock fromPeer:(DSPeer*)peer {
+    [self.masternodeManager getMasternodeList];
 }
 
 // MARK: - Count Info

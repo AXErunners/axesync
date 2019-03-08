@@ -35,16 +35,19 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 #define HAKS           100000000LL
 #define MAX_MONEY          (21000000LL*HAKS)
 
-@class DSChain,DSAccount,DSTransaction,DSDerivationPath;
+@class DSChain,DSAccount,DSTransaction,DSDerivationPath,DSLocalMasternode,DSKey,DSSpecialTransactionsWalletHolder;
 
 @interface DSWallet : NSObject
 
 @property (nonatomic, readonly) NSArray * accounts;
 
+@property (nonatomic, readonly) DSSpecialTransactionsWalletHolder * specialTransactionsHolder;
+
 @property (nonatomic, readonly) NSArray * blockchainUsers;
 
 @property (nonatomic, readonly) NSArray * blockchainUserAddresses;
 
+//This is unique among all wallets and all chains
 @property (nonatomic, readonly) NSString * uniqueID;
 
 @property (nonatomic, readonly) NSString * mnemonicUniqueID;
@@ -99,6 +102,8 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 // true if the address is controlled by the wallet
 - (BOOL)containsAddress:(NSString * _Nonnull)address;
 
+- (DSAccount* _Nullable)accountForAddress:(NSString *)address;
+
 // true if the address was previously used as an input or output in any wallet transaction
 - (BOOL)addressIsUsed:(NSString * _Nonnull)address;
 
@@ -143,6 +148,7 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 //this is used from the account to help determine best start sync position for future resync
 -(void)setGuessedWalletCreationTime:(NSTimeInterval)guessedWalletCreationTime;
 
+-(DSKey*)privateKeyForAddress:(NSString*)address fromSeed:(NSData*)seed;
 
 //generate a random Mnemonic seed
 + (NSString *)generateRandomSeed;
@@ -156,13 +162,14 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 //get the CREATION TIME KEY prefixed unique ID
 + (NSString*)creationTimeUniqueIDForUniqueID:(NSString*)uniqueID;
 
-- (NSString * _Nullable)serializedPrivateMasterFromSeed:(NSData * _Nullable)seed;
-
 //This removes all blockchain information from the wallet, used for resync
 - (void)wipeBlockchainInfo;
 
 //This removes all wallet based information from the wallet, used when deletion of wallet is wanted
 - (void)wipeWalletInfo;
+
+//Recreate derivation paths and addresses
+-(void)reloadDerivationPaths;
 
 -(void)unregisterBlockchainUser:(DSBlockchainUser* _Nonnull)blockchainUser;
 -(void)addBlockchainUser:(DSBlockchainUser* _Nonnull)blockchainUser;
@@ -172,5 +179,22 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 - (void)seedWithPrompt:(NSString * _Nonnull)authprompt forAmount:(uint64_t)amount completion:(_Nullable SeedCompletionBlock)completion;
 
 -(void)copyForChain:(DSChain* _Nonnull)chain completion:(void (^ _Nonnull)(DSWallet * _Nullable copiedWallet))completion;
+
+- (void)registerMasternodeOperator:(DSLocalMasternode * _Nonnull)masternode;
+
+- (void)registerMasternodeOwner:(DSLocalMasternode * _Nonnull)masternode;
+
+- (void)registerMasternodeVoter:(DSLocalMasternode * _Nonnull)masternode;
+- (BOOL)containsProviderVotingAuthenticationHash:(UInt160)votingAuthenticationHash;
+- (BOOL)containsProviderOwningAuthenticationHash:(UInt160)owningAuthenticationHash;
+- (BOOL)containsProviderOperatorAuthenticationKey:(UInt384)providerOperatorAuthenticationKey;
+- (BOOL)containsBlockchainUserAuthenticationHash:(UInt160)blockchainUserAuthenticationHash;
+- (BOOL)containsHoldingAddress:(NSString*)holdingAddress;
+
+- (NSUInteger)indexOfProviderVotingAuthenticationHash:(UInt160)votingAuthenticationHash;
+- (NSUInteger)indexOfProviderOwningAuthenticationHash:(UInt160)owningAuthenticationHash;
+- (NSUInteger)indexOfProviderOperatorAuthenticationKey:(UInt384)providerOperatorAuthenticationKey;
+- (NSUInteger)indexOfHoldingAddress:(NSString*)holdingAddress;
+- (NSUInteger)indexOfBlockchainUserAuthenticationHash:(UInt160)blockchainUserAuthenticationHash;
 
 @end
