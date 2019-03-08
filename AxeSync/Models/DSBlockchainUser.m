@@ -7,7 +7,7 @@
 
 #import "DSBlockchainUser.h"
 #import "DSChain.h"
-#import "DSKey.h"
+#import "DSECDSAKey.h"
 #import "DSAccount.h"
 #import "DSWallet.h"
 #import "DSDerivationPath.h"
@@ -20,6 +20,9 @@
 #import "DSAuthenticationManager.h"
 #import "DSPriceManager.h"
 #import "DSPeerManager.h"
+#import "DSDerivationPathFactory.h"
+#import "DSAuthenticationKeysDerivationPath.h"
+#import "DSDerivationPathFactory.h"
 
 #define BLOCKCHAIN_USER_UNIQUE_IDENTIFIER_KEY @"BLOCKCHAIN_USER_UNIQUE_IDENTIFIER_KEY"
 
@@ -39,7 +42,7 @@
 -(instancetype)initWithUsername:(NSString*)username atIndex:(uint32_t)index inWallet:(DSWallet*)wallet {
     if (!(self = [super init])) return nil;
     self.username = username;
-    self.uniqueIdentifier = [NSString stringWithFormat:@"%@_%@",BLOCKCHAIN_USER_UNIQUE_IDENTIFIER_KEY,username];
+    self.uniqueIdentifier = [NSString stringWithFormat:@"%@_%@_%@",BLOCKCHAIN_USER_UNIQUE_IDENTIFIER_KEY,wallet.chain.uniqueID,username];
     self.wallet = wallet;
     self.registrationTransactionHash = UINT256_ZERO;
     self.index = index;
@@ -49,7 +52,7 @@
 -(instancetype)initWithUsername:(NSString*)username atIndex:(uint32_t)index inWallet:(DSWallet*)wallet createdWithTransactionHash:(UInt256)registrationTransactionHash lastBlockchainUserTransactionHash:(UInt256)lastBlockchainUserTransactionHash {
     if (!(self = [super init])) return nil;
     self.username = username;
-    self.uniqueIdentifier = [NSString stringWithFormat:@"%@_%@",BLOCKCHAIN_USER_UNIQUE_IDENTIFIER_KEY,username];
+    self.uniqueIdentifier = [NSString stringWithFormat:@"%@_%@_%@",BLOCKCHAIN_USER_UNIQUE_IDENTIFIER_KEY,wallet.chain.uniqueID,username];
     self.wallet = wallet;
     self.registrationTransactionHash = registrationTransactionHash;
     self.lastBlockchainUserTransactionHash = lastBlockchainUserTransactionHash; //except topup and close, including state transitions
@@ -57,8 +60,20 @@
     return self;
 }
 
+-(instancetype)initWithBlockchainUserRegistrationTransaction:(DSBlockchainUserRegistrationTransaction*)blockchainUserRegistrationTransaction {
+    if (!(self = [super init])) return nil;
+    self.username = blockchainUserRegistrationTransaction.username;
+    self.uniqueIdentifier = [NSString stringWithFormat:@"%@_%@_%@",BLOCKCHAIN_USER_UNIQUE_IDENTIFIER_KEY,blockchainUserRegistrationTransaction.chain.uniqueID,self.username];
+    uint32_t index = 0;
+    DSWallet * wallet = [blockchainUserRegistrationTransaction.chain walletHavingBlockchainUserAuthenticationHash:blockchainUserRegistrationTransaction.pubkeyHash foundAtIndex:&index];
+    self.wallet = wallet;
+    self.index = index;
+    self.registrationTransactionHash = blockchainUserRegistrationTransaction.txHash;
+    return self;
+}
+
 -(void)generateBlockchainUserExtendedPublicKey:(void (^ _Nullable)(BOOL registered))completion {
-    __block DSDerivationPath * derivationPath = [DSDerivationPath blockchainUsersDerivationPathForWallet:self.wallet];
+    __block DSAuthenticationKeysDerivationPath * derivationPath = [[DSDerivationPathFactory sharedInstance] blockchainUsersKeysDerivationPathForWallet:self.wallet];
     if ([derivationPath hasExtendedPublicKey]) {
         completion(YES);
         return;
@@ -84,18 +99,17 @@
             completion(nil);
             return;
         }
-        DSDerivationPath * derivationPath = [DSDerivationPath blockchainUsersDerivationPathForWallet:self.wallet];
-        DSKey * privateKey = [derivationPath privateKeyAtIndexPath:[NSIndexPath indexPathWithIndex:self.index] fromSeed:seed];
+        DSAuthenticationKeysDerivationPath * derivationPath = [[DSDerivationPathFactory sharedInstance] blockchainUsersKeysDerivationPathForWallet:self.wallet];
+        DSECDSAKey * privateKey = (DSECDSAKey *)[derivationPath privateKeyAtIndexPath:[NSIndexPath indexPathWithIndex:self.index] fromSeed:seed];
 
-        DSBlockchainUserRegistrationTransaction * blockchainUserRegistrationTransaction = [[DSBlockchainUserRegistrationTransaction alloc] initWithBlockchainUserRegistrationTransactionVersion:1 username:self.username pubkeyHash:[privateKey.publicKey hash160] onChain:self.wallet.chain];
+        DSBlockchainUserRegistrationTransaction * blockchainUserRegistrationTransaction = [[DSBlockchainUserRegistrationTransaction alloc] initWithBlockchainUserRegistrationTransactionVersion:1 username:self.username pubkeyHash:[privateKey.publicKeyData hash160] onChain:self.wallet.chain];
         [blockchainUserRegistrationTransaction signPayloadWithKey:privateKey];
         NSMutableData * opReturnScript = [NSMutableData data];
         [opReturnScript appendUInt8:OP_RETURN];
-        [fundingAccount updateTransaction:blockchainUserRegistrationTransaction forAmounts:@[@(topupAmount)] toOutputScripts:@[opReturnScript] withFee:YES isInstant:NO toShapeshiftAddress:nil];
+        [fundingAccount updateTransaction:blockchainUserRegistrationTransaction forAmounts:@[@(topupAmount)] toOutputScripts:@[opReturnScript] withFee:YES isInstant:NO];
         
         completion(blockchainUserRegistrationTransaction);
     }];
-    
 }
 
 -(void)topupTransactionForTopupAmount:(uint64_t)topupAmount fundedByAccount:(DSAccount*)fundingAccount completion:(void (^ _Nullable)(DSBlockchainUserTopupTransaction * blockchainUserTopupTransaction))completion {
@@ -109,7 +123,7 @@
         
         NSMutableData * opReturnScript = [NSMutableData data];
         [opReturnScript appendUInt8:OP_RETURN];
-        [fundingAccount updateTransaction:blockchainUserTopupTransaction forAmounts:@[@(topupAmount)] toOutputScripts:@[opReturnScript] withFee:YES isInstant:NO toShapeshiftAddress:nil];
+        [fundingAccount updateTransaction:blockchainUserTopupTransaction forAmounts:@[@(topupAmount)] toOutputScripts:@[opReturnScript] withFee:YES isInstant:NO];
 
         completion(blockchainUserTopupTransaction);
     }];
@@ -123,12 +137,11 @@
             completion(nil);
             return;
         }
-        DSDerivationPath * oldDerivationPath = [DSDerivationPath blockchainUsersDerivationPathForWallet:self.wallet];
-        DSKey * oldPrivateKey = [oldDerivationPath privateKeyAtIndexPath:[NSIndexPath indexPathWithIndex:self.index] fromSeed:seed];
-        DSDerivationPath * derivationPath = [DSDerivationPath blockchainUsersDerivationPathForWallet:self.wallet];
-        DSKey * privateKey = [derivationPath privateKeyAtIndexPath:[NSIndexPath indexPathWithIndex:index] fromSeed:seed];
+        DSAuthenticationKeysDerivationPath * derivationPath = [[DSDerivationPathFactory sharedInstance] blockchainUsersKeysDerivationPathForWallet:self.wallet];
+        DSECDSAKey * oldPrivateKey = (DSECDSAKey *)[derivationPath privateKeyAtIndex:self.index fromSeed:seed];
+        DSECDSAKey * privateKey = (DSECDSAKey *)[derivationPath privateKeyAtIndex:index fromSeed:seed];
         
-        DSBlockchainUserResetTransaction * blockchainUserResetTransaction = [[DSBlockchainUserResetTransaction alloc] initWithBlockchainUserResetTransactionVersion:1 registrationTransactionHash:self.registrationTransactionHash previousBlockchainUserTransactionHash:self.lastBlockchainUserTransactionHash replacementPublicKeyHash:[privateKey.publicKey hash160] creditFee:1000 onChain:self.wallet.chain];
+        DSBlockchainUserResetTransaction * blockchainUserResetTransaction = [[DSBlockchainUserResetTransaction alloc] initWithBlockchainUserResetTransactionVersion:1 registrationTransactionHash:self.registrationTransactionHash previousBlockchainUserTransactionHash:self.lastBlockchainUserTransactionHash replacementPublicKeyHash:[privateKey.publicKeyData hash160] creditFee:1000 onChain:self.wallet.chain];
         [blockchainUserResetTransaction signPayloadWithKey:oldPrivateKey];
         DSDLog(@"%@",blockchainUserResetTransaction.toData);
         completion(blockchainUserResetTransaction);

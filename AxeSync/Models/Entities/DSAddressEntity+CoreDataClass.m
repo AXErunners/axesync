@@ -24,6 +24,9 @@
 
 #import "DSAddressEntity+CoreDataClass.h"
 #import "DSTxOutputEntity+CoreDataClass.h"
+#import "DSChainEntity+CoreDataClass.h"
+#import "NSManagedObject+Sugar.h"
+#import "DSChain.h"
 
 @implementation DSAddressEntity
 
@@ -49,6 +52,37 @@
         if (output.spentInInput) b += output.value;
     }
     return b;
+}
+
++(DSAddressEntity*)addressMatching:(NSString*)address onChain:(DSChain*)chain {
+    NSArray <DSAddressEntity *>* addressEntities = [DSAddressEntity objectsMatching:@"address == %@ && derivationPath.chain == %@",address,chain.chainEntity];
+    if ([addressEntities count]) {
+        NSAssert([addressEntities count] == 1, @"addresses should not be duplicates");
+        return [addressEntities firstObject];
+    } else {
+        DSAddressEntity * addressEntity = [DSAddressEntity managedObject];
+        addressEntity.address = address;
+        addressEntity.index = UINT32_MAX;
+        return addressEntity;
+    }
+}
+
++(DSAddressEntity*)findAddressMatching:(NSString*)address onChain:(DSChain*)chain {
+    NSArray <DSAddressEntity *>* addressEntities = [DSAddressEntity objectsMatching:@"address == %@ && derivationPath.chain == %@",address,chain.chainEntity];
+    if ([addressEntities count]) {
+        NSAssert([addressEntities count] == 1, @"addresses should not be duplicates");
+        return [addressEntities firstObject];
+    }
+    return nil;
+}
+
++ (void)deleteAddressesOnChain:(DSChainEntity*)chainEntity {
+    [chainEntity.managedObjectContext performBlockAndWait:^{
+        NSArray * addressesToDelete = [self objectsMatching:@"(derivationPath.chain == %@)",chainEntity];
+        for (DSAddressEntity * address in addressesToDelete) {
+            [chainEntity.managedObjectContext deleteObject:address];
+        }
+    }];
 }
 
 @end
