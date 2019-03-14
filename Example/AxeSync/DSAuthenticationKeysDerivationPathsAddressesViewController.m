@@ -1,37 +1,36 @@
 //
-//  DSDerivationPathsAddressesViewController.m
+//  DSAuthenticationKeysDerivationPathsAddressesViewController.m
 //  AxeSync_Example
 //
-//  Created by Sam Westrich on 6/3/18.
-//  Copyright © 2018 Dash Core Group. All rights reserved.
+//  Created by Sam Westrich on 3/11/19.
+//  Copyright © 2019 Dash Core Group. All rights reserved.
 //
 
-#import "DSDerivationPathsAddressesViewController.h"
+#import "DSAuthenticationKeysDerivationPathsAddressesViewController.h"
 #import "DSAddressTableViewCell.h"
 #import <AxeSync/AxeSync.h>
 #import "BRBubbleView.h"
 #import "DSAddressesExporterViewController.h"
 #import "DSAddressesTransactionsViewController.h"
 
-@interface DSDerivationPathsAddressesViewController ()
+@interface DSAuthenticationKeysDerivationPathsAddressesViewController ()
 
 @property (nonatomic,strong) NSArray * addresses;
 @property (nonatomic,strong) NSFetchedResultsController * fetchedResultsController;
 @property (nonatomic,strong) NSManagedObjectContext * managedObjectContext;
-@property (nonatomic,assign) BOOL externalScope;
+@property (nonatomic,strong) NSData * seed;
 
 @end
 
-@implementation DSDerivationPathsAddressesViewController
+@implementation DSAuthenticationKeysDerivationPathsAddressesViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    _externalScope = YES;
-    // Uncomment the following line to preserve selection between presentations.
-    // self.clearsSelectionOnViewWillAppear = NO;
     
-    // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-    // self.navigationItem.rightBarButtonItem = self.editButtonItem;
+    [self.derivationPath.wallet seedWithPrompt:@"" forAmount:0 completion:^(NSData * _Nullable seed, BOOL cancelled) {
+         self.seed = seed;
+        [self.tableView reloadData];
+    }];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -48,7 +47,7 @@
 
 -(NSPredicate*)searchPredicate {
     DSDerivationPathEntity * entity = [DSDerivationPathEntity derivationPathEntityMatchingDerivationPath:self.derivationPath];
-    return [NSPredicate predicateWithFormat:@"(derivationPath == %@) && (internal == %@)",entity,@(!self.externalScope)];
+    return [NSPredicate predicateWithFormat:@"(derivationPath == %@)",entity];
 }
 
 - (NSFetchedResultsController *)fetchedResultsController
@@ -64,8 +63,7 @@
     
     // Edit the sort key as appropriate.
     NSSortDescriptor *indexSortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"index" ascending:YES];
-    NSSortDescriptor *internalSortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"internal" ascending:NO];
-    NSArray *sortDescriptors = @[internalSortDescriptor,indexSortDescriptor];
+    NSArray *sortDescriptors = @[indexSortDescriptor];
     
     [fetchRequest setSortDescriptors:sortDescriptors];
     
@@ -101,7 +99,7 @@
 - (void)controller:(NSFetchedResultsController *)controller didChangeObject:(id)anObject
        atIndexPath:(NSIndexPath *)indexPath forChangeType:(NSFetchedResultsChangeType)changeType
       newIndexPath:(NSIndexPath *)newIndexPath {
-
+    
 }
 
 
@@ -113,12 +111,12 @@
 #pragma mark - Table view data source
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-
+    
     return 1;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-
+    
     return [[self.fetchedResultsController fetchedObjects] count];
 }
 
@@ -134,48 +132,25 @@
 -(void)configureCell:(DSAddressTableViewCell*)cell atIndexPath:(NSIndexPath *)indexPath {
     DSAddressEntity *addressEntity = [self.fetchedResultsController objectAtIndexPath:indexPath];
     cell.addressLabel.text = addressEntity.address;
-    cell.derivationPathLabel.text = [NSString stringWithFormat:@"%@/%d/%u",self.derivationPath.stringRepresentation,addressEntity.internal?1:0,addressEntity.index];
-    cell.balanceLabel.text = [NSString stringWithFormat:@"%llu",addressEntity.balance];
-    cell.inLabel.text = [NSString stringWithFormat:@"%llu",addressEntity.inAmount];
-    cell.outLabel.text = [NSString stringWithFormat:@"%llu",addressEntity.outAmount];
-
+    cell.derivationPathLabel.text = [NSString stringWithFormat:@"%@/%u",self.derivationPath.stringRepresentation,addressEntity.index];
+    cell.publicKeyLabel.text = [self.derivationPath publicKeyDataAtIndex:addressEntity.index].hexString;
+    cell.privateKeyLabel.text = [[self.derivationPath privateKeyAtIndex:addressEntity.index fromSeed:self.seed] privateKeyStringForChain:self.derivationPath.chain];
 }
 
--(IBAction)copyAddress:(id)sender {
-    for (UITableViewCell * cell in self.tableView.visibleCells) {
-        if ([sender isDescendantOfView:cell]) {
-            NSIndexPath * indexPath = [self.tableView indexPathForCell:cell];
-            DSAddressEntity *addressEntity = [self.fetchedResultsController objectAtIndexPath:indexPath];
-            UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
-            pasteboard.string = addressEntity.address;
-            [self.view addSubview:[[[BRBubbleView viewWithText:NSLocalizedString(@"copied", nil)
-                                                        center:CGPointMake(self.view.bounds.size.width/2.0, self.view.bounds.size.height/2.0 - 130.0)] popIn]
-                                   popOutAfterDelay:2.0]];
-            break;
-        }
-    }
 
-}
 
-// MARK:- Search Bar Delegate
-
--(void)searchBar:(UISearchBar *)searchBar selectedScopeButtonIndexDidChange:(NSInteger)selectedScope {
-    self.externalScope = !selectedScope;
-    self.fetchedResultsController = nil;
-    [self.tableView reloadData];
-}
-
--(void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
-if ([segue.identifier isEqualToString:@"ExportAddressesSegue"]) {
-    DSAddressesExporterViewController * addressesExporterViewController = (DSAddressesExporterViewController*)segue.destinationViewController;
-    addressesExporterViewController.derivationPath = self.derivationPath;
-} else if ([segue.identifier isEqualToString:@"AddressTransactionsSegue"]) {
-    DSAddressEntity *addressEntity = [self.fetchedResultsController objectAtIndexPath:[self.tableView indexPathForSelectedRow]];
-    DSAddressesTransactionsViewController * addressesTransactionsViewController = (DSAddressesTransactionsViewController*)segue.destinationViewController;
-    addressesTransactionsViewController.title = addressEntity.address;
-    addressesTransactionsViewController.address = addressEntity.address;
-}
-}
+//-(void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+//    if ([segue.identifier isEqualToString:@"ExportAddressesSegue"]) {
+//        DSAddressesExporterViewController * addressesExporterViewController = (DSAddressesExporterViewController*)segue.destinationViewController;
+//        addressesExporterViewController.derivationPath = self.derivationPath;
+//    } else if ([segue.identifier isEqualToString:@"AddressTransactionsSegue"]) {
+//        DSAddressEntity *addressEntity = [self.fetchedResultsController objectAtIndexPath:[self.tableView indexPathForSelectedRow]];
+//        DSAddressesTransactionsViewController * addressesTransactionsViewController = (DSAddressesTransactionsViewController*)segue.destinationViewController;
+//        addressesTransactionsViewController.title = addressEntity.address;
+//        addressesTransactionsViewController.address = addressEntity.address;
+//        addressesTransactionsViewController.wallet = self.derivationPath.wallet;
+//    }
+//}
 
 
 

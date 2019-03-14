@@ -10,6 +10,7 @@
 #import "DSDerivationPath.h"
 #import "NSIndexPath+Axe.h"
 #import "DSChain.h"
+#import "NSString+Axe.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wconversion"
@@ -202,6 +203,24 @@
 -(NSString*)secretKeyString {
     if (uint256_is_zero(self.secretKey)) return @"";
     return [NSData dataWithUInt256:self.secretKey].hexString;
+}
+
+- (NSString *)privateKeyStringForChain:(DSChain*)chain
+{
+    if (uint256_is_zero(self.secretKey)) return nil;
+    
+    NSMutableData *d = [NSMutableData secureDataWithCapacity:sizeof(UInt256) + 2];
+    uint8_t version;
+    if ([chain isMainnet]) {
+        version = AXE_PRIVKEY;
+    } else {
+        version = AXE_PRIVKEY_TEST;
+    }
+    
+    [d appendBytes:&version length:1];
+    [d appendUInt256:self.secretKey];
+    [d appendBytes:"\x02" length:1];
+    return [NSString base58checkWithData:d];
 }
 
 // MARK: - Derivation
