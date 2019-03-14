@@ -1,40 +1,41 @@
 //
-//  DSAddressesTransactionsViewController.m
+//  DSFundsDerivationPathsAddressesViewController.m
 //  AxeSync_Example
 //
-//  Created by Sam Westrich on 6/22/18.
+//  Created by Sam Westrich on 6/3/18.
 //  Copyright © 2018 Dash Core Group. All rights reserved.
 //
 
-#import "DSAddressesTransactionsViewController.h"
+#import "DSFundsDerivationPathsAddressesViewController.h"
+#import "DSAddressTableViewCell.h"
 #import <AxeSync/AxeSync.h>
-#import "DSTransactionTableViewCell.h"
 #import "BRBubbleView.h"
-#import "BRCopyLabel.h"
+#import "DSAddressesExporterViewController.h"
+#import "DSAddressesTransactionsViewController.h"
 
-@interface DSAddressesTransactionsViewController ()
+@interface DSFundsDerivationPathsAddressesViewController ()
 
+@property (nonatomic,strong) NSArray * addresses;
 @property (nonatomic,strong) NSFetchedResultsController * fetchedResultsController;
 @property (nonatomic,strong) NSManagedObjectContext * managedObjectContext;
-@property (strong, nonatomic) IBOutlet BRCopyLabel *privateKeyLabel;
+@property (nonatomic,assign) BOOL externalScope;
 
 @end
 
-@implementation DSAddressesTransactionsViewController
+@implementation DSFundsDerivationPathsAddressesViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    [self.wallet seedWithPrompt:@"" forAmount:0 completion:^(NSData * _Nullable seed, BOOL cancelled) {
-        DSKey * key = [self.wallet privateKeyForAddress:self.address fromSeed:seed];
-        if (key) {
-            self.privateKeyLabel.text = [key privateKeyStringForChain:self.wallet.chain];
-        }
-    }];
+    _externalScope = YES;
+    // Uncomment the following line to preserve selection between presentations.
+    // self.clearsSelectionOnViewWillAppear = NO;
+    
+    // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
+    // self.navigationItem.rightBarButtonItem = self.editButtonItem;
 }
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
-
     // Dispose of any resources that can be recreated.
 }
 
@@ -46,7 +47,8 @@
 }
 
 -(NSPredicate*)searchPredicate {
-    return [NSPredicate predicateWithFormat:@"(ANY outputs.address == %@) || (ANY inputs.localAddress.address = %@)",self.address,self.address];
+    DSDerivationPathEntity * entity = [DSDerivationPathEntity derivationPathEntityMatchingDerivationPath:self.derivationPath];
+    return [NSPredicate predicateWithFormat:@"(derivationPath == %@) && (internal == %@)",entity,@(!self.externalScope)];
 }
 
 - (NSFetchedResultsController *)fetchedResultsController
@@ -54,15 +56,16 @@
     if (_fetchedResultsController) return _fetchedResultsController;
     NSFetchRequest *fetchRequest = [[NSFetchRequest alloc] init];
     // Edit the entity name as appropriate.
-    NSEntityDescription *entity = [NSEntityDescription entityForName:@"DSTransactionEntity" inManagedObjectContext:self.managedObjectContext];
+    NSEntityDescription *entity = [NSEntityDescription entityForName:@"DSAddressEntity" inManagedObjectContext:self.managedObjectContext];
     [fetchRequest setEntity:entity];
     
     // Set the batch size to a suitable number.
     [fetchRequest setFetchBatchSize:12];
     
     // Edit the sort key as appropriate.
-    NSSortDescriptor *timeDescriptor = [[NSSortDescriptor alloc] initWithKey:@"transactionHash.timestamp" ascending:NO];
-    NSArray *sortDescriptors = @[timeDescriptor];
+    NSSortDescriptor *indexSortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"index" ascending:YES];
+    NSSortDescriptor *internalSortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"internal" ascending:NO];
+    NSArray *sortDescriptors = @[internalSortDescriptor,indexSortDescriptor];
     
     [fetchRequest setSortDescriptors:sortDescriptors];
     
@@ -98,7 +101,7 @@
 - (void)controller:(NSFetchedResultsController *)controller didChangeObject:(id)anObject
        atIndexPath:(NSIndexPath *)indexPath forChangeType:(NSFetchedResultsChangeType)changeType
       newIndexPath:(NSIndexPath *)newIndexPath {
-    
+
 }
 
 
@@ -110,74 +113,71 @@
 #pragma mark - Table view data source
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-    
+
     return 1;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    
+
     return [[self.fetchedResultsController fetchedObjects] count];
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    DSTransactionTableViewCell *cell = (DSTransactionTableViewCell *)[tableView dequeueReusableCellWithIdentifier:@"TransactionCellIdentifier" forIndexPath:indexPath];
+    DSAddressTableViewCell *cell = (DSAddressTableViewCell *)[tableView dequeueReusableCellWithIdentifier:@"AddressCellIdentifier" forIndexPath:indexPath];
     
     // Configure the cell...
     [self configureCell:cell atIndexPath:indexPath];
     return cell;
 }
 
--(IBAction)copyTransactionHash:(id)sender {
+
+-(void)configureCell:(DSAddressTableViewCell*)cell atIndexPath:(NSIndexPath *)indexPath {
+    DSAddressEntity *addressEntity = [self.fetchedResultsController objectAtIndexPath:indexPath];
+    cell.addressLabel.text = addressEntity.address;
+    cell.derivationPathLabel.text = [NSString stringWithFormat:@"%@/%d/%u",self.derivationPath.stringRepresentation,addressEntity.internal?1:0,addressEntity.index];
+    cell.balanceLabel.text = [NSString stringWithFormat:@"%llu",addressEntity.balance];
+    cell.inLabel.text = [NSString stringWithFormat:@"%llu",addressEntity.inAmount];
+    cell.outLabel.text = [NSString stringWithFormat:@"%llu",addressEntity.outAmount];
+
+}
+
+-(IBAction)copyAddress:(id)sender {
     for (UITableViewCell * cell in self.tableView.visibleCells) {
         if ([sender isDescendantOfView:cell]) {
             NSIndexPath * indexPath = [self.tableView indexPathForCell:cell];
-            DSTransactionEntity *transactionEntity = [self.fetchedResultsController objectAtIndexPath:indexPath];
+            DSAddressEntity *addressEntity = [self.fetchedResultsController objectAtIndexPath:indexPath];
             UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
-            pasteboard.string = transactionEntity.transactionHash.txHash.reverse.hexString;
+            pasteboard.string = addressEntity.address;
             [self.view addSubview:[[[BRBubbleView viewWithText:NSLocalizedString(@"copied", nil)
                                                         center:CGPointMake(self.view.bounds.size.width/2.0, self.view.bounds.size.height/2.0 - 130.0)] popIn]
                                    popOutAfterDelay:2.0]];
             break;
         }
     }
-    
+
+}
+
+// MARK:- Search Bar Delegate
+
+-(void)searchBar:(UISearchBar *)searchBar selectedScopeButtonIndexDidChange:(NSInteger)selectedScope {
+    self.externalScope = !selectedScope;
+    self.fetchedResultsController = nil;
+    [self.tableView reloadData];
+}
+
+-(void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    if ([segue.identifier isEqualToString:@"ExportAddressesSegue"]) {
+        DSAddressesExporterViewController * addressesExporterViewController = (DSAddressesExporterViewController*)segue.destinationViewController;
+        addressesExporterViewController.derivationPath = self.derivationPath;
+    } else if ([segue.identifier isEqualToString:@"AddressTransactionsSegue"]) {
+        DSAddressEntity *addressEntity = [self.fetchedResultsController objectAtIndexPath:[self.tableView indexPathForSelectedRow]];
+        DSAddressesTransactionsViewController * addressesTransactionsViewController = (DSAddressesTransactionsViewController*)segue.destinationViewController;
+        addressesTransactionsViewController.title = addressEntity.address;
+        addressesTransactionsViewController.address = addressEntity.address;
+        addressesTransactionsViewController.wallet = self.derivationPath.wallet;
+    }
 }
 
 
-
--(void)configureCell:(DSTransactionTableViewCell*)cell atIndexPath:(NSIndexPath *)indexPath {
-    DSTransactionEntity *transactionEntity = [self.fetchedResultsController objectAtIndexPath:indexPath];
-    BOOL outwards = FALSE;
-    for (DSTxOutputEntity * output in transactionEntity.outputs) {
-        if ([output.address isEqualToString:self.address]) {
-            outwards = TRUE;
-            cell.amountLabel.text = [[DSPriceManager sharedInstance] stringForAxeAmount:output.value];
-            break;
-        }
-    }
-    if (outwards) {
-        cell.directionLabel.text = @"Received";
-        cell.directionLabel.textColor = [UIColor greenColor];
-    } else {
-        cell.directionLabel.text = @"Sent";
-        cell.directionLabel.textColor = [UIColor redColor];
-        for (DSTxInputEntity * input in transactionEntity.inputs) {
-            if ([input.localAddress.address isEqualToString:self.address]) {
-                cell.amountLabel.text = [[DSPriceManager sharedInstance] stringForAxeAmount:input.prevOutput.value];
-                break;
-            }
-        }
-    }
-    static NSDateFormatter * dateFormatter;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        dateFormatter = [[NSDateFormatter alloc] init];
-        dateFormatter.dateStyle = NSDateFormatterMediumStyle;
-        dateFormatter.timeStyle = NSDateFormatterMediumStyle;
-    });
-    NSDate * date = [NSDate dateWithTimeIntervalSince1970:transactionEntity.transactionHash.timestamp];
-    cell.dateLabel.text = [dateFormatter stringFromDate:date];
-    cell.transactionLabel.text = transactionEntity.transactionHash.txHash.reverse.hexString;
-}
 
 @end

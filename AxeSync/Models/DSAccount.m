@@ -61,6 +61,7 @@
 #import "NSDate+Utils.h"
 #import "DSBIP39Mnemonic.h"
 #import "DSCoinbaseTransaction.h"
+#import "DSTransactionFactory.h"
 
 #define LOG_BALANCE_UPDATE 0
 
@@ -640,7 +641,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // MARK: = Existence
 
 // true if the given transaction is associated with the account (even if it hasn't been registered), false otherwise
-- (BOOL)containsTransaction:(DSTransaction *)transaction
+- (BOOL)canContainTransaction:(DSTransaction *)transaction
 {
     if ([[NSSet setWithArray:transaction.outputAddresses] intersectsSet:self.allAddresses]) return YES;
     
@@ -752,6 +753,18 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
         if (! tx) continue;
         //for example the tx block height is 25, can only send after the chain block height is 31 for previous confirmations needed of 6
         if (isInstant && (tx.blockHeight >= (self.blockHeight - self.wallet.chain.ixPreviousConfirmationsNeeded))) continue;
+        
+        if ([transaction isMemberOfClass:[DSProviderRegistrationTransaction class]]) {
+            DSProviderRegistrationTransaction * providerRegistrationTransaction = (DSProviderRegistrationTransaction *)transaction;
+            if (dsutxo_eq(providerRegistrationTransaction.collateralOutpoint,o)) {
+                continue; //don't spend the collateral
+            }
+            DSUTXO reversedCollateral = (DSUTXO) { .hash = uint256_reverse(providerRegistrationTransaction.collateralOutpoint.hash), providerRegistrationTransaction.collateralOutpoint.n };
+            
+            if (dsutxo_eq(reversedCollateral,o)) {
+                continue; //don't spend the collateral
+            }
+        }
         [transaction addInputHash:tx.txHash index:o.n script:tx.outputScripts[o.n]];
         
         if (transaction.size + TX_OUTPUT_SIZE > TX_MAX_SIZE) { // transaction size-in-bytes too large
@@ -838,7 +851,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
         tx.blockHeight = height;
         tx.timestamp = timestamp;
         
-        if ([self containsTransaction:tx]) {
+        if ([self canContainTransaction:tx]) {
             [hash getValue:&h];
             [hashes addObject:[NSData dataWithBytes:&h length:sizeof(h)]];
             [updated addObject:hash];
@@ -894,34 +907,42 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // MARK: = Removal
 
 // removes a transaction from the wallet along with any transactions that depend on its outputs
-- (void)removeTransaction:(UInt256)txHash
+- (BOOL)removeTransactionWithHash:(UInt256)txHash
 {
     DSTransaction *transaction = self.allTx[uint256_obj(txHash)];
-    NSMutableSet *hashes = [NSMutableSet set];
-    
-    for (DSTransaction *tx in self.transactions) { // remove dependent transactions
-        if (tx.blockHeight < transaction.blockHeight) break;
+    if (!transaction) return FALSE;
+    return [self removeTransaction:transaction];
+}
+
+- (BOOL)removeTransaction:(DSTransaction*)baseTransaction {
+    NSMutableSet *dependentTransactions = [NSMutableSet set];
+    DSTransaction *transaction = self.allTx[uint256_obj(baseTransaction.txHash)];
+    if (!transaction) return FALSE;
+    UInt256 transactionHash = transaction.txHash;
+    for (DSTransaction *possibleDependentTransaction in self.transactions) { // remove dependent transactions
+        if (possibleDependentTransaction.blockHeight < transaction.blockHeight) break; //because transactions are sorted we can break
         
-        if (! uint256_eq(txHash, tx.txHash) && [tx.inputHashes containsObject:uint256_obj(txHash)]) {
-            [hashes addObject:uint256_obj(tx.txHash)];
+        if (!uint256_eq(transactionHash, possibleDependentTransaction.txHash) && [possibleDependentTransaction.inputHashes containsObject:uint256_obj(transactionHash)]) {
+            //this transaction is dependent on one we want to remove
+            [dependentTransactions addObject:possibleDependentTransaction];
         }
     }
     
-    for (NSValue *hash in hashes) {
-        UInt256 h;
-        
-        [hash getValue:&h];
-        [self removeTransaction:h];
+    for (DSTransaction *transaction in dependentTransactions) {
+        //remove all dependent transactions
+        [self removeTransaction:transaction];
     }
     
-    [self.allTx removeObjectForKey:uint256_obj(txHash)];
-    if (transaction) [self.transactions removeObject:transaction];
+    [self.allTx removeObjectForKey:uint256_obj(transactionHash)];
+    [self.transactions removeObject:transaction];
+    
     [self updateBalance];
     
     [self.managedObjectContext performBlock:^{ // remove transaction from core data
         [DSTransactionHashEntity deleteObjects:[DSTransactionHashEntity objectsMatching:@"txHash == %@",
-                                                [NSData dataWithBytes:&txHash length:sizeof(txHash)]]];
+                                                [NSData dataWithUInt256:transactionHash]]];
     }];
+    return TRUE;
 }
 
 // MARK: = Signing
@@ -1042,7 +1063,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
     
     if (uint256_is_zero(txHash)) return NO;
     
-    if (![self containsTransaction:transaction]) {
+    if (![self canContainTransaction:transaction]) {
         //this transaction is not meant for this account
         if (transaction.blockHeight == TX_UNCONFIRMED) {
             if ([self checkIsFirstTransaction:transaction]) _firstTransactionHash = txHash; //it's okay if this isn't really the first, as it will be close enough (500 blocks close)
@@ -1330,7 +1351,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
         return;
     }
     
-    [[DSInsightManager sharedInstance] utxosForAddresses:@[address]
+    [[DSInsightManager sharedInstance] utxosForAddresses:@[address] onChain:self.wallet.chain
                                               completion:^(NSArray *utxos, NSArray *amounts, NSArray *scripts, NSError *error) {
                                                   DSTransaction *tx = [[DSTransaction alloc] initOnChain:self.wallet.chain];
                                                   uint64_t balance = 0, feeAmount = 0;
