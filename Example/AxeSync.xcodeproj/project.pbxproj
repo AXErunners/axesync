@@ -1004,7 +1004,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-AxeSync_Example/Pods-AxeSync_Example-resources.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-AxeSync_Example/Pods-AxeSync_Example-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/AxeSync/AxeSync.bundle",
 			);
 			name = "[CP] Copy Pods Resources";
@@ -1013,7 +1013,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-AxeSync_Example/Pods-AxeSync_Example-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-AxeSync_Example/Pods-AxeSync_Example-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		FB5A0FA7219506140079CF42 /* ShellScript */ = {
