@@ -178,10 +178,11 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 -(void)addBlockchainUser:(DSBlockchainUser* _Nonnull)blockchainUser;
 -(void)registerBlockchainUser:(DSBlockchainUser* _Nonnull)blockchainUser;
 -(DSBlockchainUser* _Nonnull)createBlockchainUserForUsername:(NSString* _Nonnull)username;
+-(DSBlockchainUser* _Nullable)blockchainUserForRegistrationHash:(UInt256)registrationHash;
 
 - (void)seedWithPrompt:(NSString * _Nonnull)authprompt forAmount:(uint64_t)amount completion:(_Nullable SeedCompletionBlock)completion;
 
--(void)copyForChain:(DSChain* _Nonnull)chain completion:(void (^ _Nonnull)(DSWallet * _Nullable copiedWallet))completion;
+- (void)copyForChain:(DSChain* _Nonnull)chain completion:(void (^ _Nonnull)(DSWallet * _Nullable copiedWallet))completion;
 
 - (void)registerMasternodeOperator:(DSLocalMasternode * _Nonnull)masternode;
 

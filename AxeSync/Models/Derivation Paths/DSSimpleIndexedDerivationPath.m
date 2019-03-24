@@ -97,7 +97,19 @@
     if (rArray.count >= gapLimit) return [rArray subarrayWithRange:NSMakeRange(0, gapLimit)];
     
     @synchronized(self) {
-        unsigned n = (unsigned)self.mOrderedAddresses.count;
+        //It seems weird to repeat this, but it's correct because of the original call receive address and change address
+        rArray = [self.mOrderedAddresses mutableCopy];
+        i = rArray.count;
+        
+        unsigned n = (unsigned)i;
+        
+        // keep only the trailing contiguous block of addresses with no transactions
+        while (i > 0 && ! [self.usedAddresses containsObject:rArray[i - 1]]) {
+            i--;
+        }
+        
+        if (i > 0) [rArray removeObjectsInRange:NSMakeRange(0, i)];
+        if (rArray.count >= gapLimit) return [rArray subarrayWithRange:NSMakeRange(0, gapLimit)];
         
         while (rArray.count < gapLimit) { // generate new addresses up to gapLimit
             NSData *pubKey = [self publicKeyDataAtIndex:n];
@@ -146,8 +158,11 @@
 // gets an addess at an index
 - (NSString *)addressAtIndex:(uint32_t)index
 {
-    NSData *pubKey = [self publicKeyDataAtIndexPath:[NSIndexPath indexPathWithIndex:index]];
-    return [DSKey addressWithPublicKeyData:pubKey forChain:self.chain];
+    return [self addressAtIndexPath:[NSIndexPath indexPathWithIndex:index]];
+}
+
+- (BOOL)addressIsUsedAtIndex:(uint32_t)index {
+    return [self addressIsUsedAtIndexPath:[NSIndexPath indexPathWithIndex:index]];
 }
 
 - (NSIndexPath*)indexPathForKnownAddress:(NSString*)address {
