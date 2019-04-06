@@ -72,7 +72,7 @@
 @property (nonatomic, strong) DSOperationQueue *operationQueue;
 @property (nonatomic, strong) DSReachabilityManager *reachability;
 
-@property (nonatomic, strong) NSNumber * _Nullable bitcoinAxePrice; // exchange rate in bitcoin per axe
+@property (nonatomic, strong) NSNumber * bitcoinAxePrice; // exchange rate in bitcoin per axe
 @property (nonatomic, strong) NSNumber * _Nullable localCurrencyBitcoinPrice; // exchange rate in local currency units per bitcoin
 @property (nonatomic, strong) NSNumber * _Nullable localCurrencyAxePrice;
 
@@ -278,6 +278,7 @@
 
 - (DSCurrencyPriceObject *)priceForCurrencyCode:(NSString *)code {
     NSParameterAssert(code);
+    
     if (!code) {
         return nil;
     }
@@ -288,6 +289,8 @@
 
 - (int64_t)amountForUnknownCurrencyString:(NSString *)string
 {
+    NSParameterAssert(string);
+    
     if (! string.length) return 0;
     return [[[NSDecimalNumber decimalNumberWithString:string]
              decimalNumberByMultiplyingByPowerOf10:self.unknownFormat.maximumFractionDigits] longLongValue];
@@ -295,6 +298,8 @@
 
 - (int64_t)amountForAxeString:(NSString *)string
 {
+    NSParameterAssert(string);
+    
     if (! string.length) return 0;
     NSInteger axeCharPos = [string indexOfCharacter:NSAttachmentCharacter];
     if (axeCharPos != NSNotFound) {
@@ -306,6 +311,8 @@
 
 - (int64_t)amountForBitcoinString:(NSString *)string
 {
+    NSParameterAssert(string);
+    
     if (! string.length) return 0;
     return [[[NSDecimalNumber decimalNumberWithDecimal:[[self.bitcoinFormat numberFromString:string] decimalValue]]
              decimalNumberByMultiplyingByPowerOf10:self.bitcoinFormat.maximumFractionDigits] longLongValue];
@@ -319,12 +326,16 @@
 }
 
 - (NSAttributedString *)attributedStringForAxeAmount:(int64_t)amount withTintColor:(UIColor*)color {
+    NSParameterAssert(color);
+    
     NSString * string = [self.axeFormat stringFromNumber:[(id)[NSDecimalNumber numberWithLongLong:amount]
                                                            decimalNumberByMultiplyingByPowerOf10:-self.axeFormat.maximumFractionDigits]];
     return [string attributedStringForAxeSymbolWithTintColor:color];
 }
 
 - (NSAttributedString *)attributedStringForAxeAmount:(int64_t)amount withTintColor:(UIColor*)color useSignificantDigits:(BOOL)useSignificantDigits {
+    NSParameterAssert(color);
+    
     NSString * string = [(useSignificantDigits?self.axeSignificantFormat:self.axeFormat) stringFromNumber:[(id)[NSDecimalNumber numberWithLongLong:amount]
                                                                                                              decimalNumberByMultiplyingByPowerOf10:-self.axeFormat.maximumFractionDigits]];
     return [string attributedStringForAxeSymbolWithTintColor:color];
@@ -332,6 +343,8 @@
 
 - (NSAttributedString *)attributedStringForAxeAmount:(int64_t)amount withTintColor:(UIColor*)color axeSymbolSize:(CGSize)axeSymbolSize
 {
+    NSParameterAssert(color);
+    
     NSString * string = [self.axeFormat stringFromNumber:[(id)[NSDecimalNumber numberWithLongLong:amount]
                                                            decimalNumberByMultiplyingByPowerOf10:-self.axeFormat.maximumFractionDigits]];
     return [string attributedStringForAxeSymbolWithTintColor:color axeSymbolSize:axeSymbolSize];
@@ -359,6 +372,8 @@
 // local currency. They will need to be revisited when that is no longer a safe assumption.
 - (int64_t)amountForLocalCurrencyString:(NSString *)string
 {
+    NSParameterAssert(string);
+    
     if ([string hasPrefix:@"<"]) string = [string substringFromIndex:1];
     
     NSNumber *n = [self.localFormat numberFromString:string];
@@ -383,6 +398,8 @@
 
 - (int64_t)amountForBitcoinCurrencyString:(NSString *)string
 {
+    NSParameterAssert(string);
+    
     if (self.bitcoinAxePrice.doubleValue <= DBL_EPSILON) return 0;
     if ([string hasPrefix:@"<"]) string = [string substringFromIndex:1];
     
@@ -431,6 +448,17 @@
     return [self.localFormat stringFromNumber:n];
 }
 
+- (NSString *)fiatCurrencyString:(NSString *)currencyCode forAxeAmount:(int64_t)amount
+{
+    NSParameterAssert(currencyCode);
+    
+    NSNumber *n = [self fiatCurrencyNumber:currencyCode forAxeAmount:amount];
+    if (n == nil) {
+        return DSLocalizedString(@"Updating Price",@"Updating Price");
+    }
+    return [self.localFormat stringFromNumber:n];
+}
+
 - (NSString *)localCurrencyStringForBitcoinAmount:(int64_t)amount
 {
     if (amount == 0) return [self.localFormat stringFromNumber:@(0)];
@@ -460,6 +488,33 @@
     NSNumber *local = self.localCurrencyAxePrice;
     
     NSDecimalNumber *n = [[[NSDecimalNumber decimalNumberWithDecimal:local.decimalValue]
+                           decimalNumberByMultiplyingBy:(id)[NSDecimalNumber numberWithLongLong:llabs(amount)]]
+                          decimalNumberByDividingBy:(id)[NSDecimalNumber numberWithLongLong:HAKS]],
+    *min = [[NSDecimalNumber one]
+            decimalNumberByMultiplyingByPowerOf10:-self.localFormat.maximumFractionDigits];
+    
+    // if the amount is too small to be represented in local currency (but is != 0) then return a string like "$0.01"
+    if ([n compare:min] == NSOrderedAscending) n = min;
+    if (amount < 0) n = [n decimalNumberByMultiplyingBy:(id)[NSDecimalNumber numberWithInt:-1]];
+    return n;
+}
+
+- (NSNumber * _Nullable)fiatCurrencyNumber:(NSString*)currencyCode forAxeAmount:(int64_t)amount {
+    if (amount == 0) {
+        return @0;
+    }
+    
+    float price;
+    
+    if ([self.pricesByCode objectForKey:currencyCode] && [DSAuthenticationManager sharedInstance].secureTime + 3*DAY_TIME_INTERVAL > [NSDate timeIntervalSince1970]) {
+        DSCurrencyPriceObject * priceObject = self.pricesByCode[currencyCode];
+        price = [priceObject.price floatValue]; // don't use exchange rate data more than 72hrs out of date
+    }
+    else {
+        price = 0;
+    }
+    
+    NSDecimalNumber *n = [[[NSDecimalNumber decimalNumberWithDecimal:@(price).decimalValue]
                            decimalNumberByMultiplyingBy:(id)[NSDecimalNumber numberWithLongLong:llabs(amount)]]
                           decimalNumberByDividingBy:(id)[NSDecimalNumber numberWithLongLong:HAKS]],
     *min = [[NSDecimalNumber one]

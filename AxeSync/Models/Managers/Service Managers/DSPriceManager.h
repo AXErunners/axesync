@@ -28,6 +28,8 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 #define AXE         @"AXE"     // capital D with stroke (utf-8)
 #define BTC          @"\xC9\x83"     // capital B with stroke (utf-8)
 #define BITS         @"\xC6\x80"     // lowercase b with stroke (utf-8)
@@ -44,40 +46,42 @@
 
 @interface DSPriceManager : NSObject
 
-@property (nonatomic, readonly) NSNumberFormatter * _Nullable axeFormat; // axe currency formatter
-@property (nonatomic, readonly) NSNumberFormatter * _Nullable axeSignificantFormat; // axe currency formatter that shows significant digits
-@property (nonatomic, readonly) NSNumberFormatter * _Nullable bitcoinFormat; // bitcoin currency formatter
-@property (nonatomic, readonly) NSNumberFormatter * _Nullable unknownFormat; // unknown currency formatter
-@property (nonatomic, readonly) NSNumberFormatter * _Nullable localFormat; // local currency formatter
-@property (nonatomic, copy) NSString * _Nullable localCurrencyCode; // local currency ISO code
-@property (nonatomic, readonly) NSNumber * _Nullable bitcoinAxePrice DEPRECATED_ATTRIBUTE; // exchange rate in bitcoin per axe
-@property (nonatomic, readonly) NSNumber * _Nullable localCurrencyBitcoinPrice DEPRECATED_ATTRIBUTE; // exchange rate in local currency units per bitcoin
-@property (nonatomic, readonly) NSNumber * _Nullable localCurrencyAxePrice;
+@property (nonatomic, readonly) NSNumberFormatter * axeFormat; // axe currency formatter
+@property (nonatomic, readonly) NSNumberFormatter * axeSignificantFormat; // axe currency formatter that shows significant digits
+@property (nonatomic, readonly) NSNumberFormatter * bitcoinFormat; // bitcoin currency formatter
+@property (nonatomic, readonly) NSNumberFormatter * unknownFormat; // unknown currency formatter
+@property (nonatomic, readonly) NSNumberFormatter * localFormat; // local currency formatter
+@property (nonatomic, copy) NSString * localCurrencyCode; // local currency ISO code
+@property (nonatomic, readonly) NSNumber * bitcoinAxePrice DEPRECATED_ATTRIBUTE; // exchange rate in bitcoin per axe
+@property (nullable, nonatomic, readonly) NSNumber * localCurrencyBitcoinPrice DEPRECATED_ATTRIBUTE; // exchange rate in local currency units per bitcoin
+@property (nullable, nonatomic, readonly) NSNumber * localCurrencyAxePrice;
 @property (readonly, copy, nonatomic) NSDictionary <NSString *, NSString *> *currenciesByCode;
-@property (readonly, copy, nonatomic, nullable) NSArray <DSCurrencyPriceObject *> *prices;
+@property (nullable, readonly, copy, nonatomic) NSArray <DSCurrencyPriceObject *> *prices;
 
-+ (instancetype _Nullable)sharedInstance;
++ (instancetype)sharedInstance;
 
 - (void)startExchangeRateFetching;
 
-- (nullable DSCurrencyPriceObject *)priceForCurrencyCode:(NSString *)code;
+- (DSCurrencyPriceObject * _Nullable)priceForCurrencyCode:(NSString *)code;
 
-- (int64_t)amountForUnknownCurrencyString:(NSString * _Nullable)string;
-- (int64_t)amountForAxeString:(NSString * _Nullable)string;
-- (int64_t)amountForBitcoinString:(NSString * _Nullable)string DEPRECATED_ATTRIBUTE;
-- (NSAttributedString * _Nonnull)attributedStringForAxeAmount:(int64_t)amount;
-- (NSAttributedString * _Nonnull)attributedStringForAxeAmount:(int64_t)amount withTintColor:(UIColor* _Nonnull)color;
-- (NSAttributedString * _Nonnull)attributedStringForAxeAmount:(int64_t)amount withTintColor:(UIColor* _Nonnull)color useSignificantDigits:(BOOL)useSignificantDigits;
-- (NSAttributedString * _Nonnull)attributedStringForAxeAmount:(int64_t)amount withTintColor:(UIColor* _Nonnull)color axeSymbolSize:(CGSize)axeSymbolSize;
-- (NSNumber * _Nonnull)numberForAmount:(int64_t)amount;
-- (NSString * _Nonnull)stringForBitcoinAmount:(int64_t)amount;
-- (NSString * _Nonnull)stringForAxeAmount:(int64_t)amount;
-- (int64_t)amountForBitcoinCurrencyString:(NSString * _Nonnull)string DEPRECATED_ATTRIBUTE;
-- (int64_t)amountForLocalCurrencyString:(NSString * _Nonnull)string;
-- (NSString * _Nonnull)bitcoinCurrencyStringForAmount:(int64_t)amount DEPRECATED_ATTRIBUTE;
-- (NSString * _Nonnull)localCurrencyStringForAxeAmount:(int64_t)amount;
-- (NSString * _Nonnull)localCurrencyStringForBitcoinAmount:(int64_t)amount DEPRECATED_ATTRIBUTE;
+- (int64_t)amountForUnknownCurrencyString:(NSString *)string;
+- (int64_t)amountForAxeString:(NSString *)string;
+- (int64_t)amountForBitcoinString:(NSString *)string DEPRECATED_ATTRIBUTE;
+- (NSAttributedString * _Nullable)attributedStringForAxeAmount:(int64_t)amount;
+- (NSAttributedString * _Nullable)attributedStringForAxeAmount:(int64_t)amount withTintColor:(UIColor *)color;
+- (NSAttributedString * _Nullable)attributedStringForAxeAmount:(int64_t)amount withTintColor:(UIColor *)color useSignificantDigits:(BOOL)useSignificantDigits;
+- (NSAttributedString * _Nullable)attributedStringForAxeAmount:(int64_t)amount withTintColor:(UIColor *)color axeSymbolSize:(CGSize)axeSymbolSize;
+- (NSNumber *)numberForAmount:(int64_t)amount;
+- (NSString * _Nullable)stringForBitcoinAmount:(int64_t)amount;
+- (NSString * _Nullable)stringForAxeAmount:(int64_t)amount;
+- (int64_t)amountForBitcoinCurrencyString:(NSString *)string DEPRECATED_ATTRIBUTE;
+- (int64_t)amountForLocalCurrencyString:(NSString *)string;
+- (NSString * _Nullable)bitcoinCurrencyStringForAmount:(int64_t)amount DEPRECATED_ATTRIBUTE;
+- (NSString * _Nullable)localCurrencyStringForAxeAmount:(int64_t)amount;
+- (NSString * _Nullable)fiatCurrencyString:(NSString *)currencyCode forAxeAmount:(int64_t)amount;
+- (NSString * _Nullable)localCurrencyStringForBitcoinAmount:(int64_t)amount DEPRECATED_ATTRIBUTE;
 - (NSNumber * _Nullable)localCurrencyNumberForAxeAmount:(int64_t)amount;
-- (NSNumber* _Nonnull)localCurrencyAxePrice;
 
 @end
+
+NS_ASSUME_NONNULL_END

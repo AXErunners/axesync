@@ -53,8 +53,10 @@
 
 @implementation DSSporkManager
 
-- (instancetype)initWithChain:(id)chain
+- (instancetype)initWithChain:(DSChain *)chain
 {
+    NSParameterAssert(chain);
+    
     if (! (self = [super init])) return nil;
     _chain = chain;
     __block NSMutableArray * sporkHashesMarkedForRetrieval = [NSMutableArray array];
@@ -161,7 +163,7 @@
 
 - (void)peer:(DSPeer *)peer relayedSpork:(DSSpork *)spork {
     if (!spork.isValid) {
-        [self.peerManager peerMisbehaving:peer];
+        [self.peerManager peerMisbehaving:peer errorMessage:@"Spork is not valid"];
         return;
     }
     self.lastSyncedSporks = [NSDate timeIntervalSince1970];

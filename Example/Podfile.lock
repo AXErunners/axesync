@@ -6,12 +6,12 @@ PODS:
   - DSJSONSchemaValidation (2.0.5)
   - ios-app (0.0.3):
     - DSJSONSchemaValidation (= 2.0.5)
-    - TinyCborObjc (= 0.2.2)
+    - TinyCborObjc (= 0.3.0)
   - KVO-MVVM (0.5.1)
   - secp256k1_axe (0.1.2.5)
-  - tinycbor (0.5.3-alpha1)
-  - TinyCborObjc (0.2.2):
-    - tinycbor (= 0.5.3-alpha1)
+  - tinycbor (0.5.3-alpha2)
+  - TinyCborObjc (0.3.0):
+    - tinycbor (= 0.5.3-alpha2)
 
 DEPENDENCIES:
   - AxeSync (from `../`)
@@ -37,18 +37,18 @@ EXTERNAL SOURCES:
 
 CHECKOUT OPTIONS:
   ios-app:
-    :commit: a79e671e11b09c0610224130bc58547da9bbd38d
+    :commit: 549b9ac9e024299107a695c2c52d3587626d2a02
     :git: https://github.com/axerunners/ios-app.git
 
 SPEC CHECKSUMS:
   AxeSync: 834bfc5b07ca656b6218d6f556c327d0c24881c2
   bls-signatures-pod: 56adce76843f10f484ff996c33aee36cfd98ae5e
   DSJSONSchemaValidation: a0d791d3c8a4801cb3c72f3c8701342e2cb66f58
-  ios-app: 374a81d9e179173bc52e7dbe95b39ab896225f30
+  ios-app: 572a0b780e3aabee5129668866f4bbeba4e600cf
   KVO-MVVM: 4df3afd1f7ebcb69735458b85db59c4271ada7c6
   secp256k1_axe: bd1dc10fc294f2f0e0704f8bea578eb9ea5916d0
-  tinycbor: 81999417a2c8ee8c4a7651738a11ad0711c82935
-  TinyCborObjc: f42aa647c81de86a395a5691d6a93d04294f6d03
+  tinycbor: d2990189c8db918fbdb2936708642aeb55334dd5
+  TinyCborObjc: b514d3e288b5d26c3c65c568ec97e375a6840a98
 
 PODFILE CHECKSUM: 302814d94f295fa753ee153c58533b3982c8f2ef
 
