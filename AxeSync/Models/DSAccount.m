@@ -141,6 +141,8 @@
 }
 
 -(instancetype)initWithDerivationPaths:(NSArray<DSFundsDerivationPath *> *)derivationPaths inContext:(NSManagedObjectContext*)context {
+    NSParameterAssert(derivationPaths);
+    
     if (! (self = [super init])) return nil;
     NSAssert([derivationPaths count], @"derivationPaths can not be empty");
     [self verifyAndAssignAddedDerivationPaths:derivationPaths];
@@ -156,6 +158,8 @@
 }
 
 -(instancetype)initAsViewOnlyWithDerivationPaths:(NSArray<DSFundsDerivationPath *> *)derivationPaths inContext:(NSManagedObjectContext*)context  {
+    NSParameterAssert(derivationPaths);
+    
     if (! (self = [super init])) return nil;
     self.mDerivationPaths = [derivationPaths mutableCopy];
     for (DSFundsDerivationPath * derivationPath in derivationPaths) {
@@ -286,12 +290,16 @@
 // MARK: - Derivation Paths
 
 -(void)removeDerivationPath:(DSFundsDerivationPath*)derivationPath {
+    NSParameterAssert(derivationPath);
+    
     if ([self.mDerivationPaths containsObject:derivationPath]) {
         [self.mDerivationPaths removeObject:derivationPath];
     }
 }
 
 -(void)addDerivationPath:(DSFundsDerivationPath*)derivationPath {
+    NSParameterAssert(derivationPath);
+    
     if (!_isViewOnlyAccount) {
         [self verifyAndAssignAddedDerivationPaths:@[derivationPath]];
     }
@@ -299,6 +307,8 @@
 }
 
 -(void)addDerivationPathsFromArray:(NSArray<DSFundsDerivationPath *> *)derivationPaths {
+    NSParameterAssert(derivationPaths);
+    
     if (!_isViewOnlyAccount) {
         [self verifyAndAssignAddedDerivationPaths:derivationPaths];
     }
@@ -367,6 +377,8 @@
 
 // true if the address is controlled by the wallet
 - (BOOL)containsAddress:(NSString *)address {
+    NSParameterAssert(address);
+    
     for (DSFundsDerivationPath * derivationPath in self.derivationPaths) {
         if ([derivationPath containsAddress:address]) return TRUE;
     }
@@ -375,8 +387,19 @@
 
 // true if the address was previously used as an input or output in any wallet transaction
 - (BOOL)addressIsUsed:(NSString *)address {
+    NSParameterAssert(address);
+    
     for (DSFundsDerivationPath * derivationPath in self.derivationPaths) {
         if ([derivationPath addressIsUsed:address]) return TRUE;
+    }
+    return FALSE;
+}
+
+- (BOOL)transactionAddressAlreadySeenInOutputs:(NSString *)address {
+    NSParameterAssert(address);
+    
+    for (DSTransaction * transaction in self.allTransactions) {
+        if ([transaction.outputAddresses containsObject:address]) return TRUE;
     }
     return FALSE;
 }
@@ -539,6 +562,8 @@
 // historical wallet balance after the given transaction, or current balance if transaction is not registered in wallet
 - (uint64_t)balanceAfterTransaction:(DSTransaction *)transaction
 {
+    NSParameterAssert(transaction);
+    
     NSUInteger i = [self.transactions indexOfObject:transaction];
     
     return (i < self.balanceHistory.count) ? [self.balanceHistory[i] unsignedLongLongValue] : self.balance;
@@ -645,6 +670,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // true if the given transaction is associated with the account (even if it hasn't been registered), false otherwise
 - (BOOL)canContainTransaction:(DSTransaction *)transaction
 {
+    NSParameterAssert(transaction);
+    
     if ([[NSSet setWithArray:transaction.outputAddresses] intersectsSet:self.allAddresses]) return YES;
     
     NSInteger i = 0;
@@ -671,6 +698,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 }
 
 -(BOOL)checkIsFirstTransaction:(DSTransaction *)transaction {
+    NSParameterAssert(transaction);
+    
     for (DSFundsDerivationPath * derivationPath in self.derivationPaths) {
         if ([derivationPath type] & DSDerivationPathType_IsForFunds)  {
             NSString * firstAddress = [derivationPath addressAtIndex:0 internal:NO];
@@ -687,6 +716,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // returns an unsigned transaction that sends the specified amount from the wallet to the given address
 - (DSTransaction *)transactionFor:(uint64_t)amount to:(NSString *)address withFee:(BOOL)fee
 {
+    NSParameterAssert(address);
+    
     NSMutableData *script = [NSMutableData data];
     
     [script appendScriptPubKeyForAddress:address forChain:self.wallet.chain];
@@ -706,6 +737,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 }
 
 - (DSTransaction *)transactionForAmounts:(NSArray *)amounts toOutputScripts:(NSArray *)scripts withFee:(BOOL)fee isInstant:(BOOL)isInstant toShapeshiftAddress:(NSString*)shapeshiftAddress {
+    NSParameterAssert(amounts);
+    NSParameterAssert(scripts);
     DSTransaction *transaction = [[DSTransaction alloc] initOnChain:self.wallet.chain];
     return [self updateTransaction:transaction forAmounts:amounts toOutputScripts:scripts withFee:fee isInstant:isInstant toShapeshiftAddress:shapeshiftAddress shuffleOutputOrder:YES];
 }
@@ -714,6 +747,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 
 - (DSTransaction *)proposalCollateralTransactionWithData:(NSData*)data
 {
+    NSParameterAssert(data);
+    
     NSMutableData *script = [NSMutableData data];
     
     [script appendProposalInfo:data];
@@ -731,6 +766,10 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // returns an unsigned transaction that sends the specified amounts from the wallet to the specified output scripts
 - (DSTransaction *)updateTransaction:(DSTransaction*)transaction forAmounts:(NSArray *)amounts toOutputScripts:(NSArray *)scripts withFee:(BOOL)fee isInstant:(BOOL)isInstant toShapeshiftAddress:(NSString*)shapeshiftAddress shuffleOutputOrder:(BOOL)shuffleOutputOrder
 {
+    NSParameterAssert(transaction);
+    NSParameterAssert(amounts);
+    NSParameterAssert(scripts);
+    
     uint64_t amount = 0, balance = 0, feeAmount = 0, feeAmountWithoutChange = 0;
     DSTransaction *tx;
     NSUInteger i = 0, cpfpSize = 0;
@@ -917,6 +956,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 }
 
 - (BOOL)removeTransaction:(DSTransaction*)baseTransaction {
+    NSParameterAssert(baseTransaction);
+    
     NSMutableSet *dependentTransactions = [NSMutableSet set];
     DSTransaction *transaction = self.allTx[uint256_obj(baseTransaction.txHash)];
     if (!transaction) return FALSE;
@@ -950,8 +991,10 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // MARK: = Signing
 
 // sign any inputs in the given transaction that can be signed using private keys from the wallet
-- (void)signTransaction:(DSTransaction *)transaction withPrompt:(NSString *)authprompt completion:(TransactionValidityCompletionBlock)completion;
+- (void)signTransaction:(DSTransaction *)transaction withPrompt:(NSString * _Nullable)authprompt completion:(TransactionValidityCompletionBlock)completion;
 {
+    NSParameterAssert(transaction);
+    
     if (_isViewOnlyAccount) return;
     int64_t amount = [self amountSentByTransaction:transaction] - [self amountReceivedFromTransaction:transaction];
     
@@ -981,7 +1024,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
     @autoreleasepool { // @autoreleasepool ensures sensitive data will be dealocated immediately
         self.wallet.seedRequestBlock(authprompt, (amount > 0) ? amount : 0,^void (NSData * _Nullable seed, BOOL cancelled) {
             if (! seed) {
-                if (completion) completion(YES);
+                if (completion) completion(NO,YES);
             } else {
                 NSMutableArray *privkeys = [NSMutableArray array];
                 for (NSDictionary * dictionary in usedDerivationPaths) {
@@ -993,7 +1036,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
                 }
                 
                 BOOL signedSuccessfully = [transaction signWithSerializedPrivateKeys:privkeys];
-                if (completion) completion(signedSuccessfully);
+                if (completion) completion(signedSuccessfully,NO);
             }
         });
     }
@@ -1034,7 +1077,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
             @autoreleasepool { // @autoreleasepool ensures sensitive data will be dealocated immediately
                 
                 if (! seed) {
-                    if (completion) completion(YES);
+                    if (completion) completion(NO,cancelled);
                 } else {
                     NSMutableArray *privkeys = [NSMutableArray array];
                     for (NSDictionary * dictionary in usedDerivationPaths) {
@@ -1046,7 +1089,7 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
                     }
                     
                     BOOL signedSuccessfully = [transaction signWithSerializedPrivateKeys:privkeys];
-                    if (completion) completion(signedSuccessfully);
+                    if (completion) completion(signedSuccessfully,NO);
                 }
                 
             }
@@ -1059,6 +1102,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // records the transaction in the account, or returns false if it isn't associated with the wallet
 - (BOOL)registerTransaction:(DSTransaction *)transaction
 {
+    NSParameterAssert(transaction);
+    
     DSDLog(@"[DSAccount] registering transaction %@", transaction);
     UInt256 txHash = transaction.txHash;
     NSValue *hash = uint256_obj(txHash);
@@ -1106,6 +1151,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // true if no previous wallet transactions spend any of the given transaction's inputs, and no input tx is invalid
 - (BOOL)transactionIsValid:(DSTransaction *)transaction
 {
+    NSParameterAssert(transaction);
+    
     //TODO: XXX attempted double spends should cause conflicted tx to remain unverified until they're confirmed
     //TODO: XXX verify signatures for spends
     if (transaction.blockHeight != TX_UNCONFIRMED) return YES;
@@ -1132,6 +1179,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // true if transaction cannot be immediately spent (i.e. if it or an input tx can be replaced-by-fee)
 - (BOOL)transactionIsPending:(DSTransaction *)transaction
 {
+    NSParameterAssert(transaction);
+    
     if (transaction.blockHeight != TX_UNCONFIRMED) return NO; // confirmed transactions are not pending
     if (transaction.size > TX_MAX_SIZE) return YES; // check transaction size is under TX_MAX_SIZE
     
@@ -1157,6 +1206,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 
 //true if this transaction outputs can not be used in inputs
 -(BOOL)transactionOutputsAreLocked:(DSTransaction *)transaction {
+    NSParameterAssert(transaction);
+    
     if ([transaction isKindOfClass:[DSCoinbaseTransaction class]]) { //only allow these to be spent after 100 inputs
         DSCoinbaseTransaction * coinbaseTransaction = (DSCoinbaseTransaction*)transaction;
         if (coinbaseTransaction.height + 100 > self.wallet.chain.lastBlockHeight) return YES;
@@ -1167,6 +1218,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // true if tx is considered 0-conf safe (valid and not pending, timestamp is greater than 0, and no unverified inputs)
 - (BOOL)transactionIsVerified:(DSTransaction *)transaction
 {
+    NSParameterAssert(transaction);
+    
     if (transaction.blockHeight != TX_UNCONFIRMED) return YES; // confirmed transactions are always verified
     if (transaction.timestamp == 0) return NO; // a timestamp of 0 indicates transaction is to remain unverified
     if (! [self transactionIsValid:transaction] || [self transactionIsPending:transaction]) return NO;
@@ -1184,6 +1237,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // returns the amount received by the wallet from the transaction (total outputs to change and/or receive addresses)
 - (uint64_t)amountReceivedFromTransaction:(DSTransaction *)transaction
 {
+    NSParameterAssert(transaction);
+    
     uint64_t amount = 0;
     NSUInteger n = 0;
     
@@ -1199,6 +1254,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // retuns the amount sent from the wallet by the trasaction (total wallet outputs consumed, change and fee included)
 - (uint64_t)amountSentByTransaction:(DSTransaction *)transaction
 {
+    NSParameterAssert(transaction);
+    
     uint64_t amount = 0;
     NSUInteger i = 0;
     
@@ -1219,6 +1276,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 // returns the fee for the given transaction if all its inputs are from wallet transactions, UINT64_MAX otherwise
 - (uint64_t)feeForTransaction:(DSTransaction *)transaction
 {
+    NSParameterAssert(transaction);
+    
     uint64_t amount = 0;
     NSUInteger i = 0;
     
@@ -1241,14 +1300,14 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 
 - (uint64_t)maxOutputAmountUsingInstantSend:(BOOL)instantSend
 {
-    return [self maxOutputAmountWithConfirmationCount:0 usingInstantSend:instantSend];
+    return [self maxOutputAmountWithConfirmationCount:0 usingInstantSend:instantSend returnInputCount:nil];
 }
 
-- (uint64_t)maxOutputAmountWithConfirmationCount:(uint64_t)confirmationCount usingInstantSend:(BOOL)instantSend
+- (uint64_t)maxOutputAmountWithConfirmationCount:(uint64_t)confirmationCount usingInstantSend:(BOOL)instantSend returnInputCount:(uint32_t*)rInputCount;
 {
     DSUTXO o;
     DSTransaction *tx;
-    NSUInteger inputCount = 0;
+    uint32_t inputCount = 0;
     uint64_t amount = 0, fee;
     size_t cpfpSize = 0, txSize;
     
@@ -1270,6 +1329,9 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
     txSize = 8 + [NSMutableData sizeOfVarInt:inputCount] + TX_INPUT_SIZE*inputCount +
     [NSMutableData sizeOfVarInt:2] + TX_OUTPUT_SIZE*2;
     fee = [self.wallet.chain feeForTxSize:txSize + cpfpSize isInstant:instantSend inputCount:inputCount];
+    if (rInputCount) {
+        *rInputCount = inputCount;
+    }
     return (amount > fee) ? amount - fee : 0;
 }
 
@@ -1313,6 +1375,8 @@ static NSUInteger transactionAddressIndex(DSTransaction *transaction, NSArray *a
 - (void)sweepPrivateKey:(NSString *)privKey withFee:(BOOL)fee
              completion:(void (^)(DSTransaction *tx, uint64_t fee, NSError *error))completion
 {
+    NSParameterAssert(privKey);
+    
     if (! completion) return;
     
     if ([privKey isValidAxeBIP38Key]) {
