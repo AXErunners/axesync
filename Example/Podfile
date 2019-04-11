@@ -1,9 +1,9 @@
 target 'AxeSync_Example' do
   platform :ios, '10.0'
-  
+
   pod 'AxeSync', :path => '../'
   pod 'KVO-MVVM', '0.5.1'
-  pod 'ios-app', :git => 'https://github.com/axerunners/ios-app.git', :branch => 'master', :commit => 'a79e671e11b09c0610224130bc58547da9bbd38d'
+  pod 'ios-app', :git => 'https://github.com/axerunners/ios-app.git', :branch => 'master', :commit => '456df6b61d54f14f2d34922fc015d5506f995b12'
 
   target 'AxeSync_Tests' do
     inherit! :search_paths
