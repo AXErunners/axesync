@@ -15,7 +15,7 @@ PODS:
 
 DEPENDENCIES:
   - AxeSync (from `../`)
-  - ios-app (from `https://github.com/axerunners/ios-app.git`, commit `a79e671e11b09c0610224130bc58547da9bbd38d`, branch `master`)
+  - ios-app (from `https://github.com/axerunners/ios-app.git`, commit `456df6b61d54f14f2d34922fc015d5506f995b12`, branch `master`)
   - KVO-MVVM (= 0.5.1)
 
 SPEC REPOS:
@@ -32,12 +32,12 @@ EXTERNAL SOURCES:
     :path: "../"
   ios-app:
     :branch: master
-    :commit: a79e671e11b09c0610224130bc58547da9bbd38d
+    :commit: 456df6b61d54f14f2d34922fc015d5506f995b12
     :git: https://github.com/axerunners/ios-app.git
 
 CHECKOUT OPTIONS:
   ios-app:
-    :commit: 549b9ac9e024299107a695c2c52d3587626d2a02
+    :commit: 8b016f3aa865fc4d48db1c618f3690c363333528
     :git: https://github.com/axerunners/ios-app.git
 
 SPEC CHECKSUMS:
@@ -50,6 +50,6 @@ SPEC CHECKSUMS:
   tinycbor: d2990189c8db918fbdb2936708642aeb55334dd5
   TinyCborObjc: b514d3e288b5d26c3c65c568ec97e375a6840a98
 
-PODFILE CHECKSUM: 302814d94f295fa753ee153c58533b3982c8f2ef
+PODFILE CHECKSUM: 8ac8b2b82dda26237d13802c1026c4c1cc41ffb7
 
 COCOAPODS: 1.6.1
