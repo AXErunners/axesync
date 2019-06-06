@@ -1,0 +1,9 @@
+[main]
+host = https://www.transifex.com
+
+[axe-ios-wallet.axesync-localizable-strings]
+file_filter = AxeSync/<lang>.lproj/Localizable.strings
+minimum_perc = 0
+source_file = AxeSync/en.lproj/Localizable.strings
+source_lang = en
+type = STRINGS
