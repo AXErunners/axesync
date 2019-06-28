@@ -82,7 +82,7 @@ FOUNDATION_EXPORT NSString* const DSChainStandaloneAddressesDidChangeNotificatio
 FOUNDATION_EXPORT NSString* const DSChainBlocksDidChangeNotification;
 FOUNDATION_EXPORT NSString* const DSChainNewChainTipBlockNotification;
 
-@class DSWallet,DSMerkleBlock,DSChainManager,DSPeer,DSChainEntity,DSDerivationPath,DSTransaction,DSAccount,DSSimplifiedMasternodeEntry,DSBlockchainUser,DSBloomFilter,DSProviderRegistrationTransaction;
+@class DSWallet,DSMerkleBlock,DSChainManager,DSPeer,DSChainEntity,DSDerivationPath,DSTransaction,DSAccount,DSSimplifiedMasternodeEntry,DSBlockchainUser,DSBloomFilter,DSProviderRegistrationTransaction,DSChain;
 
 @protocol DSChainDelegate;
 
@@ -93,6 +93,10 @@ FOUNDATION_EXPORT NSString* const DSChainNewChainTipBlockNotification;
 @property (nonatomic, assign) UInt256 checkpointHash;
 @property (nonatomic, assign) uint32_t timestamp;
 @property (nonatomic, assign) uint32_t target;
+@property (nonatomic, strong) NSString * masternodeListName;
+@property (nonatomic, assign) UInt256 merkleRoot;
+
+-(DSMerkleBlock*)merkleBlockForChain:(DSChain*)chain;
 
 @end
 
@@ -224,11 +228,23 @@ FOUNDATION_EXPORT NSString* const DSChainNewChainTipBlockNotification;
 //This removes all blockchain information from the chain's wallets and derivation paths
 - (void)wipeBlockchainInfo;
 
-- (void)wipeMasternodes;
+- (void)wipeMasternodesInContext:(NSManagedObjectContext*)context;
 
 - (DSBloomFilter*)bloomFilterWithFalsePositiveRate:(double)falsePositiveRate withTweak:(uint32_t)tweak;
 
 - (uint32_t)heightForBlockHash:(UInt256)blockhash;
+
+- (DSCheckpoint* _Nullable)lastCheckpointWithMasternodeList;
+
+- (DSCheckpoint* _Nullable)checkpointForBlockHash:(UInt256)blockHash;
+
+- (DSCheckpoint* _Nullable)checkpointForBlockHeight:(uint32_t)blockHeight;
+
+- (DSMerkleBlock * _Nullable)blockAtHeight:(uint32_t)height;
+
+- (DSMerkleBlock * _Nullable)blockForBlockHash:(UInt256)blockHash;
+
+- (DSMerkleBlock * _Nullable)blockFromChainTip:(NSUInteger)blocksAgo;
 
 - (DSWallet* _Nullable)walletHavingProviderVotingAuthenticationHash:(UInt160)votingAuthenticationHash foundAtIndex:(uint32_t* _Nullable)rIndex;
 
