@@ -24,8 +24,8 @@ Pod::Spec.new do |s|
   s.public_header_files = 'AxeSync/**/*.h'
   s.private_header_files = 'AxeSync/crypto/x11/*.h'
   s.libraries = 'bz2', 'sqlite3'
-  s.resource_bundles = {'AxeSync' => ['AxeSync/*.xcdatamodeld', 'AxeSync/*.plist', 'AxeSync/*.lproj']}
-
+  s.resource_bundles = {'AxeSync' => ['AxeSync/*.xcdatamodeld', 'AxeSync/*.plist', 'AxeSync/*.lproj', 'AxeSync/MasternodeLists/*.dat']}
+  
   s.framework = 'Foundation', 'UIKit', 'SystemConfiguration', 'CoreData'
   s.compiler_flags = '-Wno-comma'
   s.dependency 'secp256k1_axe', '0.1.2.5'
