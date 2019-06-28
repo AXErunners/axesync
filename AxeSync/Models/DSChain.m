@@ -69,38 +69,40 @@
 #import "DSMasternodeHoldingsDerivationPath.h"
 #import "DSSpecialTransactionsWalletHolder.h"
 #import "DSLocalMasternodeEntity+CoreDataProperties.h"
+#import "DSMasternodeListEntity+CoreDataProperties.h"
+#import "DSQuorumEntryEntity+CoreDataProperties.h"
 
-typedef const struct checkpoint { uint32_t height; const char *checkpointHash; uint32_t timestamp; uint32_t target; } checkpoint;
+typedef const struct checkpoint { uint32_t height; const char *checkpointHash; uint32_t timestamp; uint32_t target; const char * masternodeListPath; const char * merkleRoot;} checkpoint;
 
 static checkpoint testnet_checkpoint_array[] = {
-    {           0, "00000381388b90aff350a4d5913d4a50fed79159a3a687470e01ca1527e87568", 1518140232, 0x1e0ffff0u }
+    {           0, "00000381388b90aff350a4d5913d4a50fed79159a3a687470e01ca1527e87568", 1518140232, 0x1e0ffff0u, "", "" }
 };
 
 // blockchain checkpoints - these are also used as starting points for partial chain downloads, so they need to be at
 // difficulty transition boundaries in order to verify the block difficulty at the immediately following transition
 static checkpoint mainnet_checkpoint_array[] = {
-    {      0, "00000c33631ca6f2f61368991ce2dc03306b5bb50bf7cede5cfbba6db38e52e6", 1518140231, 0x1e0ffff0u },
-    {   1500, "000000d671ea75d2a5578862393e04c29d2368c7461f65f278e083b13696408e", 1518237227, 0x1e018c18u },
-    {   4991, "0000002d9b0d76fd076b4a6f2601f130ad7e2b43af92b8ffd2619f20478b01f2", 1518745517, 0x1e015880u },
-    {   9918, "00000000007a7f636d5075eba76dfe76fbe1d865890aa0a8620406e8cb937a78", 1518778918, 0x1c00ea5bu },
-    {  16912, "00000000000991c08af937ad98e3821a2fdc31dd636ce14c6597fb7820359749", 1519722114, 0x1b140cb3u },
-    {  23912, "000000000024573fae6b7e7561d931499d6abaddb9f2dff608ec693a34366b7f", 1520831809, 0x1b278e64u },
-    {  35457, "000000000013e6af48c778097fb5dc4b081ff9736bb8b74afcd67cf41b102111", 1522654685, 0x1b16e6e2u },
-    {  45479, "00000000002027c4ba5b4d1f5e451fd400d5bdd58b282ddd7a865a2ce76514c0", 1524238915, 0x1b3492e9u },
-    {  55895, "000000000035b29b53977dd38d7d09ea14749b5b5c6facf2d4f25c0abb9d864f", 1525888713, 0x1b7fd3f8u },
-    {  68899, "000000000005376de272e4d5b3b50f165d2ac57911d74b04f77018a9247d18a7", 1527946299, 0x1b22526au },
-    {  74619, "000000000030bc1f7703071874e3f1acf575b8aec566b36285e3e92248314da5", 1528853284, 0x1b313fb7u },
-    {  75095, "0000000000312041338e175624468d089f95e55a3525b1be27d21ee1c6533d09", 1528929084, 0x1b347da4u },
-    {  88805, "000000000023fb96f9bcb53f5637b06972bb7431b9fcf4198dc90f46a83d26ae", 1531095233, 0x1b4737e8u },
-    { 107996, "00000000000c20ee519d77edf18652fc61c86301e57bedc1623c10da48b329d0", 1534123375, 0x1b0cc534u },
-    { 126993, "00000000000118e53dcaedd2db54029b175217ce2d10b552744939deff3495fd", 1537123276, 0x1b15a29du },
-    { 145909, "0000000000008ec28fa572d5908458c2c02ce67dfa2bc6f82a61f1eef70ee491", 1540107698, 0x1b2535a5u },
-    { 161603, "000000000005787b2c4c2016f57bee0d91cdee8ba8628ab392486bc4513dae1d", 1542582844, 0x1b0854ecu },
-    { 180423, "000000000004c448af3a3157da422efb027abf6280f0ef5748b1b0410b3765c5", 1545554641, 0x1b089860u },
-    { 200024, "000000000000633bd0073ca5f52b8005c371e5fc9bd3d39b087eee83ee35ac12", 1548649180, 0x1a729536u },
-    { 211480, "000000000000d8f124bde34e19fe0664afcfd512ed9d13ea27c65772de3e1657", 1550458950, 0x1b014b4du },
-    { 221382, "00000000000020d9f2af1589c9087e7ec1542b7dd2b121e307f6a2a8cf0d453f", 1552020983, 0x1a4467cau },
-    { 230442, "0000000000003fe6bc8985bf8c137487c69c153c316cd67aea3ec1886fb1adf4", 1553458998, 0x1a427b99u }
+    {      0, "00000c33631ca6f2f61368991ce2dc03306b5bb50bf7cede5cfbba6db38e52e6", 1518140231, 0x1e0ffff0u, "", "" },
+    {   1500, "000000d671ea75d2a5578862393e04c29d2368c7461f65f278e083b13696408e", 1518237227, 0x1e018c18u, "", "" },
+    {   4991, "0000002d9b0d76fd076b4a6f2601f130ad7e2b43af92b8ffd2619f20478b01f2", 1518745517, 0x1e015880u, "", "" },
+    {   9918, "00000000007a7f636d5075eba76dfe76fbe1d865890aa0a8620406e8cb937a78", 1518778918, 0x1c00ea5bu, "", "" },
+    {  16912, "00000000000991c08af937ad98e3821a2fdc31dd636ce14c6597fb7820359749", 1519722114, 0x1b140cb3u, "", "" },
+    {  23912, "000000000024573fae6b7e7561d931499d6abaddb9f2dff608ec693a34366b7f", 1520831809, 0x1b278e64u, "", "" },
+    {  35457, "000000000013e6af48c778097fb5dc4b081ff9736bb8b74afcd67cf41b102111", 1522654685, 0x1b16e6e2u, "", "" },
+    {  45479, "00000000002027c4ba5b4d1f5e451fd400d5bdd58b282ddd7a865a2ce76514c0", 1524238915, 0x1b3492e9u, "", "" },
+    {  55895, "000000000035b29b53977dd38d7d09ea14749b5b5c6facf2d4f25c0abb9d864f", 1525888713, 0x1b7fd3f8u, "", "" },
+    {  68899, "000000000005376de272e4d5b3b50f165d2ac57911d74b04f77018a9247d18a7", 1527946299, 0x1b22526au, "", "" },
+    {  74619, "000000000030bc1f7703071874e3f1acf575b8aec566b36285e3e92248314da5", 1528853284, 0x1b313fb7u, "", "" },
+    {  75095, "0000000000312041338e175624468d089f95e55a3525b1be27d21ee1c6533d09", 1528929084, 0x1b347da4u, "", "" },
+    {  88805, "000000000023fb96f9bcb53f5637b06972bb7431b9fcf4198dc90f46a83d26ae", 1531095233, 0x1b4737e8u, "", "" },
+    { 107996, "00000000000c20ee519d77edf18652fc61c86301e57bedc1623c10da48b329d0", 1534123375, 0x1b0cc534u, "", "" },
+    { 126993, "00000000000118e53dcaedd2db54029b175217ce2d10b552744939deff3495fd", 1537123276, 0x1b15a29du, "", "" },
+    { 145909, "0000000000008ec28fa572d5908458c2c02ce67dfa2bc6f82a61f1eef70ee491", 1540107698, 0x1b2535a5u, "", "" },
+    { 161603, "000000000005787b2c4c2016f57bee0d91cdee8ba8628ab392486bc4513dae1d", 1542582844, 0x1b0854ecu, "", "" },
+    { 180423, "000000000004c448af3a3157da422efb027abf6280f0ef5748b1b0410b3765c5", 1545554641, 0x1b089860u, "", "" },
+    { 200024, "000000000000633bd0073ca5f52b8005c371e5fc9bd3d39b087eee83ee35ac12", 1548649180, 0x1a729536u, "", "" },
+    { 211480, "000000000000d8f124bde34e19fe0664afcfd512ed9d13ea27c65772de3e1657", 1550458950, 0x1b014b4du, "", "" },
+    { 221382, "00000000000020d9f2af1589c9087e7ec1542b7dd2b121e307f6a2a8cf0d453f", 1552020983, 0x1a4467cau, "", "" },
+    { 230442, "0000000000003fe6bc8985bf8c137487c69c153c316cd67aea3ec1886fb1adf4", 1553458998, 0x1a427b99u, "", "" }
 };
 
 #define FEE_PER_BYTE_KEY          @"FEE_PER_BYTE"
@@ -127,7 +129,9 @@ static checkpoint mainnet_checkpoint_array[] = {
 @interface DSChain ()
 
 @property (nonatomic, strong) DSMerkleBlock *lastBlock, *lastOrphan;
-@property (nonatomic, strong) NSMutableDictionary *blocks, *orphans,*checkpointsDictionary,*checkpointsInvertedDictionary;
+@property (nonatomic, strong) NSMutableDictionary *blocks, *orphans;
+@property (nonatomic, strong) NSMutableDictionary <NSData*,DSCheckpoint*> *checkpointsByHashDictionary;
+@property (nonatomic, strong) NSMutableDictionary <NSNumber*,DSCheckpoint*> *checkpointsByHeightDictionary;
 @property (nonatomic, strong) NSArray<DSCheckpoint*> * checkpoints;
 @property (nonatomic, copy) NSString * uniqueID;
 @property (nonatomic, copy) NSString * networkName;
@@ -290,6 +294,9 @@ static checkpoint mainnet_checkpoint_array[] = {
         check.checkpointHash = *(UInt256 *)[NSString stringWithCString:checkpoints[i].checkpointHash encoding:NSUTF8StringEncoding].hexToData.reverse.bytes;
         check.target = checkpoints[i].target;
         check.timestamp = checkpoints[i].timestamp;
+        check.masternodeListName = [NSString stringWithCString:checkpoints[i].masternodeListPath encoding:NSUTF8StringEncoding];
+        NSString * merkleRootString = [NSString stringWithCString:checkpoints[i].merkleRoot encoding:NSUTF8StringEncoding];
+        check.merkleRoot = [merkleRootString isEqualToString:@""]?UINT256_ZERO:merkleRootString.hexToData.reverse.UInt256;
         [checkpointMutableArray addObject:check];
     }
     return [checkpointMutableArray copy];
@@ -535,7 +542,7 @@ static dispatch_once_t devnetToken = 0;
         {
             NSError * error = nil;
             uint32_t minProtocolVersion = (uint32_t)getKeychainInt([NSString stringWithFormat:@"MAINNET_%@",DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], &error);
-            if (!error && minProtocolVersion) _cachedMinProtocolVersion = minProtocolVersion;
+            if (!error && minProtocolVersion) _cachedMinProtocolVersion = MAX(minProtocolVersion,DEFAULT_MIN_PROTOCOL_VERSION_MAINNET);
             else _cachedMinProtocolVersion = DEFAULT_MIN_PROTOCOL_VERSION_MAINNET;
             break;
         }
@@ -543,7 +550,7 @@ static dispatch_once_t devnetToken = 0;
         {
             NSError * error = nil;
             uint32_t minProtocolVersion = (uint32_t)getKeychainInt([NSString stringWithFormat:@"TESTNET_%@",DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], &error);
-            if (!error && minProtocolVersion) _cachedMinProtocolVersion = minProtocolVersion;
+            if (!error && minProtocolVersion) _cachedMinProtocolVersion = MAX(minProtocolVersion,DEFAULT_MIN_PROTOCOL_VERSION_TESTNET);
             else _cachedMinProtocolVersion = DEFAULT_MIN_PROTOCOL_VERSION_TESTNET;
             break;
         }
@@ -551,7 +558,7 @@ static dispatch_once_t devnetToken = 0;
         {
             NSError * error = nil;
             uint32_t minProtocolVersion = (uint32_t)getKeychainInt([NSString stringWithFormat:@"%@%@",self.devnetIdentifier,DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], &error);
-            if (!error && minProtocolVersion) _cachedMinProtocolVersion = minProtocolVersion;
+            if (!error && minProtocolVersion) _cachedMinProtocolVersion = MAX(minProtocolVersion,DEFAULT_MIN_PROTOCOL_VERSION_DEVNET);
             else _cachedMinProtocolVersion = DEFAULT_MIN_PROTOCOL_VERSION_DEVNET;
             break;
         }
@@ -567,20 +574,22 @@ static dispatch_once_t devnetToken = 0;
     if (minProtocolVersion < MIN_VALID_MIN_PROTOCOL_VERSION || minProtocolVersion > MAX_VALID_MIN_PROTOCOL_VERSION) return;
     switch ([self chainType]) {
         case DSChainType_MainNet:
-            setKeychainInt(minProtocolVersion,[NSString stringWithFormat:@"MAINNET_%@",DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], NO);
+            setKeychainInt(MAX(minProtocolVersion,DEFAULT_MIN_PROTOCOL_VERSION_MAINNET),[NSString stringWithFormat:@"MAINNET_%@",DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], NO);
+            _cachedMinProtocolVersion = MAX(minProtocolVersion,DEFAULT_MIN_PROTOCOL_VERSION_MAINNET);
             break;
         case DSChainType_TestNet:
-            setKeychainInt(minProtocolVersion,[NSString stringWithFormat:@"TESTNET_%@",DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], NO);
+            setKeychainInt(MAX(minProtocolVersion,DEFAULT_MIN_PROTOCOL_VERSION_TESTNET),[NSString stringWithFormat:@"TESTNET_%@",DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], NO);
+            _cachedMinProtocolVersion = MAX(minProtocolVersion,DEFAULT_MIN_PROTOCOL_VERSION_TESTNET);
             break;
         case DSChainType_DevNet:
         {
-            setKeychainInt(minProtocolVersion,[NSString stringWithFormat:@"%@%@",self.devnetIdentifier,DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], NO);
+            setKeychainInt(MAX(minProtocolVersion,DEFAULT_MIN_PROTOCOL_VERSION_DEVNET),[NSString stringWithFormat:@"%@%@",self.devnetIdentifier,DEFAULT_MIN_PROTOCOL_VERSION_LOCATION], NO);
+            _cachedMinProtocolVersion = MAX(minProtocolVersion,DEFAULT_MIN_PROTOCOL_VERSION_DEVNET);
             break;
         }
         default:
             break;
     }
-    _cachedMinProtocolVersion = minProtocolVersion;
 }
 
 
@@ -1003,24 +1012,17 @@ static dispatch_once_t devnetToken = 0;
     [self.chainManager chainWasWiped:self];
 }
 
--(void)wipeMasternodes {
-    NSManagedObjectContext * context = [DSChainEntity context];
-    [context performBlockAndWait:^{
-        [DSChainEntity setContext:context];
-        [DSSimplifiedMasternodeEntryEntity setContext:context];
-        [DSLocalMasternodeEntity setContext:context];
-        DSChainEntity * chainEntity = self.chainEntity;
-        [DSLocalMasternodeEntity deleteAllOnChain:chainEntity];
-        [DSSimplifiedMasternodeEntryEntity deleteAllOnChain:chainEntity];
-        [self.chainManager resetSyncCountInfo:DSSyncCountInfo_List];
-        [self.chainManager.masternodeManager wipeMasternodeInfo];
-        [DSSimplifiedMasternodeEntryEntity saveContext];
-        [[NSUserDefaults standardUserDefaults] removeObjectForKey:[NSString stringWithFormat:@"%@_%@",self.uniqueID,LAST_SYNCED_MASTERNODE_LIST]];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [[NSNotificationCenter defaultCenter] postNotificationName:DSMasternodeListDidChangeNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self}];
-            [[NSNotificationCenter defaultCenter] postNotificationName:DSMasternodeListCountUpdateNotification object:nil userInfo:@{DSChainManagerNotificationChainKey:self}];
-        });
-    }];
+-(void)wipeMasternodesInContext:(NSManagedObjectContext*)context {
+    [DSChainEntity setContext:context];
+    [DSSimplifiedMasternodeEntryEntity setContext:context];
+    [DSLocalMasternodeEntity setContext:context];
+    DSChainEntity * chainEntity = self.chainEntity;
+    [DSLocalMasternodeEntity deleteAllOnChain:chainEntity];
+    [DSSimplifiedMasternodeEntryEntity deleteAllOnChain:chainEntity];
+    [DSQuorumEntryEntity deleteAllOnChain:chainEntity];
+    [DSMasternodeListEntity deleteAllOnChain:chainEntity];
+    [self.chainManager.masternodeManager wipeMasternodeInfo];
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:[NSString stringWithFormat:@"%@_%@",self.uniqueID,LAST_SYNCED_MASTERNODE_LIST]];
 }
 
 -(void)wipeWalletsAndDerivatives {
@@ -1149,8 +1151,23 @@ static dispatch_once_t devnetToken = 0;
     }
 }
 
+- (DSCheckpoint* _Nullable)lastCheckpointWithMasternodeList {
+    NSSet * set = [self.checkpointsByHeightDictionary keysOfEntriesPassingTest:^BOOL(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+        DSCheckpoint * checkpoint = (DSCheckpoint *)obj;
+        return (checkpoint.masternodeListName && ![checkpoint.masternodeListName isEqualToString:@""]);
+    }];
+    NSArray * numbers = [[set allObjects] sortedArrayUsingSelector: @selector(compare:)];
+    if (!numbers.count) return nil;
+    return self.checkpointsByHeightDictionary[numbers.lastObject];
+}
 
-#define GENESIS_BLOCK_HASH
+- (DSCheckpoint*)checkpointForBlockHash:(UInt256)blockHash {
+    return [self.checkpointsByHashDictionary objectForKey:uint256_data(blockHash)];
+}
+
+- (DSCheckpoint*)checkpointForBlockHeight:(uint32_t)blockHeight {
+    return [self.checkpointsByHeightDictionary objectForKey:@(blockHeight)];
+}
 
 -(NSDictionary*)recentBlocks {
     return [[self blocks] copy];
@@ -1158,25 +1175,29 @@ static dispatch_once_t devnetToken = 0;
 
 - (NSMutableDictionary *)blocks
 {
-    if (_blocks.count > 0) return _blocks;
+    if (_blocks.count > 0) {
+        if (!_checkpointsByHashDictionary) _checkpointsByHashDictionary = [NSMutableDictionary dictionary];
+        if (!_checkpointsByHeightDictionary) _checkpointsByHeightDictionary = [NSMutableDictionary dictionary];
+        return _blocks;
+    }
     
     [[DSMerkleBlockEntity context] performBlockAndWait:^{
         if (self->_blocks.count > 0) return;
         self->_blocks = [NSMutableDictionary dictionary];
-        self.checkpointsDictionary = [NSMutableDictionary dictionary];
-        self.checkpointsInvertedDictionary = [NSMutableDictionary dictionary];
+        self.checkpointsByHashDictionary = [NSMutableDictionary dictionary];
+        self.checkpointsByHeightDictionary = [NSMutableDictionary dictionary];
         for (DSCheckpoint * checkpoint in self.checkpoints) { // add checkpoints to the block collection
             UInt256 checkpointHash = checkpoint.checkpointHash;
             
             self->_blocks[uint256_obj(checkpointHash)] = [[DSMerkleBlock alloc] initWithBlockHash:checkpointHash onChain:self version:1 prevBlock:UINT256_ZERO
-                                                                                       merkleRoot:UINT256_ZERO timestamp:checkpoint.timestamp
+                                                                                       merkleRoot:checkpoint.merkleRoot timestamp:checkpoint.timestamp
                                                                                            target:checkpoint.target nonce:0 totalTransactions:0 hashes:nil
                                                                                             flags:nil height:checkpoint.height];
-            self.checkpointsDictionary[@(checkpoint.height)] = uint256_obj(checkpointHash);
-            self.checkpointsInvertedDictionary[uint256_obj(checkpointHash)] = @(checkpoint.height);
+            self.checkpointsByHeightDictionary[@(checkpoint.height)] = checkpoint;
+            self.checkpointsByHashDictionary[uint256_data(checkpointHash)] = checkpoint;
         }
         self.delegateQueueChainEntity = [self chainEntity];
-        for (DSMerkleBlockEntity *e in [DSMerkleBlockEntity lastBlocks:50 onChain:self.delegateQueueChainEntity]) {
+        for (DSMerkleBlockEntity *e in [DSMerkleBlockEntity lastBlocks:LLMQ_KEEP_RECENT_BLOCKS onChain:self.delegateQueueChainEntity]) {
             @autoreleasepool {
                 DSMerkleBlock *b = e.merkleBlock;
                 
@@ -1186,6 +1207,16 @@ static dispatch_once_t devnetToken = 0;
     }];
     
     return _blocks;
+}
+
+-(NSMutableDictionary*)checkpointsByHashDictionary {
+    if (!_checkpointsByHashDictionary) [self blocks];
+    return _checkpointsByHashDictionary;
+}
+
+-(NSMutableDictionary*)checkpointsByHeightDictionary {
+    if (!_checkpointsByHeightDictionary) [self blocks];
+    return _checkpointsByHeightDictionary;
 }
 
 
@@ -1221,8 +1252,14 @@ static dispatch_once_t devnetToken = 0;
 }
 
 - (uint32_t)heightForBlockHash:(UInt256)blockhash {
-    if ([self.checkpointsInvertedDictionary objectForKey:uint256_obj(blockhash)]) {
-        return [[self.checkpointsInvertedDictionary objectForKey:uint256_obj(blockhash)] unsignedIntValue];
+    DSCheckpoint * checkpoint = [self.checkpointsByHashDictionary objectForKey:uint256_data(blockhash)];
+    if (checkpoint) {
+        return checkpoint.height;
+    }
+    
+    DSMerkleBlock * block = [self.blocks objectForKey:uint256_obj(blockhash)];
+    if (block && (block.height != UINT32_MAX)) {
+        return block.height;
     }
     
     DSMerkleBlock *b = self.lastBlock;
@@ -1233,7 +1270,38 @@ static dispatch_once_t devnetToken = 0;
         }
         b = self.blocks[uint256_obj(b.prevBlock)];
     }
-    return 0;
+    for (DSCheckpoint * checkpoint in self.checkpoints) {
+        if (uint256_eq(checkpoint.checkpointHash, blockhash)) {
+            return checkpoint.height;
+        }
+    }
+    DSDLog(@"Requesting unknown blockhash %@ (it's probably being added asyncronously)",uint256_reverse_hex(blockhash));
+    return UINT32_MAX;
+}
+
+- (DSMerkleBlock * _Nullable)blockForBlockHash:(UInt256)blockHash {
+    return self.blocks[uint256_obj(blockHash)];
+}
+
+- (DSMerkleBlock *)blockAtHeight:(uint32_t)height {
+    DSMerkleBlock *b = self.lastBlock;
+    NSUInteger count = 0;
+    while (b && b.height > height) {
+        b = self.blocks[uint256_obj(b.prevBlock)];
+        count++;
+    }
+    if (b.height != height) return nil;
+    return b;
+}
+
+- (DSMerkleBlock *)blockFromChainTip:(NSUInteger)blocksAgo {
+    DSMerkleBlock *b = self.lastBlock;
+    NSUInteger count = 0;
+    while (b && b.height > 0 && count < blocksAgo) {
+        b = self.blocks[uint256_obj(b.prevBlock)];
+        count++;
+    }
+    return b;
 }
 
 - (DSMerkleBlock *)lastBlock
@@ -1262,7 +1330,7 @@ static dispatch_once_t devnetToken = 0;
                         UInt256 checkpointHash = self.checkpoints[i].checkpointHash;
                         
                         _lastBlock = [[DSMerkleBlock alloc] initWithBlockHash:checkpointHash onChain:self version:1 prevBlock:UINT256_ZERO
-                                                                   merkleRoot:UINT256_ZERO timestamp:self.checkpoints[i].timestamp
+                                                                   merkleRoot:self.checkpoints[i].merkleRoot timestamp:self.checkpoints[i].timestamp
                                                                        target:self.checkpoints[i].target nonce:0 totalTransactions:0 hashes:nil flags:nil
                                                                        height:self.checkpoints[i].height];
                     }
@@ -1276,7 +1344,7 @@ static dispatch_once_t devnetToken = 0;
                         UInt256 checkpointHash = self.checkpoints[i].checkpointHash;
                         
                         _lastBlock = [[DSMerkleBlock alloc] initWithBlockHash:checkpointHash onChain:self version:1 prevBlock:UINT256_ZERO
-                                                                   merkleRoot:UINT256_ZERO timestamp:self.checkpoints[i].timestamp
+                                                                   merkleRoot:self.checkpoints[i].merkleRoot timestamp:self.checkpoints[i].timestamp
                                                                        target:self.checkpoints[i].target nonce:0 totalTransactions:0 hashes:nil flags:nil
                                                                        height:self.checkpoints[i].height];
                     }
@@ -1370,7 +1438,6 @@ static dispatch_once_t devnetToken = 0;
     NSValue *blockHash = uint256_obj(block.blockHash), *prevBlock = uint256_obj(block.prevBlock);
     DSMerkleBlock *prev = self.blocks[prevBlock];
     uint32_t txTime = 0;
-    UInt256 checkpoint = UINT256_ZERO;
     BOOL syncDone = NO;
     
     if (! prev) { // block is an orphan
@@ -1398,7 +1465,7 @@ static dispatch_once_t devnetToken = 0;
         [self saveBlocks];
         DSMerkleBlock *b = block;
         
-        for (uint32_t i = 0; b && i < (DGW_PAST_BLOCKS_MAX + 50); i++) {
+        for (uint32_t i = 0; b && i < LLMQ_KEEP_RECENT_BLOCKS; i++) {
             b = self.blocks[uint256_obj(b.prevBlock)];
         }
         NSMutableArray * blocksToRemove = [NSMutableArray array];
@@ -1424,12 +1491,12 @@ static dispatch_once_t devnetToken = 0;
         }
     }
     
-    [self.checkpointsDictionary[@(block.height)] getValue:&checkpoint];
-    
+    DSCheckpoint * checkpoint = [self.checkpointsByHeightDictionary objectForKey:@(block.height)];
+
     // verify block chain checkpoints
-    if (! uint256_is_zero(checkpoint) && ! uint256_eq(block.blockHash, checkpoint)) {
+    if (checkpoint && ! uint256_eq(block.blockHash, checkpoint.checkpointHash)) {
         DSDLog(@"%@:%d relayed a block that differs from the checkpoint at height %d, blockHash: %@, expected: %@",
-              peer.host, peer.port, block.height, blockHash, self.checkpointsDictionary[@(block.height)]);
+              peer.host, peer.port, block.height, blockHash, uint256_hex(checkpoint.checkpointHash));
         [self.chainManager chain:self badBlockReceivedFromPeer:peer];
         return FALSE;
     }
@@ -1524,7 +1591,7 @@ static dispatch_once_t devnetToken = 0;
     
     if (block.height > self.estimatedBlockHeight) {
         _bestEstimatedBlockHeight = block.height;
-        
+        [self saveBlocks];
         [self.chainManager chain:self wasExtendedWithBlock:block fromPeer:peer];
         
         // notify that transaction confirmations may have changed
@@ -1567,7 +1634,8 @@ static dispatch_once_t devnetToken = 0;
             if ([recentOrphans count])  DSDLog(@"%lu recent orphans will be removed from disk",(unsigned long)[recentOrphans count]);
             [DSMerkleBlockEntity deleteObjects:recentOrphans];
         } else {
-            NSArray<DSMerkleBlockEntity *> * oldBlockHeaders = [DSMerkleBlockEntity objectsMatching:@"(chain == %@) && !(blockHash in %@)",self.delegateQueueChainEntity,blocks.allKeys];
+            //remember to not delete blocks needed for quorums
+            NSArray<DSMerkleBlockEntity *> * oldBlockHeaders = [DSMerkleBlockEntity objectsMatching:@"(chain == %@) && !(blockHash in %@) && (usedByQuorums.@count == 0) && masternodeList == NIL",self.delegateQueueChainEntity,blocks.allKeys];
             [DSMerkleBlockEntity deleteObjects:oldBlockHeaders];
         }
         
@@ -2174,6 +2242,13 @@ static dispatch_once_t devnetToken = 0;
     uint32_t timestamp = [decoder decodeInt32ForKey:kTimestampKey];
     uint32_t target = [decoder decodeInt32ForKey:kTargetKey];
     return [self initWithHash:checkpointHash height:height timestamp:timestamp target:target];
+}
+
+-(DSMerkleBlock*)merkleBlockForChain:(DSChain*)chain {
+    return [[DSMerkleBlock alloc] initWithBlockHash:self.checkpointHash onChain:chain version:1 prevBlock:UINT256_ZERO
+                                  merkleRoot:self.merkleRoot timestamp:self.timestamp
+                                      target:self.target nonce:0 totalTransactions:0 hashes:nil
+                                       flags:nil height:self.height];
 }
 
 -(void)encodeWithCoder:(NSCoder *)aCoder {
