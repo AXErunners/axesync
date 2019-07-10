@@ -836,10 +836,11 @@ replacementString:(NSString *)string
                                          [[DSVersionManager sharedInstance] clearKeychainWalletOldData];
                                          [[AxeSync sharedSyncController] stopSyncAllChains];
                                          for (DSChain * chain in [[DSChainsManager sharedInstance] chains]) {
+                                             [[AxeSync sharedSyncController] wipeMasternodeDataForChain:chain];
                                              [[AxeSync sharedSyncController] wipeBlockchainDataForChain:chain];
                                              [[AxeSync sharedSyncController] wipeSporkDataForChain:chain];
-                                             [[AxeSync sharedSyncController] wipeMasternodeDataForChain:chain];
                                              [chain unregisterAllWallets];
+                                             [chain.chainManager.masternodeManager loadFileDistributedMasternodeLists];
                                          }
                                          [self removePin];
                                      }];

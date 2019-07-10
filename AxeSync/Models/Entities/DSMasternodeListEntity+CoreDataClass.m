@@ -18,7 +18,7 @@
 
 @implementation DSMasternodeListEntity
 
--(DSMasternodeList*)masternodeListWithSimplifiedMasternodeEntryPool:(NSDictionary <NSData*,DSSimplifiedMasternodeEntry*>*)simplifiedMasternodeEntries quorumEntryPool:(NSDictionary <NSData*,DSQuorumEntry*>*)quorumEntries {
+-(DSMasternodeList*)masternodeListWithSimplifiedMasternodeEntryPool:(NSDictionary <NSData*,DSSimplifiedMasternodeEntry*>*)simplifiedMasternodeEntries quorumEntryPool:(NSDictionary <NSNumber*,NSDictionary*>*)quorumEntries {
     NSMutableArray * masternodeEntriesArray = [NSMutableArray array];
     for (DSSimplifiedMasternodeEntryEntity * masternodeEntity in self.masternodes) {
         DSSimplifiedMasternodeEntry * masternodeEntry = [simplifiedMasternodeEntries objectForKey:masternodeEntity.providerRegistrationTransactionHash];
@@ -29,13 +29,13 @@
     }
     NSMutableArray * quorumEntriesArray = [NSMutableArray array];
     for (DSQuorumEntryEntity * quorumEntity in self.quorums) {
-        DSQuorumEntry * quorumEntry = [quorumEntries objectForKey:quorumEntity.commitmentHashData];
+        DSQuorumEntry * quorumEntry = [[quorumEntries objectForKey:@(quorumEntity.llmqType)] objectForKey:quorumEntity.quorumHashData];
         if (!quorumEntry) {
             quorumEntry = quorumEntity.quorumEntry;
         }
         [quorumEntriesArray addObject:quorumEntry];
     }
-    return [DSMasternodeList masternodeListWithSimplifiedMasternodeEntries:masternodeEntriesArray quorumEntries:quorumEntriesArray atBlockHash:self.block.blockHash.UInt256 atBlockHeight:self.block.height onChain:self.block.chain.chain];
+    return [DSMasternodeList masternodeListWithSimplifiedMasternodeEntries:masternodeEntriesArray quorumEntries:quorumEntriesArray atBlockHash:self.block.blockHash.UInt256 atBlockHeight:self.block.height withMasternodeMerkleRootHash:self.masternodeListMerkleRoot.UInt256 withQuorumMerkleRootHash:self.quorumListMerkleRoot.UInt256 onChain:self.block.chain.chain];
 }
 
 + (void)deleteAllOnChain:(DSChainEntity*)chainEntity {

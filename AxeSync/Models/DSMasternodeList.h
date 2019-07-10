@@ -7,6 +7,7 @@
 
 #import <Foundation/Foundation.h>
 #import "BigIntTypes.h"
+#import "DSQuorumEntry.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -23,20 +24,25 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic,readonly) UInt256 masternodeMerkleRoot;
 @property (nonatomic,readonly) UInt256 quorumMerkleRoot;
 @property (nonatomic,readonly) NSUInteger quorumsCount;
+@property (nonatomic,readonly) NSUInteger validQuorumsCount;
 @property (nonatomic,readonly) uint64_t masternodeCount;
 @property (nonatomic,readonly) DSChain * chain;
 @property (nonatomic,readonly) NSArray * reversedRegistrationTransactionHashes;
 @property (nonatomic,readonly) NSDictionary<NSData*,DSSimplifiedMasternodeEntry*> *simplifiedMasternodeListDictionaryByReversedRegistrationTransactionHash;
 
-+(instancetype)masternodeListWithSimplifiedMasternodeEntries:(NSArray<DSSimplifiedMasternodeEntry*>*)simplifiedMasternodeEntries quorumEntries:(NSArray<DSQuorumEntry*>*)quorumEntries atBlockHash:(UInt256)blockHash atBlockHeight:(uint32_t)blockHeight onChain:(DSChain*)chain;
++(instancetype)masternodeListWithSimplifiedMasternodeEntries:(NSArray<DSSimplifiedMasternodeEntry*>*)simplifiedMasternodeEntries quorumEntries:(NSArray<DSQuorumEntry*>*)quorumEntries atBlockHash:(UInt256)blockHash atBlockHeight:(uint32_t)blockHeight withMasternodeMerkleRootHash:(UInt256)masternodeMerkleRootHash withQuorumMerkleRootHash:(UInt256)quorumMerkleRootHash onChain:(DSChain*)chain;
 
-+(instancetype)masternodeListWithSimplifiedMasternodeEntriesDictionary:(NSDictionary<NSData*,DSSimplifiedMasternodeEntry*>*)simplifiedMasternodeEntries quorumEntriesDictionary:(NSDictionary<NSNumber*,NSDictionary<NSData*,DSQuorumEntry*>*>*)quorumEntries atBlockHash:(UInt256)blockHash atBlockHeight:(uint32_t)blockHeight onChain:(DSChain*)chain;
++(instancetype)masternodeListWithSimplifiedMasternodeEntriesDictionary:(NSDictionary<NSData*,DSSimplifiedMasternodeEntry*>*)simplifiedMasternodeEntries quorumEntriesDictionary:(NSDictionary<NSNumber*,NSDictionary<NSData*,DSQuorumEntry*>*>*)quorumEntries atBlockHash:(UInt256)blockHash atBlockHeight:(uint32_t)blockHeight withMasternodeMerkleRootHash:(UInt256)masternodeMerkleRootHash withQuorumMerkleRootHash:(UInt256)quorumMerkleRootHash onChain:(DSChain*)chain;
 
 +(instancetype)masternodeListAtBlockHash:(UInt256)blockHash atBlockHeight:(uint32_t)blockHeight fromBaseMasternodeList:(DSMasternodeList*)baseMasternodeList addedMasternodes:(NSDictionary*)addedMasternodes removedMasternodeHashes:(NSArray*)removedMasternodeHashes modifiedMasternodes:(NSDictionary*)modifiedMasternodes addedQuorums:(NSDictionary*)addedQuorums removedQuorumHashesByType:(NSDictionary*)removedQuorumHashesByType onChain:(DSChain*)chain;
 
 -(NSDictionary <NSData*,id>*)scoreDictionaryForQuorumModifier:(UInt256)quorumModifier;
 
 -(NSArray*)scoresForQuorumModifier:(UInt256)quorumModifier;
+
+-(NSUInteger)validQuorumsCountOfType:(DSLLMQType)type;
+
+-(NSUInteger)quorumsCountOfType:(DSLLMQType)type;
 
 -(NSArray<DSSimplifiedMasternodeEntry*>*)masternodesForQuorumModifier:(UInt256)quorumHash quorumCount:(NSUInteger)quorumCount;
 
@@ -45,6 +51,10 @@ NS_ASSUME_NONNULL_BEGIN
 -(UInt256)calculateMasternodeMerkleRoot;
 
 -(NSDictionary*)compare:(DSMasternodeList*)other;
+
+-(NSDictionary*)compareWithPrevious:(DSMasternodeList*)other;
+
+-(NSDictionary*)compare:(DSMasternodeList*)other usingOurString:(NSString*)ours usingTheirString:(NSString*)theirs;
 
 @end
 
