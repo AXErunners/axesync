@@ -21,7 +21,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-#define SPARK_TICKER_URL @"https://api.get-spark.com/list"
+#define SPARK_TICKER_URL @"https://axerunners.com/list"
 
 @interface DSFetchSparkPricesOperation ()
 
@@ -61,7 +61,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 + (NSString *)priceSourceInfo {
-    return @"get-spark.com";
+    return @"axerunners.com";
 }
 
 @end
