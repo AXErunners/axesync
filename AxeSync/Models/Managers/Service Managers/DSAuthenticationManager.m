@@ -840,7 +840,6 @@ replacementString:(NSString *)string
                                              [[AxeSync sharedSyncController] wipeBlockchainDataForChain:chain];
                                              [[AxeSync sharedSyncController] wipeSporkDataForChain:chain];
                                              [chain unregisterAllWallets];
-                                             [chain.chainManager.masternodeManager loadFileDistributedMasternodeLists];
                                          }
                                          [self removePin];
                                      }];

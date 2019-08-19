@@ -78,6 +78,7 @@
 
 @property (copy, nonatomic) NSArray <DSCurrencyPriceObject *> *prices;
 @property (copy, nonatomic) NSDictionary <NSString *, DSCurrencyPriceObject *> *pricesByCode;
+@property (nonatomic, copy) NSString *lastPriceSourceInfo;
 
 @end
 
@@ -189,9 +190,14 @@
         _pricesByCode = [pricesByCode copy];
     }
     
-    NSString * potentialLocalCurrencyCode = [defaults stringForKey:LOCAL_CURRENCY_CODE_KEY];
+    NSString * userCurrencyCode = [defaults stringForKey:LOCAL_CURRENCY_CODE_KEY];
     
-    self.localCurrencyCode = (potentialLocalCurrencyCode) ? potentialLocalCurrencyCode : [[NSLocale currentLocale] objectForKey:NSLocaleCurrencyCode];
+    NSString *systemCurrencyCode = [NSLocale currentLocale].currencyCode;
+    if (_pricesByCode[systemCurrencyCode] == nil) {
+        // if we don't have currency in our plist fallback to default
+        systemCurrencyCode = DEFAULT_CURRENCY_CODE;
+    }
+    self.localCurrencyCode = (userCurrencyCode) ? userCurrencyCode : systemCurrencyCode;
     
     return self;
 }
@@ -230,7 +236,7 @@
     [[NSDecimalNumber decimalNumberWithDecimal:self.localCurrencyAxePrice.decimalValue]
      decimalNumberByMultiplyingBy:(id)[NSDecimalNumber numberWithLongLong:MAX_MONEY/HAKS]];
     
-    if ([self.localCurrencyCode isEqual:[[NSLocale currentLocale] objectForKey:NSLocaleCurrencyCode]]) {
+    if ([self.localCurrencyCode isEqual:[NSLocale currentLocale].currencyCode]) {
         [defs removeObjectForKey:LOCAL_CURRENCY_CODE_KEY];
     }
     else {
@@ -252,7 +258,7 @@
     [self performSelector:@selector(updatePrices) withObject:nil afterDelay:TICKER_REFRESH_TIME];
     
     __weak typeof(self) weakSelf = self;
-    DSOperation *priceOperation = [DSPriceOperationProvider fetchPrices:^(NSArray<DSCurrencyPriceObject *> * _Nullable prices) {
+    DSOperation *priceOperation = [DSPriceOperationProvider fetchPrices:^(NSArray<DSCurrencyPriceObject *> * _Nullable prices, NSString *priceSource) {
         __strong typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf) {
             return;
@@ -265,6 +271,8 @@
                 pricesByCode[priceObject.code] = priceObject;
                 plainPricesByCode[priceObject.code] = priceObject.price;
             }
+            
+            strongSelf.lastPriceSourceInfo = priceSource;
             
             [[NSUserDefaults standardUserDefaults] setObject:plainPricesByCode forKey:PRICESBYCODE_KEY];
             

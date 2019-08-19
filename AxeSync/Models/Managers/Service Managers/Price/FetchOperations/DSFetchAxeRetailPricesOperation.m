@@ -15,35 +15,35 @@
 //  limitations under the License.
 //
 
-#import "DSFetchSparkPricesOperation.h"
+#import "DSFetchAxeRetailPricesOperation.h"
 
-#import "DSHTTPSparkOperation.h"
+#import "DSHTTPAxeRetailOperation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-#define SPARK_TICKER_URL @"https://api.get-spark.com/list"
+#define AXERETAIL_TICKER_URL @"https://rates2.axeretail.org/rates?source=axeretail"
 
-@interface DSFetchSparkPricesOperation ()
+@interface DSFetchAxeRetailPricesOperation ()
 
-@property (strong, nonatomic) DSHTTPSparkOperation *sparkOperation;
+@property (strong, nonatomic) DSHTTPAxeRetailOperation *axeRetailOperation;
 
 @property (copy, nonatomic) void (^fetchCompletion)(NSArray<DSCurrencyPriceObject *> *_Nullable, NSString *priceSource);
 
 @end
 
-@implementation DSFetchSparkPricesOperation
+@implementation DSFetchAxeRetailPricesOperation
 
 - (DSOperation *)initOperationWithCompletion:(void (^)(NSArray<DSCurrencyPriceObject *> *_Nullable, NSString *priceSource))completion {
     self = [super initWithOperations:nil];
     if (self) {
-        HTTPRequest *request = [HTTPRequest requestWithURL:[NSURL URLWithString:SPARK_TICKER_URL]
+        HTTPRequest *request = [HTTPRequest requestWithURL:[NSURL URLWithString:AXERETAIL_TICKER_URL]
                                                     method:HTTPRequestMethod_GET
                                                 parameters:nil];
         request.timeout = 30.0;
         request.cachePolicy = NSURLRequestReloadIgnoringCacheData;
 
-        DSHTTPSparkOperation *operation = [[DSHTTPSparkOperation alloc] initWithRequest:request];
-        _sparkOperation = operation;
+        DSHTTPAxeRetailOperation *operation = [[DSHTTPAxeRetailOperation alloc] initWithRequest:request];
+        _axeRetailOperation = operation;
         _fetchCompletion = [completion copy];
 
         [self addOperation:operation];
@@ -56,12 +56,12 @@ NS_ASSUME_NONNULL_BEGIN
         return;
     }
 
-    NSArray<DSCurrencyPriceObject *> *prices = self.sparkOperation.prices;
+    NSArray<DSCurrencyPriceObject *> *prices = self.axeRetailOperation.prices;
     self.fetchCompletion(prices, [self.class priceSourceInfo]);
 }
 
 + (NSString *)priceSourceInfo {
-    return @"get-spark.com";
+    return @"axeretail.org";
 }
 
 @end
