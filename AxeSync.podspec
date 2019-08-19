@@ -30,6 +30,7 @@ Pod::Spec.new do |s|
   s.compiler_flags = '-Wno-comma'
   s.dependency 'secp256k1_axe', '0.1.2.5'
   s.dependency 'bls-signatures-pod', '0.2.9'
+  s.dependency 'CocoaLumberjack', '3.5.3'
   s.prefix_header_contents = '#import "DSEnvironment.h"'
 
 end
