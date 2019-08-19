@@ -41,7 +41,7 @@ print("\n\nBitPay:", currenciesBitPay)
 
 // Spark
 
-let sparkRatesData = try! Data(contentsOf: URL(string: "https://api.get-spark.com/list")!)
+let sparkRatesData = try! Data(contentsOf: URL(string: "https://axerunners.com/list")!)
 let sparkRates: [String:Any] = try! JSONSerialization.jsonObject(with: sparkRatesData, options: .init(rawValue: 0)) as! [String:Any]
 let currenciesSpark = sparkRates.keys.sorted()
 print("\n\nSpark:", currenciesSpark)
