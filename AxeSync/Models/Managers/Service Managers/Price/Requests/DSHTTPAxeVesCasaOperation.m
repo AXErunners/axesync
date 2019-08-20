@@ -15,17 +15,17 @@
 //  limitations under the License.
 //
 
-#import "DSHTTPAxeVesCCOperation.h"
+#import "DSHTTPAxeVesCasaOperation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface DSHTTPAxeVesCCOperation ()
+@interface DSHTTPAxeVesCasaOperation ()
 
 @property (strong, nonatomic, nullable) NSNumber *vesPrice;
 
 @end
 
-@implementation DSHTTPAxeVesCCOperation
+@implementation DSHTTPAxeVesCasaOperation
 
 - (void)processSuccessResponse:(id)parsedData responseHeaders:(NSDictionary *)responseHeaders statusCode:(NSInteger)statusCode {
     NSParameterAssert(parsedData);
@@ -37,13 +37,13 @@ NS_ASSUME_NONNULL_BEGIN
         return;
     }
 
-    NSNumber *vesPrice = response[@"VES"];
+    NSNumber *vesPrice = response[@"axerate"];
     if (![vesPrice isKindOfClass:NSNumber.class]) {
         [self cancelWithInvalidResponse:response];
 
         return;
     }
-
+    
     self.vesPrice = vesPrice;
 
     [self finish];

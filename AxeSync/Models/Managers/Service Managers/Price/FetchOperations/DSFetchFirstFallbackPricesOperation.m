@@ -21,28 +21,28 @@
 #import "DSCurrencyPriceObject.h"
 #import "DSHTTPBitcoinAvgOperation.h"
 #import "DSHTTPAxeBtcCCOperation.h"
-#import "DSHTTPAxeVesCCOperation.h"
+#import "DSHTTPAxeCasaOperation.h"
 #import "DSOperationQueue.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 #define AXEBTCCC_TICKER_URL @"https://min-api.cryptocompare.com/data/generateAvg?fsym=AXE&tsym=BTC&e=Binance,Kraken,Poloniex,Bitfinex"
 #define BITCOINAVG_TICKER_URL @"https://apiv2.bitcoinaverage.com/indices/global/ticker/short?crypto=BTC"
-#define AXEVESCC_TICKER_URL @"https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=VES"
+#define AXEVESCASA_TICKER_URL @"http://axe.casa/api/?cur=VES"
 
 @interface DSFetchFirstFallbackPricesOperation ()
 
 @property (strong, nonatomic) DSHTTPAxeBtcCCOperation *axeBtcCCOperation;
 @property (strong, nonatomic) DSHTTPBitcoinAvgOperation *bitcoinAvgOperation;
-@property (strong, nonatomic) DSHTTPAxeVesCCOperation *axeVesCCOperation;
+@property (strong, nonatomic) DSHTTPAxeCasaOperation *axeCasaOperation;
 
-@property (copy, nonatomic) void (^fetchCompletion)(NSArray<DSCurrencyPriceObject *> *_Nullable);
+@property (copy, nonatomic) void (^fetchCompletion)(NSArray<DSCurrencyPriceObject *> *_Nullable, NSString *priceSource);
 
 @end
 
 @implementation DSFetchFirstFallbackPricesOperation
 
-- (DSOperation *)initOperationWithCompletion:(void (^)(NSArray<DSCurrencyPriceObject *> *_Nullable))completion {
+- (DSOperation *)initOperationWithCompletion:(void (^)(NSArray<DSCurrencyPriceObject *> *_Nullable, NSString *priceSource))completion {
     self = [super initWithOperations:nil];
     if (self) {
         {
@@ -66,14 +66,14 @@ NS_ASSUME_NONNULL_BEGIN
             [self addOperation:operation];
         }
         {
-            HTTPRequest *request = [HTTPRequest requestWithURL:[NSURL URLWithString:AXEVESCC_TICKER_URL]
+            HTTPRequest *request = [HTTPRequest requestWithURL:[NSURL URLWithString:AXEVESCASA_TICKER_URL]
                                                         method:HTTPRequestMethod_GET
                                                     parameters:nil];
             request.timeout = 30.0;
             request.cachePolicy = NSURLRequestReloadIgnoringCacheData;
 
-            DSHTTPAxeVesCCOperation *operation = [[DSHTTPAxeVesCCOperation alloc] initWithRequest:request];
-            _axeVesCCOperation = operation;
+            DSHTTPAxeCasaOperation *operation = [[DSHTTPAxeCasaOperation alloc] initWithRequest:request];
+            _axeCasaOperation = operation;
             [self addOperation:operation];
         }
 
@@ -90,7 +90,7 @@ NS_ASSUME_NONNULL_BEGIN
     if (errors.count > 0) {
         [self.axeBtcCCOperation cancel];
         [self.bitcoinAvgOperation cancel];
-        [self.axeVesCCOperation cancel];
+        [self.axeCasaOperation cancel];
     }
 }
 
@@ -100,17 +100,17 @@ NS_ASSUME_NONNULL_BEGIN
     }
 
     if (errors.count > 0) {
-        self.fetchCompletion(nil);
+        self.fetchCompletion(nil, [self.class priceSourceInfo]);
 
         return;
     }
 
     double axeBtcPrice = self.axeBtcCCOperation.axeBtcPrice.doubleValue;
     NSDictionary<NSString *, NSNumber *> *pricesByCode = self.bitcoinAvgOperation.pricesByCode;
-    NSNumber *vesPriceNumber = self.axeVesCCOperation.vesPrice;
+    NSNumber *axerateNumber = self.axeCasaOperation.axerate;
 
-    if (!pricesByCode || axeBtcPrice < DBL_EPSILON || !vesPriceNumber) {
-        self.fetchCompletion(nil);
+    if (!pricesByCode || axeBtcPrice < DBL_EPSILON || !axerateNumber) {
+        self.fetchCompletion(nil, [self.class priceSourceInfo]);
 
         return;
     }
@@ -119,7 +119,7 @@ NS_ASSUME_NONNULL_BEGIN
     for (NSString *code in pricesByCode) {
         double price = 0.0;
         if ([code isEqualToString:@"VES"]) {
-            price = vesPriceNumber.doubleValue * axeBtcPrice;
+            price = axerateNumber.doubleValue;
         }
         else {
             double btcPrice = [pricesByCode[code] doubleValue];
@@ -134,7 +134,11 @@ NS_ASSUME_NONNULL_BEGIN
         }
     }
 
-    self.fetchCompletion([prices copy]);
+    self.fetchCompletion([prices copy], [self.class priceSourceInfo]);
+}
+
++ (NSString *)priceSourceInfo {
+    return @"cryptocompare.com, bitcoinaverage.com, axe.casa";
 }
 
 @end

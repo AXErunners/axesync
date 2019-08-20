@@ -99,7 +99,7 @@
 "enter old passcode" = "이전 암호 입력";
 
 /* No comment provided by engineer. */
-"Error from payment request server %@" = "Error from payment request server %@";
+"Error from payment request server %@" = "지불 요청 서버 %@ 에 오류 발생";
 
 /* No comment provided by engineer. */
 "error signing axe transaction" = "대쉬 거래 서명 중 오류 발생";

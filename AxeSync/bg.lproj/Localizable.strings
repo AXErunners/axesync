@@ -99,7 +99,7 @@
 "enter old passcode" = "въведете старата парола";
 
 /* No comment provided by engineer. */
-"Error from payment request server %@" = "Error from payment request server %@";
+"Error from payment request server %@" = "Грешка от изискващият плащане сървър %@";
 
 /* No comment provided by engineer. */
 "error signing axe transaction" = "грешка при подписване на Axe транзакция";
