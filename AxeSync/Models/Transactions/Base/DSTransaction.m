@@ -40,7 +40,6 @@
 #import "DSAccount.h"
 #import "DSWallet.h"
 #import "DSTransactionEntity+CoreDataClass.h"
-#import "DSTransactionLockVote.h"
 #import "DSChainEntity+CoreDataClass.h"
 #import "DSTransactionHashEntity+CoreDataClass.h"
 #import "DSInstantSendTransactionLock.h"
@@ -49,9 +48,9 @@
 
 @property (nonatomic, strong) DSChain * chain;
 @property (nonatomic, assign) BOOL saved; //don't trust this
-@property (nonatomic, strong) NSDictionary<NSValue*,NSArray<DSTransactionLockVote*>*>* transactionLockVotesDictionary;
 @property (nonatomic, strong) DSInstantSendTransactionLock * instantSendLockAwaitingProcessing;
 @property (nonatomic, assign) BOOL instantSendReceived;
+@property (nonatomic, assign) BOOL confirmed;
 @property (nonatomic, assign) BOOL hasUnverifiedInstantSendLock;
 
 @end
@@ -100,6 +99,7 @@
     self.sequences = [NSMutableArray array];
     self.chain = chain;
     self.saved = FALSE;
+    self.hasUnverifiedInstantSendLock = NO;
     _lockTime = TX_LOCKTIME;
     _blockHeight = TX_UNCONFIRMED;
     return self;
@@ -128,7 +128,7 @@
         off += l.unsignedIntegerValue;
         
         for (NSUInteger i = 0; i < count; i++) { // inputs
-            [self.hashes addObject:uint256_obj([message hashAtOffset:off])];
+            [self.hashes addObject:uint256_obj([message UInt256AtOffset:off])];
             off += sizeof(UInt256);
             [self.indexes addObject:@([message UInt32AtOffset:off])]; // input index
             off += sizeof(uint32_t);
@@ -341,7 +341,7 @@
 - (NSString *)description
 {
     NSString *txid = [NSString hexWithData:[NSData dataWithBytes:self.txHash.u8 length:sizeof(UInt256)].reverse];
-    return [NSString stringWithFormat:@"%@(id=%@)", [self class], txid];
+    return [NSString stringWithFormat:@"%@(id=%@-block=%@)", [self class], txid, (self.blockHeight == TX_UNCONFIRMED)?@"Not mined":@(self.blockHeight)];
 }
 
 - (NSString *)longDescription
@@ -643,40 +643,6 @@
 
 // MARK: - Instant Send
 
-// v13
-
--(void)setInstantSendReceivedWithTransactionLockVotes:(NSMutableDictionary<NSValue*,NSArray<DSTransactionLockVote*>*>*)transactionLockVotes {
-    BOOL instantSendReceived = !!transactionLockVotes.count;
-    self.transactionLockVotesDictionary = transactionLockVotes;
-    for (NSValue * key in transactionLockVotes) {
-        NSUInteger inputLockVotes = 0;
-        NSArray * lockVotesForInput = transactionLockVotes[key];
-        for (DSTransactionLockVote * transactionLockVote in lockVotesForInput) {
-            if (transactionLockVote.quorumVerified && transactionLockVote.signatureVerified) {
-                [transactionLockVote save]; //only save the good ones
-                inputLockVotes++;
-            } else {
-                DSDLog(@"A transaction lock vote was bad");
-            }
-        }
-        BOOL inputLocked = inputLockVotes > 5;
-        if (!inputLocked) {
-            DSDLog(@"The input could not be locked");
-        }
-        instantSendReceived &= inputLocked;
-    }
-    self.instantSendReceived = instantSendReceived;
-}
-
--(NSArray*)transactionLockVotes {
-    NSMutableArray * array = [NSMutableArray array];
-    for (NSValue * key in self.transactionLockVotesDictionary) {
-        NSArray * votesForInput = self.transactionLockVotesDictionary[key];
-        [array addObjectsFromArray:votesForInput];
-    }
-    return array;
-}
-
 // v14
 
 -(void)setInstantSendReceivedWithInstantSendLock:(DSInstantSendTransactionLock*)instantSendLock {
@@ -690,6 +656,22 @@
     if (!instantSendLock.saved) {
         [instantSendLock save];
     }
+}
+
+-(uint32_t)confirmations {
+    if (self.blockHeight == TX_UNCONFIRMED) return 0;
+    const uint32_t lastHeight = self.chain.lastBlockHeight;
+    return lastHeight - self.blockHeight;
+}
+
+-(BOOL)confirmed {
+    if (_confirmed) return YES; //because it can't be unconfirmed
+    if (self.blockHeight == TX_UNCONFIRMED) return NO;
+    const uint32_t lastHeight = self.chain.lastBlockHeight;
+    if (self.blockHeight > self.chain.lastBlockHeight) return NO; //maybe a reorg?
+    if (lastHeight - self.blockHeight > 6) return YES;
+    _confirmed = [self.chain blockHeightChainLocked:self.blockHeight];
+    return _confirmed;
 }
 
 // MARK: - Polymorphic data
@@ -788,20 +770,28 @@
     return transactionEntity;
 }
 
+-(BOOL)setInitialPersistentAttributesInContext:(NSManagedObjectContext*)context {
+    [DSChainEntity setContext:context];
+    Class transactionEntityClass = [self entityClass];
+    [transactionEntityClass setContext:context];
+    [DSTransactionHashEntity setContext:context];
+    if ([DSTransactionEntity countObjectsMatching:@"transactionHash.txHash == %@", uint256_data(self.txHash)] == 0) {
+        
+        DSTransactionEntity * transactionEntity = [transactionEntityClass managedObject];
+        [transactionEntity setAttributesFromTransaction:self];
+        return YES;
+    } else {
+        return NO;
+    }
+}
+
 -(BOOL)saveInitial {
     if (self.saved) return nil;
     NSManagedObjectContext * context = [DSTransactionEntity context];
     __block BOOL didSave = FALSE;
     [context performBlockAndWait:^{ // add the transaction to core data
-        [DSChainEntity setContext:context];
-        Class transactionEntityClass = [self entityClass];
-        [transactionEntityClass setContext:context];
-        [DSTransactionHashEntity setContext:context];
-        if ([DSTransactionEntity countObjectsMatching:@"transactionHash.txHash == %@", uint256_data(self.txHash)] == 0) {
-            
-            DSTransactionEntity * transactionEntity = [transactionEntityClass managedObject];
-            [transactionEntity setAttributesFromTransaction:self];
-            [transactionEntityClass saveContext];
+        if ([self setInitialPersistentAttributesInContext:context]) {
+            [DSTransactionEntity saveContext];
             didSave = TRUE;
         }
     }];

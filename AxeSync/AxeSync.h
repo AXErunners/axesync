@@ -7,6 +7,9 @@
 //
 
 #import <UIKit/UIKit.h>
+
+#import "DSError.h"
+
 #import "DSReachabilityManager.h"
 #import "DSEnvironment.h"
 #import "DSPeerManager.h"
@@ -23,6 +26,8 @@
 #import "DSAuthenticationKeysDerivationPath.h"
 #import "DSMasternodeHoldingsDerivationPath.h"
 #import "DSFundsDerivationPath.h"
+
+#import "DSSparseMerkleTree.h"
 
 #import "DSChainsManager.h"
 #import "DSChainManager.h"
@@ -47,6 +52,7 @@
 #import "NSMutableData+Axe.h"
 #import "DSOptionsManager.h"
 #import "NSData+Axe.h"
+#import "NSArray+Axe.h"
 #import "NSDate+Utils.h"
 #import "DSLocalMasternodeEntity+CoreDataProperties.h"
 #import "DSAddressEntity+CoreDataProperties.h"
@@ -60,6 +66,7 @@
 #import "DSSporkEntity+CoreDataProperties.h"
 #import "DSTransactionEntity+CoreDataProperties.h"
 #import "DSTransactionHashEntity+CoreDataProperties.h"
+#import "DSChainLockEntity+CoreDataProperties.h"
 #import "DSTxOutputEntity+CoreDataProperties.h"
 #import "DSTxInputEntity+CoreDataProperties.h"
 #import "DSSimplifiedMasternodeEntry.h"
@@ -70,6 +77,7 @@
 #import "DSProviderRegistrationTransaction.h"
 #import "DSProviderUpdateServiceTransaction.h"
 #import "DSProviderUpdateRegistrarTransaction.h"
+#import "DSProviderUpdateRevocationTransaction.h"
 
 #import "DSSimplifiedMasternodeEntryEntity+CoreDataProperties.h"
 #import "NSManagedObject+Sugar.h"
@@ -109,6 +117,10 @@ FOUNDATION_EXPORT const unsigned char AxeSyncVersionString[];
 
 + (instancetype)sharedSyncController;
 
+/// Registration must be complete before the end of application:didFinishLaunchingWithOptions:
+- (void)registerBackgroundFetchOnce;
+- (void)setupAxeSyncOnce;
+
 -(void)startSyncForChain:(DSChain* _Nonnull)chain;
 -(void)stopSyncForChain:(DSChain* _Nonnull)chain;
 -(void)stopSyncAllChains;
@@ -121,6 +133,9 @@ FOUNDATION_EXPORT const unsigned char AxeSyncVersionString[];
 -(void)wipeWalletDataForChain:(DSChain* _Nonnull)chain forceReauthentication:(BOOL)forceReauthentication;
 
 -(uint64_t)dbSize;
+
+- (void)scheduleBackgroundFetch;
+- (void)performFetchWithCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler;
 
 @end
 

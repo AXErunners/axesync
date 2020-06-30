@@ -14,6 +14,7 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
     // Override point for customization after application launch.
+    [NSString setAxeCurrencySymbolAssetName:@"icon_axe_currency"];
     [DSLogger sharedInstance];
     [[DSAuthenticationManager sharedInstance] setOneTimeShouldUseAuthentication:TRUE];
     [AxeSync sharedSyncController];

@@ -36,16 +36,16 @@ NS_ASSUME_NONNULL_BEGIN
 #define TESTNET_DAPI_STANDARD_PORT 3000
 #define DEVNET_DAPI_STANDARD_PORT 3000
 
-#define PROTOCOL_VERSION_MAINNET   70215
-#define DEFAULT_MIN_PROTOCOL_VERSION_MAINNET  70214
+#define PROTOCOL_VERSION_MAINNET   70216
+#define DEFAULT_MIN_PROTOCOL_VERSION_MAINNET  70215
 
-#define PROTOCOL_VERSION_TESTNET   70215
-#define DEFAULT_MIN_PROTOCOL_VERSION_TESTNET  70214
+#define PROTOCOL_VERSION_TESTNET   70216
+#define DEFAULT_MIN_PROTOCOL_VERSION_TESTNET  70215
 
-#define PROTOCOL_VERSION_DEVNET   70215
-#define DEFAULT_MIN_PROTOCOL_VERSION_DEVNET  70213
+#define PROTOCOL_VERSION_DEVNET   70216
+#define DEFAULT_MIN_PROTOCOL_VERSION_DEVNET  70215
 
-#define MAX_VALID_MIN_PROTOCOL_VERSION 70215
+#define MAX_VALID_MIN_PROTOCOL_VERSION 70216
 #define MIN_VALID_MIN_PROTOCOL_VERSION 70213
 
 #define AXE_MAGIC_NUMBER_TESTNET 0xffcae2ce
@@ -80,6 +80,8 @@ FOUNDATION_EXPORT NSString* const DSChainBlockchainUsersDidChangeNotification;
 FOUNDATION_EXPORT NSString* const DSChainStandaloneDerivationPathsDidChangeNotification;
 FOUNDATION_EXPORT NSString* const DSChainStandaloneAddressesDidChangeNotification;
 FOUNDATION_EXPORT NSString* const DSChainBlocksDidChangeNotification;
+FOUNDATION_EXPORT NSString* const DSChainBlockWasLockedNotification;
+FOUNDATION_EXPORT NSString* const DSChainNotificationBlockKey;
 FOUNDATION_EXPORT NSString* const DSChainNewChainTipBlockNotification;
 
 @class DSWallet,DSMerkleBlock,DSChainManager,DSPeer,DSChainEntity,DSDerivationPath,DSTransaction,DSAccount,DSSimplifiedMasternodeEntry,DSBlockchainUser,DSBloomFilter,DSProviderRegistrationTransaction,DSChain;
@@ -217,7 +219,7 @@ FOUNDATION_EXPORT NSString* const DSChainNewChainTipBlockNotification;
 -(NSArray<DSDerivationPath*>*)standardDerivationPathsForAccountNumber:(uint32_t)accountNumber;
 
 // fee that will be added for a transaction of the given size in bytes
-- (uint64_t)feeForTxSize:(NSUInteger)size isInstant:(BOOL)isInstant inputCount:(NSInteger)inputCount;
+- (uint64_t)feeForTxSize:(NSUInteger)size;
 
 //-(void)registerVotingKey:(NSData*)votingKey forMasternodeEntry:(DSSimplifiedMasternodeEntry*)masternodeEntry;
 
@@ -240,6 +242,9 @@ FOUNDATION_EXPORT NSString* const DSChainNewChainTipBlockNotification;
 
 - (DSCheckpoint* _Nullable)checkpointForBlockHeight:(uint32_t)blockHeight;
 
+//Is there a block at the following height that is confirmed?
+- (BOOL)blockHeightChainLocked:(uint32_t)height;
+
 - (DSMerkleBlock * _Nullable)blockAtHeight:(uint32_t)height;
 
 - (DSMerkleBlock * _Nullable)blockForBlockHash:(UInt256)blockHash;
@@ -258,13 +263,9 @@ FOUNDATION_EXPORT NSString* const DSChainNewChainTipBlockNotification;
 
 - (BOOL)transactionHasLocalReferences:(DSTransaction*)transaction;
 
-- (void)registerSpecialTransaction:(DSTransaction*)transaction;
+- (void)registerSpecialTransaction:(DSTransaction*)transaction saveImmediately:(BOOL)saveImmediately;
 
 - (void)triggerUpdatesForLocalReferences:(DSTransaction*)transaction;
-/**
- Check if Autolocks DIP is enabled and transaction can be Autolocked with `inputCount` provided
- */
-- (BOOL)canUseAutoLocksWithInputCount:(NSInteger)inputCount;
 
 - (void)updateAddressUsageOfSimplifiedMasternodeEntries:(NSArray*)simplifiedMasternodeEntries;
 

@@ -63,9 +63,9 @@
 #define DSDLog(...)
 #endif
 
-#define TESTNET_DNS_SEEDS @[@"testnet-seed.axedot.io"]
+#define TESTNET_DNS_SEEDS @[@"seed2.0313370.xyz"]
 
-#define MAINNET_DNS_SEEDS @[@"dnsseed.axe.org",@"dnsseed.axedot.io"]
+#define MAINNET_DNS_SEEDS @[@"seed1.0313370.xyz",@"seed2.0313370.xyz"]
 
 #define TESTNET_MAIN_PEER @""//@"52.36.64.148:19999"
 
@@ -652,7 +652,7 @@
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 NSError *error = [NSError errorWithDomain:@"AxeSync" code:1
-                                                 userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"no peers found", nil)}];
+                                                 userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"No peers found", nil)}];
                 
                 [[NSNotificationCenter defaultCenter] postNotificationName:DSTransactionManagerSyncFailedNotification
                                                                     object:nil userInfo:@{@"error":error,DSChainManagerNotificationChainKey:self.chain}];

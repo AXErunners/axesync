@@ -1,36 +1,18 @@
 
 /* No comment provided by engineer. */
-" and " = " oraz ";
-
-/* No comment provided by engineer. */
-", " = ", ";
-
-/* No comment provided by engineer. */
 "\n         total %@ (%@)" = "\n         suma %1$@ (%2$@)";
-
-/* No comment provided by engineer. */
-"\n%d attempts remaining\n" = "\npozostało %d prób\n";
 
 /* No comment provided by engineer. */
 "\n(local requested amount: %@)" = "(żądana ilość: 1%@)";
 
 /* No comment provided by engineer. */
-"\n1 attempt remaining\n" = "\npozostała jedna próba\n";
-
-/* No comment provided by engineer. */
 "\n\n     amount %@ (%@)" = "\n\n     kwota %1$@ (%2$@)";
 
 /* No comment provided by engineer. */
-"\nADDRESS ALREADY USED\naxe addresses are intended for single use only\n\nre-use reduces privacy for both you and the recipient and can result in loss if the recipient doesn't directly control the address" = "\nTEN ADRES BYŁ WCZEŚNIEJ UŻYTY\n\nadresy axe są przeznaczone do jednorazowego użytku\n\nponowne użycie zmniejsza prywatność twoją i odbiorcy, a także może skutkować utratą pieniędzy, jeśli odbiorca nie kontroluje adresu";
+"\nADDRESS ALREADY USED\nAxe addresses are intended for single use only\n\nre-use reduces privacy for both you and the recipient and can result in loss if the recipient doesn't directly control the address" = "\nTEN ADRES BYŁ WCZEŚNIEJ UŻYTY\nAdresy Axe są przeznaczone do jednorazowego użytku\n\nponowne użycie zmniejsza prywatność twoją i odbiorcy, a także może skutkować utratą pieniędzy, jeśli odbiorca nie kontroluje adresu";
 
 /* No comment provided by engineer. */
 "\nnetwork fee +%@ (%@)" = "\nprowizje sieci +%1$@ (%2$@)";
-
-/* No comment provided by engineer. */
-"\nno attempts remaining" = "\nbrak pozostałych prób";
-
-/* No comment provided by engineer. */
-"\ntry again in %d %@" = "\nspróbuj ponownie za %1$d %2$@";
 
 /* No comment provided by engineer. */
 "Are you sure you would like to reclaim this masternode?" = "Czy jesteś pewien ze chcesz odzyskać ego masternoda?";
@@ -54,79 +36,67 @@
 "Are you sure you would like to update this masternode to pay to %@?" = "Czy jesteś pewien, że chcesz aktualizować tego masternoda aby płacił do %@?";
 
 /* No comment provided by engineer. */
-"bad password, try again" = "błedne hasło, spróbuj ponownie";
+"Bad password, try again" = "Złe hasło, spróbuj ponownie";
 
 /* No comment provided by engineer. */
-"bad payment request" = "błędny żądanie zapłaty";
+"Bad payment request" = "Błędna prośba o płatność";
 
 /* No comment provided by engineer. */
-"bad payment request URL" = "błędny URL żądania zapłaty";
+"Bad payment request URL" = "Błędny URL żądania płatności";
 
 /* No comment provided by engineer. */
-"bad payment URL" = "błędny URL zapłaty";
+"Bad payment URL" = "Błędny URL płatności";
 
 /* No comment provided by engineer. */
-"cancel" = "anuluj";
-
-/* No comment provided by engineer. */
-"choose passcode for %@" = "ustal hasło dla %@";
+"Cancel" = "Anuluj";
 
 /* No comment provided by engineer. */
 "Confirm" = "Potwierdź";
 
 /* No comment provided by engineer. */
-"connect timeout" = "nieudana próba połączenia";
+"Confirm PIN" = "Potwierdź kod PIN";
 
 /* No comment provided by engineer. */
-"couldn't make payment" = "płatność nieudana";
+"Connect timeout" = "Limit czasu połączenia";
 
 /* No comment provided by engineer. */
-"axe payments can't be less than %@" = "płatności axe nie mogą być mniejsze niż %@";
+"Couldn't make payment" = "Nie można dokonać płatności";
 
 /* No comment provided by engineer. */
-"axe transaction not signed" = "transakcja axe nie podpisana";
+"Axe payments can't be less than %@" = "Płatności Axe nie mogą być mniejsze niż %@";
 
 /* No comment provided by engineer. */
-"axe transaction outputs can't be less than %@" = "wyjścia transakcji axe nie mogą być mniejsze niż %@";
+"Axe transaction not signed" = "Transakcja Axe nie została podpisana";
+
+/* No comment provided by engineer. */
+"Axe transaction outputs can't be less than %@" = "Dane wyjściowe transakcji Axe nie mogą być mniejsze niż %@";
 
 /* No comment provided by engineer. */
 "Devnet" = "Devnet";
 
 /* No comment provided by engineer. */
-"double spend" = "podwójny wydatek";
+"Double spend" = "Podwójne wydatkowanie";
+
+/* The server is not working */
+"Down" = "W dół";
 
 /* No comment provided by engineer. */
-"enter old passcode" = "wprowadź stare hasło";
+"Enter old PIN" = "Wpisz stary kod PIN";
 
 /* No comment provided by engineer. */
 "Error from payment request server %@" = "Błąd z serwera żądań płatności %@";
 
 /* No comment provided by engineer. */
-"error signing axe transaction" = "błąd podczas podpisywania transakcji axe";
+"Error signing transaction" = "Błąd podpisywania transakcji";
 
 /* No comment provided by engineer. */
-"error signing transaction" = "błąd podczas podpisywania transakcji";
+"Ignore" = "Zignoruj";
 
 /* No comment provided by engineer. */
-"hour" = "godzina";
+"Insufficient funds" = "Niewystarczająca ilość funduszy";
 
 /* No comment provided by engineer. */
-"hours" = "godziny";
-
-/* No comment provided by engineer. */
-"ignore" = "ignoruj";
-
-/* No comment provided by engineer. */
-"instant payment" = "płatność natychmiastowa";
-
-/* No comment provided by engineer. */
-"InstantSend requires enough inputs with 6 confirmations, send anyways as regular transaction?" = "InstantSend wymaga funduszy wejściowych z 6 potwierdzeniami, wysłać jako normalną transakcję?";
-
-/* No comment provided by engineer. */
-"insufficient funds" = "brak środków";
-
-/* No comment provided by engineer. */
-"insufficient funds for axe network fee" = "brak środków na prowizję";
+"Insufficient funds for Axe network fee" = "Niewystarczające środki na opłatę w sieć Axe";
 
 /* No comment provided by engineer. */
 "Internal Error" = "Błąd wewnętrzny";
@@ -147,106 +117,97 @@
 "Method Not Found" = "Metoda nieznaleziona";
 
 /* No comment provided by engineer. */
-"minute" = "minuta";
+"Missing certificate" = "Brak certyfikatu";
 
 /* No comment provided by engineer. */
-"minutes" = "minuty";
+"No attempts remaining" = "Brak pozostałych prób";
 
 /* No comment provided by engineer. */
-"missing certificate" = "brak certyfikatu";
+"No peers found" = "Nie znaleziono peers";
 
 /* No comment provided by engineer. */
-"no peers found" = "nie znaleziono węzłów sieci";
+"Not a valid private key" = "Niepoprawny klucz prywatny";
 
 /* No comment provided by engineer. */
-"not a valid private key" = "nieprawidłowy klucz prywatny";
+"Not connected to the Axe network" = "Brak połączenia z siecią Axe";
 
 /* No comment provided by engineer. */
-"not connected to the axe network" = "nie połączono z siecią axe";
-
-/* No comment provided by engineer. */
-"ok" = "ok";
+"OK" = "OK";
 
 /* No comment provided by engineer. */
 "Parse Error" = "Błąd analizy";
 
 /* No comment provided by engineer. */
-"passcode" = "PIN";
+"Passcode" = "Kod dostępu";
 
 /* No comment provided by engineer. */
-"passcode for %@" = "PIN dla %@";
+"Password" = "Hasło";
 
 /* No comment provided by engineer. */
-"password" = "hasło";
+"Password protected key" = "Klucz chroniony hasłem";
 
 /* No comment provided by engineer. */
-"password protected key" = "klucz chroniony hasłem";
+"Payee identity isn't certified" = "Tożsamość odbiorcy nie jest certyfikowana";
 
 /* No comment provided by engineer. */
-"payee identity isn't certified" = "tożsamość odbiorcy nie jest certyfikowana";
+"PIN for %@" = "PIN dla %@";
+
+/* Please authenticate to create your Testnet wallet */
+"Please authenticate to create your %@ wallet" = "Proszę o autentykację aby stworzyć twój %@ portfel";
 
 /* No comment provided by engineer. */
-"recovery phrase" = "fraza odzyskiwania danych";
+"Recovery phrase" = "Fraza do odzysku portfela";
 
 /* No comment provided by engineer. */
-"recovery phrase doesn't match" = "fraza odzyskiwania nieprawidłowa";
+"Reduce payment amount by\n%@ (%@)?" = "Zmniejszyć kwotę płatności o\n%1$@ (%2$@)?";
 
 /* No comment provided by engineer. */
-"reduce payment amount by\n%@ (%@)?" = "zmniejszyć kwotę płatności o\n%1$@ (%2$@)?";
+"Request expired" = "Wniosek się przedawnił";
 
 /* No comment provided by engineer. */
-"request expired" = "wniosek się przedawnił";
+"Requested network \"%@\" not currently in use" = "Żądana sieć \"%@\" aktualnie nie jest używana";
 
 /* No comment provided by engineer. */
-"requested network \"%@\" not currently in use" = "Żądana sieć \"%@\" aktualnie nie jest używana";
+"Rescan" = "Ponownie zeskanuj";
 
 /* No comment provided by engineer. */
-"rescan" = "ponownie zeskanuj";
-
-/* No comment provided by engineer. */
-"reset" = "resetuj";
-
-/* No comment provided by engineer. */
-"retry" = "spróbuj ponownie";
-
-/* No comment provided by engineer. */
-"second" = "sekunda";
-
-/* No comment provided by engineer. */
-"seconds" = "sekundy";
-
-/* No comment provided by engineer. */
-"send" = "wyślij";
+"Reset" = "Resetuj";
 
 /* No comment provided by engineer. */
 "Server Error" = "Błąd serwera";
 
 /* No comment provided by engineer. */
+"Set PIN" = "Ustaw PIN";
+
+/* No comment provided by engineer. */
 "Testnet" = "Testnet";
 
 /* No comment provided by engineer. */
-"this payment address is already in your wallet" = "ten adres do celów płatności jest już w twoim portfelu";
+"This payment address is already in your wallet" = "Ten adres do celów płatności jest już w twoim portfelu";
 
 /* No comment provided by engineer. */
-"this private key is already in your wallet" = "ten klucz prywatny jest już w twoim portfelu";
+"This private key is already in your wallet" = "Ten klucz prywatny jest już w twoim portfelu";
 
 /* No comment provided by engineer. */
-"this private key is empty" = "ten klucz prywatny jest pusty";
+"This private key is empty" = "Ten klucz prywatny jest pusty";
 
 /* No comment provided by engineer. */
-"This request requires an instant payment but you do not have enough inputs with 6 confirmations required by InstantSend, you may ask the merchant to accept a normal transaction or wait a few minutes." = "To żądanie wymaga natychmiastowej płatności ale nie masz wystarczającej ilości środków z 6 potwierdzeniami wymaganymi przez InstantSend. Spytaj się odbiorcy czy zaakceptuje zwykłą transakcję lub czy może poczekać kilka minut.";
+"Transaction canceled, network timeout" = "Transakcja anulowana, przekroczono limit czasu oczekiwania sieci";
 
 /* No comment provided by engineer. */
-"transaction canceled, network timeout" = "transakcja anulowana, przekroczono limit czasu oczekiwania sieci";
+"Transaction fees would cost more than the funds available on this private key (due to tiny \"dust\" deposits)" = "Prowizje kosztowałyby więcej niż środki dostępne na tym kluczu prywatnym (ze względu na małe depozyty; tak zwany \"pył\")";
 
 /* No comment provided by engineer. */
-"transaction fees would cost more than the funds available on this private key (due to tiny \"dust\" deposits)" = "prowizje kosztowałyby więcej niż środki dostępne na tym kluczu prywatnym (ze względu na małe depozyty; tak zwany \"pył\")";
+"Transaction rejected" = "Transakcja odrzucona";
 
 /* No comment provided by engineer. */
-"transaction rejected" = "transakcja odrzucona";
+"Try again in %@" = "Spróbuj ponownie za %@";
 
 /* No comment provided by engineer. */
-"unexpected response from %@" = "niespodziewana odpowiedź od %@";
+"Unexpected response from %@" = "Nieoczekiwana odpowiedź od %@";
+
+/* No comment provided by engineer. */
+"Unknown address" = "Nieznany adres";
 
 /* No comment provided by engineer. */
 "Unknown Error" = "Nieznany błąd";
@@ -255,28 +216,28 @@
 "Unknown JSON-RPC Response" = "Nieznana odpowiedź JSON-RPC";
 
 /* No comment provided by engineer. */
-"unrecognized address" = "nierozpoznany adres";
+"Unrecognized address" = "Nierozpoznany adres";
 
 /* No comment provided by engineer. */
-"unsupported signature type" = "nieobsługiwany typ podpisu";
+"Unsupported signature type" = "Nieobsługiwany typ podpisu";
 
 /* No comment provided by engineer. */
-"untrusted certificate" = "niezaufany certyfikat";
+"Untrusted certificate" = "Niezaufany certyfikat";
+
+/* The server is up and running */
+"Up" = "W górę";
 
 /* Updating Price */
 "Updating Price" = "Aktualizacja Ceny";
 
 /* No comment provided by engineer. */
-"verify passcode" = "potwierdź hasło";
-
-/* No comment provided by engineer. */
-"wallet disabled" = "portfel wyłączony";
+"Wallet disabled" = "Portfel zdezaktywowany";
 
 /* No comment provided by engineer. */
 "WARNING" = "UWAGA";
 
 /* No comment provided by engineer. */
-"wipe" = "wyczyść";
+"Wipe" = "Wyczyść";
 
 /* No comment provided by engineer. */
 "Your wallet may be out of sync.\nThis can often be fixed by rescanning the blockchain." = "Twój portfel może nie być zsynchronizowany.\nTo często można naprawić przez ponowne przeskanowanie łańcucha bloków.";
