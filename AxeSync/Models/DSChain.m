@@ -76,7 +76,16 @@
 typedef const struct checkpoint { uint32_t height; const char *checkpointHash; uint32_t timestamp; uint32_t target; const char * masternodeListPath; const char * merkleRoot;} checkpoint;
 
 static checkpoint testnet_checkpoint_array[] = {
-    {           0, "00000381388b90aff350a4d5913d4a50fed79159a3a687470e01ca1527e87568", 1518140232, 0x1e0ffff0u, "", "" }
+    {           0, "000005b709662e7bc5e89c71d3aba6c9d4623b4bbf44ac205caec55f4cefb483", 1580749200, 0x1e0ffff0u, "", "" },
+    {        1500, "00000211d5211059442c308c0751f194aa12be477ffbc3c913062e4d0330f1af", 1580886238, 0x1e040a73u, "", "" },
+    {        2000, "00000118e13c6472b914793ac975cabb1ea945a83f87a0884f584bb085e01eb6", 1580947129, 0x1e0264fbu, "", "" },
+    {        5000, "0000020915cf11be7d52087ec38469e19674a7b1bdd2b8801adeab02a4aaf9b0", 1581458122, 0x1e0450ffu, "", "" },
+    {       10000, "000002133e1ddd03aecbe692749b95ecf7ecb498585f2fa59524f82f41a35d8a", 1582055079, 0x1e0367b0u, "", "" },
+    {       20000, "00000180fcd1def7ffcf511088ffc867c8765c9cb40442009500bac0044b3297", 1583304704, 0x1e057392u, "", "" },
+    {       40000, "000000646e696c0ebcb185b1bd20405ef1f3c6aee9c863b34c30934624ebc040", 1585815977, 0x1e025a3fu, "", "" },
+    {       60000, "00000019ff8c718ca2f04b221a93eebf4a7f0abf7b8ed30a1b07336589642cb5", 1588323741, 0x1e0234bau, "", "" },
+    {       80000, "0000039acc3d0a4da8365cff7a8bdc645bc3b8b480f4419e49afc6e01028eeee", 1590841261, 0x1e0491acu, "", "" },
+    {      100000, "0000016282d452be06390c6e138c4992bd67a50bf0f93852e9d71500b5ea0f1d", 1593342670, 0x1e03c70bu, "", "" }
 };
 
 // blockchain checkpoints - these are also used as starting points for partial chain downloads, so they need to be at
