@@ -67,7 +67,7 @@
 
 #define MAINNET_DNS_SEEDS @[@"seed1.0313370.xyz",@"seed2.0313370.xyz"]
 
-#define TESTNET_MAIN_PEER @""//@"52.36.64.148:19999"
+#define TESTNET_MAIN_PEER @"149.248.61.149:19937"//@"52.36.64.148:19999"
 
 
 #define FIXED_PEERS          @"FixedPeers"
