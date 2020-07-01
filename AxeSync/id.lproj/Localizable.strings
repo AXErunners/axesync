@@ -1,36 +1,18 @@
 
 /* No comment provided by engineer. */
-" and " = "dan";
-
-/* No comment provided by engineer. */
-", " = ", ";
-
-/* No comment provided by engineer. */
 "\n         total %@ (%@)" = "\n         total %1$@ (%2$@)";
-
-/* No comment provided by engineer. */
-"\n%d attempts remaining\n" = "\n%dupaya tersisa\n";
 
 /* No comment provided by engineer. */
 "\n(local requested amount: %@)" = "\n(jumlah lokal yang diminta %@)";
 
 /* No comment provided by engineer. */
-"\n1 attempt remaining\n" = "\n1 upaya tersisa\n";
-
-/* No comment provided by engineer. */
 "\n\n     amount %@ (%@)" = "\n\n     jumlah %1$@ (%2$@)";
 
 /* No comment provided by engineer. */
-"\nADDRESS ALREADY USED\naxe addresses are intended for single use only\n\nre-use reduces privacy for both you and the recipient and can result in loss if the recipient doesn't directly control the address" = "\nALAMAT SUDAH DIGUNAKAN\nalamat axe dimaksudkan hanya untuk sekali pakai\n\nmenggunakan kembali mengurangi privasi untuk Anda dan penerima dan dapat mengakibatkan kerugian jika penerima tidak secara langsung mengontrol alamat";
+"\nADDRESS ALREADY USED\nAxe addresses are intended for single use only\n\nre-use reduces privacy for both you and the recipient and can result in loss if the recipient doesn't directly control the address" = "\nALAMAT SUDAH DIGUNAKAN\nAlamat Axe dimaksudkan hanya untuk sekali pakai\n\nmenggunakan kembali mengurangi privasi untuk Anda dan penerima dan dapat mengakibatkan kerugian jika penerima tidak secara langsung mengontrol alamat";
 
 /* No comment provided by engineer. */
 "\nnetwork fee +%@ (%@)" = "\nbiaya jaringan +%1$@ (%2$@)";
-
-/* No comment provided by engineer. */
-"\nno attempts remaining" = "\ntidak ada upaya yang tersisa";
-
-/* No comment provided by engineer. */
-"\ntry again in %d %@" = "\ncoba lagi dalam %1$d %2$@";
 
 /* No comment provided by engineer. */
 "Are you sure you would like to reclaim this masternode?" = "Anda yakin ingin mengklaim kembali masternode ini?";
@@ -54,79 +36,67 @@
 "Are you sure you would like to update this masternode to pay to %@?" = "Apakah Anda yakin ingin memperbarui masternode ini untuk membayar ke %@?";
 
 /* No comment provided by engineer. */
-"bad password, try again" = "kata sandi yang buruk, coba lagi";
+"Bad password, try again" = "Kata sandi yang buruk, coba lagi";
 
 /* No comment provided by engineer. */
-"bad payment request" = "permintaan pembayaran yang buruk";
+"Bad payment request" = "Permintaan pembayaran yang buruk";
 
 /* No comment provided by engineer. */
-"bad payment request URL" = "URL permintaan pembayaran yang buruk";
+"Bad payment request URL" = "URL permintaan pembayaran yang buruk";
 
 /* No comment provided by engineer. */
-"bad payment URL" = "URL pembayaran yang buruk";
+"Bad payment URL" = "URL pembayaran yang buruk";
 
 /* No comment provided by engineer. */
-"cancel" = "batalkan";
-
-/* No comment provided by engineer. */
-"choose passcode for %@" = "pilih kode sandi untuk %@";
+"Cancel" = "Batal";
 
 /* No comment provided by engineer. */
 "Confirm" = "Memastikan";
 
 /* No comment provided by engineer. */
-"connect timeout" = "waktu hubungan habis";
+"Confirm PIN" = "Pastikan PIN";
 
 /* No comment provided by engineer. */
-"couldn't make payment" = "tidak dapat melakukan pembayaran";
+"Connect timeout" = "Waktu hubungan habis";
 
 /* No comment provided by engineer. */
-"axe payments can't be less than %@" = "pembayaran axe tidak boleh kurang dari %@";
+"Couldn't make payment" = "Tidak dapat melakukan pembayaran";
 
 /* No comment provided by engineer. */
-"axe transaction not signed" = "transaksi axe tidak ditandatangani";
+"Axe payments can't be less than %@" = "Pembayaran Axe tidak boleh kurang dari %@";
 
 /* No comment provided by engineer. */
-"axe transaction outputs can't be less than %@" = "transaksi jumlah total axe tidak boleh kurang dari %@";
+"Axe transaction not signed" = "Transaksi Axe tidak ditandatangani";
+
+/* No comment provided by engineer. */
+"Axe transaction outputs can't be less than %@" = "Transaksi jumlah total Axe tidak boleh kurang dari %@";
 
 /* No comment provided by engineer. */
 "Devnet" = "Devnet";
 
 /* No comment provided by engineer. */
-"double spend" = "pengiriman ganda";
+"Double spend" = "Pengiriman ganda";
+
+/* The server is not working */
+"Down" = "Bawah";
 
 /* No comment provided by engineer. */
-"enter old passcode" = "masukkan kode sandi lama";
+"Enter old PIN" = "Masukkan PIN lama";
 
 /* No comment provided by engineer. */
 "Error from payment request server %@" = "Kesalahan dari server permintaan pembayaran %@";
 
 /* No comment provided by engineer. */
-"error signing axe transaction" = "kesalahan menandatangani transaksi axe";
+"Error signing transaction" = "Kesalahan menandatangani transaksi";
 
 /* No comment provided by engineer. */
-"error signing transaction" = "kesalahan menandatangani transaksi";
+"Ignore" = "Abaikan";
 
 /* No comment provided by engineer. */
-"hour" = "jam";
+"Insufficient funds" = "Dana tidak mencukupi";
 
 /* No comment provided by engineer. */
-"hours" = "jam";
-
-/* No comment provided by engineer. */
-"ignore" = "abaikan";
-
-/* No comment provided by engineer. */
-"instant payment" = "pembayaran instan";
-
-/* No comment provided by engineer. */
-"InstantSend requires enough inputs with 6 confirmations, send anyways as regular transaction?" = "InstantSend membutuhkan input yang cukup dengan 6 konfirmasi, tetap kirim sebagai transaksi biasa?";
-
-/* No comment provided by engineer. */
-"insufficient funds" = "dana tidak mencukupi";
-
-/* No comment provided by engineer. */
-"insufficient funds for axe network fee" = "dana tidak mencukupi untuk biaya jaringan axe";
+"Insufficient funds for Axe network fee" = "Dana tidak mencukupi untuk biaya jaringan Axe";
 
 /* No comment provided by engineer. */
 "Internal Error" = "Kesalahan internal";
@@ -147,106 +117,97 @@
 "Method Not Found" = "Metode Tidak Ditemukan";
 
 /* No comment provided by engineer. */
-"minute" = "menit";
+"Missing certificate" = "Sertifikat hilang";
 
 /* No comment provided by engineer. */
-"minutes" = "menit";
+"No attempts remaining" = "Tidak ada upaya yang tersisa";
 
 /* No comment provided by engineer. */
-"missing certificate" = "sertifikat hilang";
+"No peers found" = "Tidak ada peer ditemukan";
 
 /* No comment provided by engineer. */
-"no peers found" = "tidak ada peer ditemukan";
+"Not a valid private key" = "Bukan kunci pribadi yang valid";
 
 /* No comment provided by engineer. */
-"not a valid private key" = "bukan kunci pribadi yang valid";
+"Not connected to the Axe network" = "Tidak terhubung ke jaringan Axe";
 
 /* No comment provided by engineer. */
-"not connected to the axe network" = "tidak terhubung ke jaringan axe";
-
-/* No comment provided by engineer. */
-"ok" = "ok";
+"OK" = "OK";
 
 /* No comment provided by engineer. */
 "Parse Error" = "Kesalahan frasa";
 
 /* No comment provided by engineer. */
-"passcode" = "kode sandi";
+"Passcode" = "Kode sandi";
 
 /* No comment provided by engineer. */
-"passcode for %@" = "kode sandi untuk %@";
+"Password" = "Kata sandi";
 
 /* No comment provided by engineer. */
-"password" = "katasandi";
+"Password protected key" = "Katasandi dilindungi kunci";
 
 /* No comment provided by engineer. */
-"password protected key" = "katasandi dilindungi kunci";
+"Payee identity isn't certified" = "Identitas penerima tidak disertifikasi";
 
 /* No comment provided by engineer. */
-"payee identity isn't certified" = "identitas penerima tidak disertifikasi";
+"PIN for %@" = "PIN untuk %@";
+
+/* Please authenticate to create your Testnet wallet */
+"Please authenticate to create your %@ wallet" = "Harap autentikasi untuk membuat dompet %@";
 
 /* No comment provided by engineer. */
-"recovery phrase" = "frasa pemulihan:";
+"Recovery phrase" = "Frasa pemulihan";
 
 /* No comment provided by engineer. */
-"recovery phrase doesn't match" = "frasa pemulihan tidak sama";
+"Reduce payment amount by\n%@ (%@)?" = "Kurangi jumlah pembayaran dengan\n%1$@ (%2$@)?";
 
 /* No comment provided by engineer. */
-"reduce payment amount by\n%@ (%@)?" = "kurangi jumlah pembayaran dengan\n%1$@ (%2$@)?";
+"Request expired" = "Permintaan telah kedaluwarsa";
 
 /* No comment provided by engineer. */
-"request expired" = "permintaan telah kedaluwarsa";
+"Requested network \"%@\" not currently in use" = "Jaringan yang diminta \"%@\" tidak sedang digunakan";
 
 /* No comment provided by engineer. */
-"requested network \"%@\" not currently in use" = "jaringan yang diminta \"%@\" tidak sedang digunakan";
+"Rescan" = "Memindai ulang";
 
 /* No comment provided by engineer. */
-"rescan" = "memindai ulang";
-
-/* No comment provided by engineer. */
-"reset" = "atur ulang";
-
-/* No comment provided by engineer. */
-"retry" = "mencoba kembali";
-
-/* No comment provided by engineer. */
-"second" = "detik";
-
-/* No comment provided by engineer. */
-"seconds" = "detik";
-
-/* No comment provided by engineer. */
-"send" = "kirim";
+"Reset" = "Atur-ulang";
 
 /* No comment provided by engineer. */
 "Server Error" = "Kesalahan Server";
 
 /* No comment provided by engineer. */
+"Set PIN" = "Tetapkan PIN";
+
+/* No comment provided by engineer. */
 "Testnet" = "Testnet";
 
 /* No comment provided by engineer. */
-"this payment address is already in your wallet" = "alamat pembayaran ini sudah ada di dompet anda";
+"This payment address is already in your wallet" = "Alamat pembayaran ini sudah ada di dompet Anda";
 
 /* No comment provided by engineer. */
-"this private key is already in your wallet" = "kunci pribadi ini sudah ada di dompet anda";
+"This private key is already in your wallet" = "Kunci pribadi ini sudah ada di dompet Anda";
 
 /* No comment provided by engineer. */
-"this private key is empty" = "kunci pribadi ini kosong";
+"This private key is empty" = "Kunci pribadi ini kosong";
 
 /* No comment provided by engineer. */
-"This request requires an instant payment but you do not have enough inputs with 6 confirmations required by InstantSend, you may ask the merchant to accept a normal transaction or wait a few minutes." = "Permintaan ini memerlukan pembayaran instan tetapi Anda tidak memiliki cukup masukan dengan 6 konfirmasi yang diperlukan oleh InstantSend, Anda dapat meminta pedagang untuk menerima transaksi normal atau menunggu beberapa menit.";
+"Transaction canceled, network timeout" = "Transaksi dibatalkan, batas waktu jaringan";
 
 /* No comment provided by engineer. */
-"transaction canceled, network timeout" = "transaksi dibatalkan, batas waktu jaringan";
+"Transaction fees would cost more than the funds available on this private key (due to tiny \"dust\" deposits)" = "Biaya transaksi akan lebih mahal daripada dana yang tersedia di kunci pribadi ini (karena \"debu\" deposit kecil)";
 
 /* No comment provided by engineer. */
-"transaction fees would cost more than the funds available on this private key (due to tiny \"dust\" deposits)" = "biaya transaksi akan lebih mahal daripada dana yang tersedia di kunci pribadi ini (karena \"debu\" deposit kecil)";
+"Transaction rejected" = "Transaksi ditolak";
 
 /* No comment provided by engineer. */
-"transaction rejected" = "transaksi ditolak";
+"Try again in %@" = "Coba lagi dalam %@";
 
 /* No comment provided by engineer. */
-"unexpected response from %@" = "respons tak terduga dari %@";
+"Unexpected response from %@" = "Respons tak terduga dari %@";
+
+/* No comment provided by engineer. */
+"Unknown address" = "Alamat diketahui";
 
 /* No comment provided by engineer. */
 "Unknown Error" = "Kesalahan yang tidak diketahui";
@@ -255,28 +216,28 @@
 "Unknown JSON-RPC Response" = "Respon JSON-RPC Tidak Diketahui";
 
 /* No comment provided by engineer. */
-"unrecognized address" = "alamat tidak dikenal";
+"Unrecognized address" = "Alamat tidak dikenal";
 
 /* No comment provided by engineer. */
-"unsupported signature type" = "tipe tanda tangan yang tidak didukung";
+"Unsupported signature type" = "Tipe tanda tangan yang tidak didukung";
 
 /* No comment provided by engineer. */
-"untrusted certificate" = "sertifikat tak terpercaya";
+"Untrusted certificate" = "Sertifikat tak terpercaya";
+
+/* The server is up and running */
+"Up" = "Atas";
 
 /* Updating Price */
 "Updating Price" = "Memperbarui Harga";
 
 /* No comment provided by engineer. */
-"verify passcode" = "verifikasi kode sandi";
-
-/* No comment provided by engineer. */
-"wallet disabled" = "dompet dinonaktifkan";
+"Wallet disabled" = "Dompet dinonaktifkan";
 
 /* No comment provided by engineer. */
 "WARNING" = "PERINGATAN";
 
 /* No comment provided by engineer. */
-"wipe" = "menghapus";
+"Wipe" = "Menghapus";
 
 /* No comment provided by engineer. */
 "Your wallet may be out of sync.\nThis can often be fixed by rescanning the blockchain." = "Dompet anda mungkin tidak sinkron.\nIni dapat diperbaiki dengan memindai ulang blockchain.";

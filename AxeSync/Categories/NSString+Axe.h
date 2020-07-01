@@ -29,6 +29,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import "NSString+Bitcoin.h"
+#import "BigIntTypes.h"
 
 #define AXE_PUBKEY_ADDRESS      55
 #define AXE_SCRIPT_ADDRESS      16
@@ -48,6 +49,8 @@
 
 @interface NSString (Axe)
 
++ (void)setAxeCurrencySymbolAssetName:(NSString *)imageName;
+
 + (NSString *)addressWithScriptPubKey:(NSData *)script onChain:(DSChain*)chain;
 + (NSString *)addressWithScriptSig:(NSData *)script onChain:(DSChain*)chain;
 
@@ -64,6 +67,8 @@
 - (BOOL)isValidAxeExtendedPublicKeyOnChain:(DSChain*)chain;
 
 -(NSInteger)indexOfCharacter:(unichar)character;
+
+-(UInt256)magicDigest;
 
 +(NSString*)waitTimeFromNow:(NSTimeInterval)wait;
 

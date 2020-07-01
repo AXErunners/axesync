@@ -26,11 +26,13 @@ Pod::Spec.new do |s|
   s.libraries = 'bz2', 'sqlite3'
   s.resource_bundles = {'AxeSync' => ['AxeSync/*.xcdatamodeld', 'AxeSync/*.plist', 'AxeSync/*.lproj', 'AxeSync/MasternodeLists/*.dat']}
   
-  s.framework = 'Foundation', 'UIKit', 'SystemConfiguration', 'CoreData'
+  s.framework = 'Foundation', 'UIKit', 'SystemConfiguration', 'CoreData', 'BackgroundTasks'
   s.compiler_flags = '-Wno-comma'
   s.dependency 'secp256k1_axe', '0.1.2.5'
   s.dependency 'bls-signatures-pod', '0.2.9'
-  s.dependency 'CocoaLumberjack', '3.5.3'
+  s.dependency 'CocoaLumberjack', '3.6.0'
+  s.dependency 'DWAlertController', '0.2.1'
+  s.dependency 'DSDynamicOptions', '0.1.0'
   s.prefix_header_contents = '#import "DSEnvironment.h"'
 
 end

@@ -37,7 +37,7 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 #define HAKS           100000000LL
 #define MAX_MONEY          (21000000LL*HAKS)
 
-@class DSChain,DSAccount,DSTransaction,DSDerivationPath,DSLocalMasternode,DSKey,DSSpecialTransactionsWalletHolder;
+@class DSChain,DSAccount,DSTransaction,DSDerivationPath,DSLocalMasternode,DSKey,DSSpecialTransactionsWalletHolder,DSBLSKey,DSECDSAKey;
 
 @interface DSWallet : NSObject
 
@@ -48,6 +48,12 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 @property (nonatomic, readonly) NSArray * blockchainUsers;
 
 @property (nonatomic, readonly) NSArray * blockchainUserAddresses;
+
+@property (nonatomic, readonly) NSArray * providerOwnerAddresses;
+
+@property (nonatomic, readonly) NSArray * providerVotingAddresses;
+
+@property (nonatomic, readonly) NSArray * providerOperatorAddresses;
 
 //This is unique among all wallets and all chains
 @property (nonatomic, readonly) NSString * uniqueID;
@@ -149,6 +155,12 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 // true if no previous wallet transaction spends any of the given transaction's inputs, and no inputs are invalid
 - (BOOL)transactionIsValid:(DSTransaction *)transaction;
 
+// this is used to save transactions atomically with the block, needs to be called before switching threads to save the block
+- (void)prepareForIncomingTransactionPersistenceForBlockSaveWithNumber:(uint32_t)blockNumber;
+
+// this is used to save transactions atomically with the block
+- (void)persistIncomingTransactionsAttributesForBlockSaveWithNumber:(uint32_t)blockNumber inContext:(NSManagedObjectContext*)context;
+
 //returns the seed phrase after authenticating
 - (void)seedPhraseAfterAuthentication:(void (^ _Nullable)(NSString * _Nullable seedPhrase))completion;
 - (void)seedPhraseAfterAuthenticationWithPrompt:(NSString * _Nullable)authprompt completion:(void (^ _Nullable)(NSString * _Nullable seedPhrase))completion;
@@ -191,11 +203,15 @@ FOUNDATION_EXPORT NSString* _Nonnull const DSWalletBalanceDidChangeNotification;
 
 - (void)copyForChain:(DSChain *)chain completion:(void (^ _Nonnull)(DSWallet * _Nullable copiedWallet))completion;
 
-- (void)registerMasternodeOperator:(DSLocalMasternode *)masternode;
+- (void)registerMasternodeOperator:(DSLocalMasternode *)masternode; //will use indexes
+- (void)registerMasternodeOperator:(DSLocalMasternode *)masternode withOperatorPublicKey:(DSBLSKey*)operatorKey; //will use defined key
 
 - (void)registerMasternodeOwner:(DSLocalMasternode *)masternode;
+- (void)registerMasternodeOwner:(DSLocalMasternode *)masternode withOwnerPrivateKey:(DSECDSAKey*)ownerKey; //will use defined key
 
 - (void)registerMasternodeVoter:(DSLocalMasternode *)masternode;
+- (void)registerMasternodeVoter:(DSLocalMasternode *)masternode withVotingKey:(DSECDSAKey*)votingKey; //will use defined key
+
 - (BOOL)containsProviderVotingAuthenticationHash:(UInt160)votingAuthenticationHash;
 - (BOOL)containsProviderOwningAuthenticationHash:(UInt160)owningAuthenticationHash;
 - (BOOL)containsProviderOperatorAuthenticationKey:(UInt384)providerOperatorAuthenticationKey;

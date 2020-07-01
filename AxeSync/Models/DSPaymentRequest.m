@@ -85,8 +85,6 @@
     self.message = nil;
     self.amount = 0;
     self.callbackScheme = nil;
-    _requestsInstantSend = FALSE;
-    _requiresInstantSend = FALSE;
     self.r = nil;
 
     if (string.length == 0) return;
@@ -155,12 +153,6 @@
             else if ([key isEqual:@"message"]) {
                 self.message = value;
             }
-            else if ([[key lowercaseString] isEqual:@"is"]) {
-                if ([value  isEqual: @"1"])
-                    _requestsInstantSend = TRUE;
-                if (require)
-                    _requiresInstantSend = TRUE;
-            }
             else if ([key isEqual:@"r"]) {
                 self.r = value;
             }
@@ -206,15 +198,11 @@
          stringByAddingPercentEncodingWithAllowedCharacters:charset]]];
     }
     
-    if (self.requestsInstantSend) {
-        [q addObject:@"IS=1"];
-    }
-    
     if (self.requestedFiatCurrencyCode.length > 0) {
         [q addObject:[@"currency=" stringByAppendingString:[self.requestedFiatCurrencyCode stringByAddingPercentEncodingWithAllowedCharacters:charset]]];
         
         if (self.requestedFiatCurrencyAmount > 0) {
-            [q addObject:[@"local=" stringByAppendingString:@(self.requestedFiatCurrencyAmount).stringValue]];
+            [q addObject:[NSString stringWithFormat:@"local=%.02f", self.requestedFiatCurrencyAmount]];
         }
     }
 
@@ -302,7 +290,7 @@
          outputScripts:@[script] time:0 expires:0 memo:self.message paymentURL:nil merchantData:nil onChain:self.chain];
     DSPaymentProtocolRequest *request =
         [[DSPaymentProtocolRequest alloc] initWithVersion:1 pkiType:@"none" certs:(name ? @[name] : nil) details:details
-                                                signature:nil requestsInstantSend:self.requestsInstantSend requiresInstantSend:self.requiresInstantSend requestedAgainstFiatCurrency:useFiatPegging?self.requestedFiatCurrencyCode:nil requestedFiatAmount:0 onChain:self.chain callbackScheme:self.callbackScheme];
+                                                signature:nil onChain:self.chain callbackScheme:self.callbackScheme];
     
     return request;
 }
@@ -322,7 +310,7 @@ completion:(void (^)(DSPaymentProtocolRequest *req, NSError *error))completion
 
     if (! req) {
         completion(nil, [NSError errorWithDomain:@"AxeSync" code:417
-                         userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"bad payment request URL", nil)}]);
+                         userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"Bad payment request URL", nil)}]);
         return;
     }
 
@@ -351,12 +339,12 @@ completion:(void (^)(DSPaymentProtocolRequest *req, NSError *error))completion
             DSDLog(@"unexpected response from %@:\n%@", req.URL.host,
                   [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
             completion(nil, [NSError errorWithDomain:@"AxeSync" code:417 userInfo:@{NSLocalizedDescriptionKey:
-                             [NSString stringWithFormat:DSLocalizedString(@"unexpected response from %@", nil),
+                             [NSString stringWithFormat:DSLocalizedString(@"Unexpected response from %@", nil),
                               req.URL.host]}]);
         }
         else if (![request.details.chain isEqual:chain]) {
             completion(nil, [NSError errorWithDomain:@"AxeSync" code:417 userInfo:@{NSLocalizedDescriptionKey:
-                             [NSString stringWithFormat:DSLocalizedString(@"requested network \"%@\" not currently in use",
+                             [NSString stringWithFormat:DSLocalizedString(@"Requested network \"%@\" not currently in use",
                                                                           nil), request.details.chain.networkName]}]);
         }
         else completion(request, nil);
@@ -373,7 +361,7 @@ completion:(void (^)(DSPaymentProtocolRequest *req, NSError *error))completion
     if (! req) {
         if (completion) {
             completion(nil, [NSError errorWithDomain:@"AxeSync" code:417
-                             userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"bad payment URL", nil)}]);
+                             userInfo:@{NSLocalizedDescriptionKey:DSLocalizedString(@"Bad payment URL", nil)}]);
         }
         
         return;
@@ -402,7 +390,7 @@ completion:(void (^)(DSPaymentProtocolRequest *req, NSError *error))completion
                   [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
             if (completion) {
                 completion(nil, [NSError errorWithDomain:@"AxeSync" code:417 userInfo:@{NSLocalizedDescriptionKey:
-                                 [NSString stringWithFormat:DSLocalizedString(@"unexpected response from %@", nil),
+                                 [NSString stringWithFormat:DSLocalizedString(@"Unexpected response from %@", nil),
                                   req.URL.host]}]);
             }
         }

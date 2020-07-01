@@ -36,7 +36,7 @@ FOUNDATION_EXPORT NSString* const DSGovernanceVotesDidChangeNotification;
 FOUNDATION_EXPORT NSString* const DSGovernanceVoteCountUpdateNotification;
 
 #define SUPERBLOCK_AVERAGE_TIME 2575480
-#define PROPOSAL_COST 500000000
+#define PROPOSAL_COST 50000
 
 @class DSPeer,DSChain,DSGovernanceObject,DSGovernanceVote;
 
@@ -51,9 +51,6 @@ FOUNDATION_EXPORT NSString* const DSGovernanceVoteCountUpdateNotification;
 @property (nonatomic,readonly) NSUInteger totalGovernanceVotesCount;
 
 @property (nullable, nonatomic,readonly) DSGovernanceObject * currentGovernanceSyncObject;
-
-
--(instancetype)initWithChain:(DSChain*)chain;
 
 -(void)startGovernanceSync;
 

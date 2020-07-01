@@ -35,7 +35,15 @@
 #import "DSDerivationPath.h"
 #import "DSECDSAKey.h"
 
+static NSString *AxeCurrencySymbolAssetName = nil;
+
 @implementation NSString (Axe)
+
++ (void)setAxeCurrencySymbolAssetName:(NSString *)imageName {
+    NSParameterAssert(imageName);
+    NSAssert([UIImage imageNamed:imageName], @"Axe currency symbol asset doesn't exist");
+    AxeCurrencySymbolAssetName = imageName;
+}
 
 // NOTE: It's important here to be permissive with scriptSig (spends) and strict with scriptPubKey (receives). If we
 // miss a receive transaction, only that transaction's funds are missed, however if we accept a receive transaction that
@@ -225,10 +233,12 @@
 }
 
 +(NSAttributedString*)axeSymbolAttributedStringWithTintColor:(UIColor*)color forAxeSymbolSize:(CGSize)axeSymbolSize {
+    NSAssert(AxeCurrencySymbolAssetName, @"Provide Axe currency symbol asset by calling setAxeCurrencySymbolAssetName:");
+    
     NSTextAttachment *axeSymbol = [[NSTextAttachment alloc] init];
     
     axeSymbol.bounds = CGRectMake(0, 0, axeSymbolSize.width, axeSymbolSize.height);
-    axeSymbol.image = [[UIImage imageNamed:@"Axe-Light"] ds_imageWithTintColor:color];
+    axeSymbol.image = [[UIImage imageNamed:AxeCurrencySymbolAssetName] ds_imageWithTintColor:color];
     return [NSAttributedString attributedStringWithAttachment:axeSymbol];
 }
 
@@ -260,37 +270,37 @@
     return NSNotFound;
 }
 
+-(UInt256)magicDigest {
+    NSMutableData * stringMessageData = [NSMutableData data];
+    [stringMessageData appendString:AXE_MESSAGE_MAGIC];
+    [stringMessageData appendString:self];
+    return stringMessageData.SHA256_2;
+}
+
 // MARK: time
 
-+(NSString*)waitTimeFromNow:(NSTimeInterval)wait {
++ (NSString *)waitTimeFromNow:(NSTimeInterval)wait {
     NSUInteger seconds = wait;
-    NSUInteger hours = seconds / 360;
-    seconds %= 360;
-    NSUInteger minutes = seconds /60;
-    seconds %=60;
+    NSUInteger hours = seconds / 3600;
+    seconds %= 3600;
+    NSUInteger minutes = seconds / 60;
+    seconds %= 60;
     
-    NSString * hoursUnit = hours!=1?DSLocalizedString(@"hours",nil):DSLocalizedString(@"hour",nil);
-    NSString * minutesUnit = minutes!=1?DSLocalizedString(@"minutes",nil):DSLocalizedString(@"minute",nil);
-    NSString * secondsUnit = seconds!=1?DSLocalizedString(@"seconds",nil):DSLocalizedString(@"second",nil);
-    NSMutableString * tryAgainTime = [@"" mutableCopy];
-    if (hours) {
-        [tryAgainTime appendString:[NSString stringWithFormat:@"%ld %@",(unsigned long)hours,hoursUnit]];
-        if (minutes && seconds) {
-            [tryAgainTime appendString:DSLocalizedString(@", ",nil)];
-        } else if (minutes || seconds) {
-            [tryAgainTime appendString:DSLocalizedString(@" and ",nil)];
-        }
+    if (hours > 0) {
+        NSString *hoursString = [NSString localizedStringWithFormat:
+                                 DSLocalizedString(@"%ld hour(s)", @"#bc-ignore!"), hours];
+        return hoursString;
     }
-    if (minutes) {
-        [tryAgainTime appendString:[NSString stringWithFormat:@"%ld %@",(unsigned long)minutes,minutesUnit]];
-        if (seconds) {
-            [tryAgainTime appendString:DSLocalizedString(@" and ",nil)];
-        }
+    
+    if (minutes > 0) {
+        NSString *minutesString = [NSString localizedStringWithFormat:
+                                   DSLocalizedString(@"%ld minute(s)", @"#bc-ignore!"), minutes];
+        return minutesString;
     }
-    if (seconds) {
-        [tryAgainTime appendString:[NSString stringWithFormat:@"%ld %@",(unsigned long)seconds,secondsUnit]];
-    }
-    return [NSString stringWithString:tryAgainTime];
+    
+    NSString *secondsString = [NSString localizedStringWithFormat:
+                               DSLocalizedString(@"%ld second(s)", @"#bc-ignore!"), seconds];
+    return secondsString;
 }
 
 @end
