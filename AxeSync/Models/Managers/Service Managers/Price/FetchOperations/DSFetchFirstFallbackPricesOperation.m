@@ -138,7 +138,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 + (NSString *)priceSourceInfo {
-    return @"cryptocompare.com, bitcoinaverage.com, axe.casa";
+    return @"cryptocompare.com";
 }
 
 @end
