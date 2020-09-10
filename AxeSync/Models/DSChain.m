@@ -2280,7 +2280,7 @@ static dispatch_once_t devnetToken = 0;
 
 +(DSCheckpoint*)genesisDevnetCheckpoint {
     DSCheckpoint * checkpoint = [DSCheckpoint new];
-    checkpoint.checkpointHash = *(UInt256 *)[NSString stringWithCString:"000008ca1832a4baf228eb1553c03d3a2c8e02399550dd6ea8d65cec3ef23d2e" encoding:NSUTF8StringEncoding].hexToData.reverse.bytes;
+    checkpoint.checkpointHash = *(UInt256 *)[NSString stringWithCString:"2026b8850f3774a0536152ba868c4dcbde9aef5ffc28a5d23f76f80e9b46e565" encoding:NSUTF8StringEncoding].hexToData.reverse.bytes;
     checkpoint.height = 0;
     checkpoint.timestamp = 1417713337;
     checkpoint.target = 0x207fffffu;
