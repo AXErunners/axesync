@@ -3,7 +3,7 @@
 //  AxeSync_Example
 //
 //  Created by Sam Westrich on 2/9/19.
-//  Copyright © 2019 Dash Core Group. All rights reserved.
+//  Copyright © 2019 Axe Core Group. All rights reserved.
 //
 
 #import "DSRegisterMasternodeViewController.h"
@@ -200,12 +200,12 @@
 
 -(void)viewController:(UIViewController*)controller didChooseAccount:(DSAccount*)account {
     self.account = account;
-    self.accountChooserTableViewCell.accountLabel.text = [NSString stringWithFormat:@"%@-%u",self.account.wallet.uniqueID,self.account.accountNumber];
+    self.accountChooserTableViewCell.accountLabel.text = [NSString stringWithFormat:@"%@-%u",self.account.wallet.uniqueIDString,self.account.accountNumber];
 }
 
 -(void)viewController:(UIViewController *)controller didChooseWallet:(DSWallet *)wallet {
     self.wallet = wallet;
-    self.walletChooserTableViewCell.walletLabel.text = [NSString stringWithFormat:@"%@",self.wallet.uniqueID];
+    self.walletChooserTableViewCell.walletLabel.text = [NSString stringWithFormat:@"%@",self.wallet.uniqueIDString];
 }
 
 -(void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {

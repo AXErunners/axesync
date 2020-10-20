@@ -1,4 +1,3 @@
-
 /* No comment provided by engineer. */
 "\n         total %@ (%@)" = "\n         σύνολο %1$@ (%2$@)";
 
@@ -19,9 +18,6 @@
 
 /* No comment provided by engineer. */
 "Are you sure you would like to register a masternode at %@:%d?" = "Είστε σίγουροι ότι θέλετε να καταχωρήσετε ένα masternode στο %1$@:%2$d;";
-
-/* No comment provided by engineer. */
-"Are you sure you would like to register the username %@ and spend %@ on credits?" = "Είστε σίγουροι ότι θέλετε να καταχωρήσετε το όνομα χρήστη %1$@ και να ξοδέψετε %2$@ σε credits?";
 
 /* No comment provided by engineer. */
 "Are you sure you would like to reset this user?" = "Είστε σίγουροι ότι θέλετε να επαναφέρετε αυτόν τον χρήστη;";
@@ -241,3 +237,123 @@
 
 /* No comment provided by engineer. */
 "Your wallet may be out of sync.\nThis can often be fixed by rescanning the blockchain." = "Το πορτοφόλι σας μπορεί να είναι εκτός συγχρονισμού.\n Αυτό μπορεί συχνά να διορθωθεί με την επανασάρωση των μπλόκ συναλλαγών.";
+
+/* No comment provided by engineer. */
+"Unable to create registration transition" = "Δεν είναι δυνατή η δημιουργία εγγραφής";
+
+/* The Blockchain Identity is not registered */
+"Not Registered" = "Δεν έχετε εγγραφεί";
+
+/* The Blockchain Identity is registered */
+"Registered" = "Εγγραφήκατε";
+
+/* The Blockchain Identity is being registered */
+"Registering" = "Εγγραφή";
+
+/* It is Unknown if the Blockchain Identity is registered */
+"Unknown" = "Άγνωστο";
+
+/* Status of Key or Username is Revoked */
+"Revoked" = "Ανακλήθηκε";
+
+/* No comment provided by engineer. */
+"BLS" = "BLS";
+
+/* No comment provided by engineer. */
+"ECDSA" = "ECDSA";
+
+/* No comment provided by engineer. */
+"Unknown Key Type" = "Άγνωστος Τύπος Κλειδιού";
+
+/* No comment provided by engineer. */
+"Axepay Contract is not yet registered on network" = "Το συμβόλαιο Axepay δεν έχει ακόμη εγγραφεί στο δίκτυο";
+
+/* No comment provided by engineer. */
+"DPNS Contract is not yet registered on network" = "Το συμβόλαιο DPNS δεν έχει ακόμη εγγραφεί στο δίκτυο";
+
+/* No comment provided by engineer. */
+"Funding transaction could not be created" = "Δεν ήταν δυνατή η δημιουργία συναλλαγής χρηματοδότησης";
+
+/* No comment provided by engineer. */
+"Internal key handling error" = "Σφάλμα χειρισμού εσωτερικού κλειδιού";
+
+/* No comment provided by engineer. */
+"Internal memory allocation error" = "Σφάλμα εσωτερικής κατανομής μνήμης";
+
+/* No comment provided by engineer. */
+"Malformed platform response" = "Λανθασμένη απόκριση πλατφόρμας";
+
+/* No comment provided by engineer. */
+"Timeout while waiting for funding transaction to be accepted by network" = "Τέλος χρονικού ορίου ενώ περιμένετε να γίνει αποδεκτή η συναλλαγή χρηματοδότησης από το δίκτυο";
+
+/* No comment provided by engineer. */
+"Transaction could not be signed" = "Δεν ήταν δυνατή η υπογραφή της συναλλαγής";
+
+/* No comment provided by engineer. */
+"Unable to register registration transition" = "Δεν είναι δυνατή η εγγραφή της μετάβασης εγγραφής";
+
+/* No comment provided by engineer. */
+"User has actions to complete before being able to use Axepay" = "Ο χρήστης έχει ενέργειες που πρέπει να ολοκληρωθούν προτού μπορέσει να χρησιμοποιήσει το Axepay";
+
+/* No comment provided by engineer. */
+"Requested username domain documents not present on platform after timeout" = "Τα αιτούμενα έγγραφα τομέα ονόματος χρήστη δεν εμφανίζονται στην πλατφόρμα μετά την λήξη του χρονικού ορίου";
+
+/* No comment provided by engineer. */
+"Requested username preorder documents not present on platform after timeout" = "Τα αιτούμενα έγγραφα προπαραγγελίας ονόματος χρήστη δεν εμφανίζονται στην πλατφόρμα μετά την λήξη του χρονικού ορίου";
+
+/* No comment provided by engineer. */
+"Unable to sign transition" = "Δεν είναι δυνατή η εγγραφή της μετάβασης";
+
+/* No comment provided by engineer. */
+"Transition had nothing to update" = "Η μετάβαση δεν είχε τίποτα να ενημερώσει";
+
+/* No comment provided by engineer. */
+"Contract '%@' doesn't contain a table named '%@'" = "Το συμβόλαιο '%1$@' δεν περιέχει πίνακα με το όνομα '%2$@'";
+
+/* No comment provided by engineer. */
+"The blockchain identity hasn't yet been locally activated" = "Η ταυτότητα blockchain δεν έχει ακόμη ενεργοποιηθεί τοπικά";
+
+/* No comment provided by engineer. */
+"The blockchain identity funding private key should be first created with createFundingPrivateKeyWithCompletion" = "Το ιδιωτικό κλειδί χρηματοδότησης ταυτότητας blockchain πρέπει πρώτα να δημιουργηθεί με το createFundingPrivateKeyWithCompletion";
+
+/* No comment provided by engineer. */
+"The blockchain identity extended public keys need to be registered before you can register a blockchain identity." = "Τα εκτεταμένα δημόσια κλειδιά της ταυτότητας blockchain πρέπει να εγγραφούν για να μπορέσετε να καταχωρίσετε μια ταυτότητα blockchain.";
+
+/* No comment provided by engineer. */
+"Contact request extended public key is incorrectly encrypted." = "Το αίτημα επαφής του επεκταμένου δημόσιου κλειδιού δεν είναι σωστά κρυπτογραφημένο.";
+
+/* No comment provided by engineer. */
+"Error generating public keys" = "Σφάλμα κατά τη δημιουργία δημόσιων κλειδιών";
+
+/* No comment provided by engineer. */
+"Accepting a friend request should only happen from a local blockchain identity" = "Η αποδοχή ενός αιτήματος φιλίας πρέπει να πραγματοποιείται μόνο από μια τοπική ταυτότητα blockchain";
+
+/* No comment provided by engineer. */
+"You can only accept a friend request from blockchain identity who has sent you one, and none were found" = "Μπορείτε να αποδεχτείτε μόνο ένα αίτημα φιλίας από την ταυτότητα blockchain που σας έχει στείλει και δεν βρέθηκε κανένα";
+
+/* An error message for notifying that chain sync has timed out */
+"Synchronization Timeout" = "Λήξη Χρονικού Ορίου Συγχρονισμού";
+
+/* No comment provided by engineer. */
+"Attempt to query DAPs for blockchain identity with no active keys" = "Προσπάθεια ερωτήματος DAP για ταυτότητα blockchain χωρίς ενεργά κλειδιά";
+
+/* No comment provided by engineer. */
+"Node at host %@ does not service network" = "Ο κόμβος στον κεντρικό υπολογιστή %@ δεν εξυπηρετεί το δίκτυο";
+
+/* No comment provided by engineer. */
+"Node at host %@ does not support bloom filtering" = "Ο κόμβος στον κεντρικό υπολογιστή %@ δεν υποστηρίζει bloom filtering";
+
+/* No comment provided by engineer. */
+"The Axepay contract is not properly set up" = "Το συμβόλαιο Axepay δεν έχει ρυθμιστεί σωστά";
+
+/* No comment provided by engineer. */
+"Contract '%@' needs to first be locally registered or known" = "Το συμβόλαιο '%@' πρέπει πρώτα να καταχωρηθεί τοπικά ή να είναι γνωστό";
+
+/* No comment provided by engineer. */
+"A block could not be mined in the selected time interval." = "Δεν ήταν δυνατό το mine ενός μπλοκ στο επιλεγμένο χρονικό διάστημα.";
+
+/* No comment provided by engineer. */
+"Could not create friendship derivation path" = "Δεν ήταν δυνατή η δημιουργία διαδρομής φιλίας";
+
+/* No comment provided by engineer. */
+"Incorrect key format after contact request decryption" = "Λανθασμένη μορφή κλειδιού μετά την αποκρυπτογράφηση του αιτήματος επαφής";

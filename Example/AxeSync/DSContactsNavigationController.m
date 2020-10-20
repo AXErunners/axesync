@@ -3,7 +3,7 @@
 //  AxeSync_Example
 //
 //  Created by Andrew Podkovyrin on 09/03/2019.
-//  Copyright © 2019 Dash Core Group. All rights reserved.
+//  Copyright © 2019 Axe Core Group. All rights reserved.
 //
 
 #import "DSContactsNavigationController.h"
@@ -14,11 +14,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation DSContactsNavigationController
 
-+ (instancetype)controllerWithChainManager:(DSChainManager *)chainManager blockchainUser:(DSBlockchainUser *)blockchainUser {
++ (instancetype)controllerWithChainManager:(DSChainManager *)chainManager blockchainIdentity:(DSBlockchainIdentity *)blockchainIdentity {
     UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Contacts" bundle:nil];
     DSContactsTabBarViewController *tabbar = [storyboard instantiateInitialViewController];
     tabbar.chainManager = chainManager;
-    tabbar.blockchainUser = blockchainUser;
+    tabbar.blockchainIdentity = blockchainIdentity;
     
     DSContactsNavigationController *navigation = [[DSContactsNavigationController alloc] initWithRootViewController:tabbar];
     return navigation;
