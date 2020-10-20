@@ -6,7 +6,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'secp256k1_axe'
-  s.version          = '0.1.3-alpha.2'
+  s.version          = '0.1.3-alpha.3'
   s.summary          = 'Optimized C library for EC operations on curve secp256k1'
   s.description      = <<-DESC
 Optimized C library for EC operations on curve secp256k1.
