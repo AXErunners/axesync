@@ -1,6 +1,6 @@
 //
 //  Created by Andrew Podkovyrin
-//  Copyright © 2019 Dash Core Group. All rights reserved.
+//  Copyright © 2019 Axe Core Group. All rights reserved.
 //  Copyright © 2015 Michal Zaborowski. All rights reserved.
 //
 //  Licensed under the MIT License (the "License");
@@ -319,8 +319,9 @@
     if (!self.hasFinishedAlready) {
         self.hasFinishedAlready = YES;
         self.state = DSOperationStateFinishing;
-
-        _internalErrors = [self.internalErrors arrayByAddingObjectsFromArray:errors];
+        if (errors) {
+            _internalErrors = [self.internalErrors arrayByAddingObjectsFromArray:errors];
+        }
         [self finishedWithErrors:self.internalErrors];
 
         for (NSObject<DSOperationObserverProtocol> *observer in self.observers) {

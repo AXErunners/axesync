@@ -12,6 +12,9 @@ NS_ASSUME_NONNULL_BEGIN
 @interface NSIndexPath (Axe)
 
 -(NSIndexPath*)indexPathByRemovingFirstIndex;
+-(NSString *)indexPathString;
+-(NSIndexPath*)hardenAllItems;
+-(NSIndexPath*)softenAllItems;
 
 @end
 

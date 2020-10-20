@@ -102,7 +102,6 @@
     
     self.operationQueue = [[DSOperationQueue alloc] init];
     
-    [NSManagedObject setConcurrencyType:NSPrivateQueueConcurrencyType];
     self.reachability = [DSReachabilityManager sharedManager];
     _axeFormat = [NSNumberFormatter new];
     self.axeFormat.lenient = YES;

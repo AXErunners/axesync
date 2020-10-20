@@ -31,7 +31,7 @@
 #import "NSString+Bitcoin.h"
 #import "BigIntTypes.h"
 
-#define AXE_PUBKEY_ADDRESS      55
+#define AXE_PUBKEY_ADDRESS      76
 #define AXE_SCRIPT_ADDRESS      16
 #define AXE_PUBKEY_ADDRESS_TEST 140
 #define AXE_SCRIPT_ADDRESS_TEST 19
@@ -53,6 +53,7 @@
 
 + (NSString *)addressWithScriptPubKey:(NSData *)script onChain:(DSChain*)chain;
 + (NSString *)addressWithScriptSig:(NSData *)script onChain:(DSChain*)chain;
++ (NSString *)addressWithHash160:(UInt160)hash160 onChain:(DSChain*)chain;
 
 - (NSAttributedString*)attributedStringForAxeSymbol;
 - (NSAttributedString*)attributedStringForAxeSymbolWithTintColor:(UIColor*)color;
