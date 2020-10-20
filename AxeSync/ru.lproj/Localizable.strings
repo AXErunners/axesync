@@ -1,4 +1,3 @@
-
 /* No comment provided by engineer. */
 "\n         total %@ (%@)" = "\nИтого: %1$@ (%2$@)";
 
@@ -19,9 +18,6 @@
 
 /* No comment provided by engineer. */
 "Are you sure you would like to register a masternode at %@:%d?" = "Вы уверены, что хотите зарегистрировать мастерноду на %1$@:%2$d?";
-
-/* No comment provided by engineer. */
-"Are you sure you would like to register the username %@ and spend %@ on credits?" = "Вы уверены, что хотите зарегистрировать имя пользователя %1$@ и потратить %2$@ на кредиты?";
 
 /* No comment provided by engineer. */
 "Are you sure you would like to reset this user?" = "Вы уверены, что хотите сбросить это имя пользователя?";
@@ -241,3 +237,123 @@
 
 /* No comment provided by engineer. */
 "Your wallet may be out of sync.\nThis can often be fixed by rescanning the blockchain." = "Возможно, Ваш кошелёк рассинхронизирован.\nОбычно, это может быть исправлено путём повторного сканирования цепочки блоков.";
+
+/* No comment provided by engineer. */
+"Unable to create registration transition" = "Невозможно перейти к регистрации";
+
+/* The Blockchain Identity is not registered */
+"Not Registered" = "Не зарегистрирован";
+
+/* The Blockchain Identity is registered */
+"Registered" = "Зарегистрирован";
+
+/* The Blockchain Identity is being registered */
+"Registering" = "Регистрируется";
+
+/* It is Unknown if the Blockchain Identity is registered */
+"Unknown" = "Неизвестный";
+
+/* Status of Key or Username is Revoked */
+"Revoked" = "Аннулирован";
+
+/* No comment provided by engineer. */
+"BLS" = "BLS";
+
+/* No comment provided by engineer. */
+"ECDSA" = "ECDSA";
+
+/* No comment provided by engineer. */
+"Unknown Key Type" = "Неизвестный тип ключа";
+
+/* No comment provided by engineer. */
+"Axepay Contract is not yet registered on network" = "Контракт Axepay ещё не зарегистрирован в сети";
+
+/* No comment provided by engineer. */
+"DPNS Contract is not yet registered on network" = "Контракт DPNS ещё не зарегистрирован в сети";
+
+/* No comment provided by engineer. */
+"Funding transaction could not be created" = "Невозможно создать транзакцию финансирования";
+
+/* No comment provided by engineer. */
+"Internal key handling error" = "Ошибка обработки внутреннего ключа";
+
+/* No comment provided by engineer. */
+"Internal memory allocation error" = "Ошибка распределения внутренней памяти";
+
+/* No comment provided by engineer. */
+"Malformed platform response" = "Неверно сформированный ответ платформы";
+
+/* No comment provided by engineer. */
+"Timeout while waiting for funding transaction to be accepted by network" = "Превышено время ожидания принятия сетью транзакции финансирования";
+
+/* No comment provided by engineer. */
+"Transaction could not be signed" = "Невозможно подписать транзакцию";
+
+/* No comment provided by engineer. */
+"Unable to register registration transition" = "Невозможно зарегистрировать переход к регистрации";
+
+/* No comment provided by engineer. */
+"User has actions to complete before being able to use Axepay" = "Пользователю нужно выполнить все действия, прежде чем он сможет воспользоваться Axepay";
+
+/* No comment provided by engineer. */
+"Requested username domain documents not present on platform after timeout" = "Запрошенные доменные документы имени пользователя отсутствуют на платформе после истекшего времени ожидания";
+
+/* No comment provided by engineer. */
+"Requested username preorder documents not present on platform after timeout" = "Запрошенные документы о предварительном заказе имени пользователя отсутствуют на платформе после истекшего времени ожидания";
+
+/* No comment provided by engineer. */
+"Unable to sign transition" = "Невозможно подписать транзакцию";
+
+/* No comment provided by engineer. */
+"Transition had nothing to update" = "Нет доступных обновлений";
+
+/* No comment provided by engineer. */
+"Contract '%@' doesn't contain a table named '%@'" = "Контракт %1$@ не содержит таблицу под названием '%2$@'";
+
+/* No comment provided by engineer. */
+"The blockchain identity hasn't yet been locally activated" = "Блокчейн ID ещё не активирован локально";
+
+/* No comment provided by engineer. */
+"The blockchain identity funding private key should be first created with createFundingPrivateKeyWithCompletion" = "Сначала нужно создать приватный ключ финансирования Блокчейн ID с помощью createFundingPrivateKeyWithCompletion";
+
+/* No comment provided by engineer. */
+"The blockchain identity extended public keys need to be registered before you can register a blockchain identity." = "Перед регистрацией Блокчейн ID нужно зарегистрировать расширенные публичные ключи Блокчейн ID.";
+
+/* No comment provided by engineer. */
+"Contact request extended public key is incorrectly encrypted." = "Расширенный публичный ключ запроса на добавление в контакты зашифрован некорректно";
+
+/* No comment provided by engineer. */
+"Error generating public keys" = "Ошибка при создании публичного ключа";
+
+/* No comment provided by engineer. */
+"Accepting a friend request should only happen from a local blockchain identity" = "Принять запрос на дружбу можно только через локальный Блокчейн ID";
+
+/* No comment provided by engineer. */
+"You can only accept a friend request from blockchain identity who has sent you one, and none were found" = "Принять запрос на дружбу можно только внутри того Блокчейн ID, из которого он был отправлен. Таких запросов не найдено. ";
+
+/* An error message for notifying that chain sync has timed out */
+"Synchronization Timeout" = "Истекло время ожидания синхронизации";
+
+/* No comment provided by engineer. */
+"Attempt to query DAPs for blockchain identity with no active keys" = "Попытка запроса DAPs для Блокчейн ID без активных ключей";
+
+/* No comment provided by engineer. */
+"Node at host %@ does not service network" = "Нода хоста %@ не обслуживает сеть";
+
+/* No comment provided by engineer. */
+"Node at host %@ does not support bloom filtering" = "Нода хоста %@ не поддерживает фильтрацию Блума";
+
+/* No comment provided by engineer. */
+"The Axepay contract is not properly set up" = "Контракт Axepay не настроен должным образом";
+
+/* No comment provided by engineer. */
+"Contract '%@' needs to first be locally registered or known" = "Сначала контракт '%@' должен быть зарегистрирован или известен локально";
+
+/* No comment provided by engineer. */
+"A block could not be mined in the selected time interval." = "В выбранный промежуток времени майнинг блока был невозможен.";
+
+/* No comment provided by engineer. */
+"Could not create friendship derivation path" = "Не удалось создать путь запроса о дружбе";
+
+/* No comment provided by engineer. */
+"Incorrect key format after contact request decryption" = "Неверный формат ключа после расшифровки запроса на добавление в контакты";

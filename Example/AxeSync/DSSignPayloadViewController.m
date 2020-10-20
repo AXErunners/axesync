@@ -3,7 +3,7 @@
 //  AxeSync_Example
 //
 //  Created by Sam Westrich on 3/8/19.
-//  Copyright © 2019 Dash Core Group. All rights reserved.
+//  Copyright © 2019 Axe Core Group. All rights reserved.
 //
 
 #import "DSSignPayloadViewController.h"
@@ -60,8 +60,8 @@
         
 
         
-        
-        DSFundsDerivationPath * derivationPath = [account derivationPathContainingAddress:self.collateralAddress];
+        //todo make a protocol for DSIncomingDerivationPath and DSFundsDerivationPath
+        DSFundsDerivationPath * derivationPath = (DSFundsDerivationPath *)[account derivationPathContainingAddress:self.collateralAddress];
         
         NSIndexPath * indexPath = [derivationPath indexPathForKnownAddress:self.collateralAddress];
         

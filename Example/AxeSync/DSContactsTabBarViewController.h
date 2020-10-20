@@ -3,20 +3,20 @@
 //  AxeSync_Example
 //
 //  Created by Andrew Podkovyrin on 08/03/2019.
-//  Copyright © 2019 Dash Core Group. All rights reserved.
+//  Copyright © 2019 Axe Core Group. All rights reserved.
 //
 
 #import <UIKit/UIKit.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-@class DSChainManager, DSBlockchainUser;
+@class DSChainManager, DSBlockchainIdentity;
 
 
 @interface DSContactsTabBarViewController : UITabBarController
 
 @property (nonatomic,strong) DSChainManager * chainManager;
-@property (nonatomic,strong) DSBlockchainUser * blockchainUser;
+@property (nonatomic,strong) DSBlockchainIdentity * blockchainIdentity;
 
 @end
 

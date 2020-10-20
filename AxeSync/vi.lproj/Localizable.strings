@@ -1,4 +1,3 @@
-
 /* No comment provided by engineer. */
 "\n         total %@ (%@)" = "\n         tổng số %1$@ (%2$@)";
 
@@ -19,9 +18,6 @@
 
 /* No comment provided by engineer. */
 "Are you sure you would like to register a masternode at %@:%d?" = "Bạn có chắc là bạn muốn đăng ký một masternode tại %1$@:%2$d?";
-
-/* No comment provided by engineer. */
-"Are you sure you would like to register the username %@ and spend %@ on credits?" = "Bạn có chắc là bạn muốn đăng ký tên người dùng 1%1$@ và tiêu 2%2$@ trên tín dụng?";
 
 /* No comment provided by engineer. */
 "Are you sure you would like to reset this user?" = "Bạn có chắc bạn muốn thiết lập lại người sử dụng này?";
@@ -241,3 +237,123 @@
 
 /* No comment provided by engineer. */
 "Your wallet may be out of sync.\nThis can often be fixed by rescanning the blockchain." = "Ví của bạn có thể bị mất đồng bộ.\nĐiều này có thể được xử lý bằng cách quét lại blockchain.";
+
+/* No comment provided by engineer. */
+"Unable to create registration transition" = "Không thể tạo được chuyển đổi đăng ký";
+
+/* The Blockchain Identity is not registered */
+"Not Registered" = "Không được đăng ký";
+
+/* The Blockchain Identity is registered */
+"Registered" = "Đã được đăng ký";
+
+/* The Blockchain Identity is being registered */
+"Registering" = "Đang đăng ký";
+
+/* It is Unknown if the Blockchain Identity is registered */
+"Unknown" = "Không biết";
+
+/* Status of Key or Username is Revoked */
+"Revoked" = "Đã thu hồi";
+
+/* No comment provided by engineer. */
+"BLS" = "BLS";
+
+/* No comment provided by engineer. */
+"ECDSA" = "ECDSA";
+
+/* No comment provided by engineer. */
+"Unknown Key Type" = "Loại khoá không xác định";
+
+/* No comment provided by engineer. */
+"Axepay Contract is not yet registered on network" = "Liên lạc AxePay chưa được đăng ký trên mạng lưới";
+
+/* No comment provided by engineer. */
+"DPNS Contract is not yet registered on network" = "Liên lạc DPNS chưa được đăng ký trên mạng lưới";
+
+/* No comment provided by engineer. */
+"Funding transaction could not be created" = "Không thể tạo được giao dịch Cấp vốn";
+
+/* No comment provided by engineer. */
+"Internal key handling error" = "Lỗi xử lý khóa nội bộ";
+
+/* No comment provided by engineer. */
+"Internal memory allocation error" = "Lỗi cấp phát bộ nhớ trong";
+
+/* No comment provided by engineer. */
+"Malformed platform response" = "Phản hồi bất bình thường từ nền tảng";
+
+/* No comment provided by engineer. */
+"Timeout while waiting for funding transaction to be accepted by network" = "Hết thời gian chờ đợi giao dịch cấp vốn để được chấp nhận bởi mạng lưới";
+
+/* No comment provided by engineer. */
+"Transaction could not be signed" = "Giao dịch không thể được ký";
+
+/* No comment provided by engineer. */
+"Unable to register registration transition" = "Không thể đăng ký giao dịch đăng ký";
+
+/* No comment provided by engineer. */
+"User has actions to complete before being able to use Axepay" = "Người dùng cần hành động để hoàn thành trước khi có thể sử dụng Axepay";
+
+/* No comment provided by engineer. */
+"Requested username domain documents not present on platform after timeout" = "Tài liệu về username domain được yêu cầu không hiện diện trên nền tảng sau thời gian chờ";
+
+/* No comment provided by engineer. */
+"Requested username preorder documents not present on platform after timeout" = "Tài liệu đặt trước tên người dùng yêu cầu không hiện diện trên platform sau khi hết thời hạn chờ";
+
+/* No comment provided by engineer. */
+"Unable to sign transition" = "Không thể ký cho thay đổi";
+
+/* No comment provided by engineer. */
+"Transition had nothing to update" = "Thay đổi không có gì để cập nhật";
+
+/* No comment provided by engineer. */
+"Contract '%@' doesn't contain a table named '%@'" = "Hợp đồng '%1$@' không có chứa một bảng có tên '%2$@'";
+
+/* No comment provided by engineer. */
+"The blockchain identity hasn't yet been locally activated" = "Danh tính blockchain chưa được kích hoạt tại cục bộ";
+
+/* No comment provided by engineer. */
+"The blockchain identity funding private key should be first created with createFundingPrivateKeyWithCompletion" = "Khoá riêng cấp vốn cho danh tính blockchain cần phải được tạo trước nhất với createFundingPrivateKeyWithCompletion";
+
+/* No comment provided by engineer. */
+"The blockchain identity extended public keys need to be registered before you can register a blockchain identity." = "Khoá công khai mở rộng danh tính blockchain cần được đăng ký trước khi bạn đăng ký một danh tính blockchain.";
+
+/* No comment provided by engineer. */
+"Contact request extended public key is incorrectly encrypted." = "Khoá công khai mở rộng yêu cầu bởi liên hệ đã được mã hoá không đúng.";
+
+/* No comment provided by engineer. */
+"Error generating public keys" = "Lỗi trong việc sinh khoá công khai";
+
+/* No comment provided by engineer. */
+"Accepting a friend request should only happen from a local blockchain identity" = "Chấp nhận yêu cầu kết bạn chỉ nên xảy ra từ một danh tính trên blockchain cục bộ";
+
+/* No comment provided by engineer. */
+"You can only accept a friend request from blockchain identity who has sent you one, and none were found" = "Bạn chỉ có thể chấp nhận một yêu cầu kết bạn từ một danh tính blockchain người mà đã gửi đến cho bạn, và chưa tìm thấy cái nào như vậy cả";
+
+/* An error message for notifying that chain sync has timed out */
+"Synchronization Timeout" = "Hết thời gian đồng bộ";
+
+/* No comment provided by engineer. */
+"Attempt to query DAPs for blockchain identity with no active keys" = "Cố gắng truy vấn DAPs để tìm danh tính blockchain mà không có khoá active";
+
+/* No comment provided by engineer. */
+"Node at host %@ does not service network" = "Nút tại máy %@ không phục vụ mạng lưới";
+
+/* No comment provided by engineer. */
+"Node at host %@ does not support bloom filtering" = "Nút ở máy %@ không hỗ trợ tính năng bloom filtering";
+
+/* No comment provided by engineer. */
+"The Axepay contract is not properly set up" = "Hợp đồng Axepay chưa được thiết lập đúng";
+
+/* No comment provided by engineer. */
+"Contract '%@' needs to first be locally registered or known" = "Hợp đồng '%@' cần phải được đăng ký trước tiên ở cục bộ hoặc phải được biết trước";
+
+/* No comment provided by engineer. */
+"A block could not be mined in the selected time interval." = "Một khối không thể được đào trong khoảng thời gian được chọn.";
+
+/* No comment provided by engineer. */
+"Could not create friendship derivation path" = "Không thể tạo được kết nối bạn bè";
+
+/* No comment provided by engineer. */
+"Incorrect key format after contact request decryption" = "Định dạng khoá không đúng sau khi yêu cầu liên hệ được giải mã";

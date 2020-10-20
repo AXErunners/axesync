@@ -1,4 +1,3 @@
-
 /* No comment provided by engineer. */
 "\n         total %@ (%@)" = "celkem %1$@ (%2$@)";
 
@@ -19,9 +18,6 @@
 
 /* No comment provided by engineer. */
 "Are you sure you would like to register a masternode at %@:%d?" = "Jste si jistí, že chcete registrovat masternode na %1$@:%2$d?";
-
-/* No comment provided by engineer. */
-"Are you sure you would like to register the username %@ and spend %@ on credits?" = "Jste si jistí, že chcete registrovat uživatelské jméno %1$@ a použít %2$@ na kredit?";
 
 /* No comment provided by engineer. */
 "Are you sure you would like to reset this user?" = "Jste si jistí, že chcete resetovat tohoto uživatele?";
@@ -241,3 +237,123 @@
 
 /* No comment provided by engineer. */
 "Your wallet may be out of sync.\nThis can often be fixed by rescanning the blockchain." = "Vaše peněženka možná není synchronizována.\nTo lze často vyřešit opětovným skenováním blockchainu.";
+
+/* No comment provided by engineer. */
+"Unable to create registration transition" = "Nelze vytvořit registraci";
+
+/* The Blockchain Identity is not registered */
+"Not Registered" = "Neregistrovaný";
+
+/* The Blockchain Identity is registered */
+"Registered" = "Registrovaný";
+
+/* The Blockchain Identity is being registered */
+"Registering" = "Registrace";
+
+/* It is Unknown if the Blockchain Identity is registered */
+"Unknown" = "Neznámý";
+
+/* Status of Key or Username is Revoked */
+"Revoked" = "Zrušeno";
+
+/* No comment provided by engineer. */
+"BLS" = "BLS";
+
+/* No comment provided by engineer. */
+"ECDSA" = "ECDSA";
+
+/* No comment provided by engineer. */
+"Unknown Key Type" = "Neznámý typ klíče";
+
+/* No comment provided by engineer. */
+"Axepay Contract is not yet registered on network" = "Axepay kontrakt ještě není v síti registrován";
+
+/* No comment provided by engineer. */
+"DPNS Contract is not yet registered on network" = "DPNS kontrakt ještě není v síti registrován";
+
+/* No comment provided by engineer. */
+"Funding transaction could not be created" = "Nelze vytvořit finanční transakci";
+
+/* No comment provided by engineer. */
+"Internal key handling error" = "Chyba při zpracování interního klíče";
+
+/* No comment provided by engineer. */
+"Internal memory allocation error" = "Chyba při alokaci vnitřní pamětě";
+
+/* No comment provided by engineer. */
+"Malformed platform response" = "Chybná odpověď platformy";
+
+/* No comment provided by engineer. */
+"Timeout while waiting for funding transaction to be accepted by network" = "Časový limit při čekání na přijetí finanční transakce sítí";
+
+/* No comment provided by engineer. */
+"Transaction could not be signed" = "Transakci se nepodařilo podepsat";
+
+/* No comment provided by engineer. */
+"Unable to register registration transition" = "Nelze vytvořit registraci";
+
+/* No comment provided by engineer. */
+"User has actions to complete before being able to use Axepay" = "Uživatel musí provést akce, než bude moci používat Axepay";
+
+/* No comment provided by engineer. */
+"Requested username domain documents not present on platform after timeout" = "Po vypršení časového limitu nebyly požadované doménové dokumenty uživatelského jména k dispozici";
+
+/* No comment provided by engineer. */
+"Requested username preorder documents not present on platform after timeout" = "Po vypršení časového limitu nebyly požadované předobjednávkové dokumenty uživatelského jména k dispozici";
+
+/* No comment provided by engineer. */
+"Unable to sign transition" = "Nelze podepsat";
+
+/* No comment provided by engineer. */
+"Transition had nothing to update" = "Nebylo nic k aktualizaci";
+
+/* No comment provided by engineer. */
+"Contract '%@' doesn't contain a table named '%@'" = "Kontrakt '%1$@' neobsahuje tabulku s názvem '%2$@'";
+
+/* No comment provided by engineer. */
+"The blockchain identity hasn't yet been locally activated" = "Blockchain identita ještě nebyla lokálně aktivována";
+
+/* No comment provided by engineer. */
+"The blockchain identity funding private key should be first created with createFundingPrivateKeyWithCompletion" = "Soukromý klíč blockchain identity by měl být nejprve vytvořen pomocí createFundingPrivateKeyWithCompletion";
+
+/* No comment provided by engineer. */
+"The blockchain identity extended public keys need to be registered before you can register a blockchain identity." = "Veřejné klíče blockchain identity musí být registrovány před registrací blockchain identity.";
+
+/* No comment provided by engineer. */
+"Contact request extended public key is incorrectly encrypted." = "Rozšířený veřejný klíč žádosti o přidání mezi kontakty je nesprávně zašifrován";
+
+/* No comment provided by engineer. */
+"Error generating public keys" = "Chyba při generování veřejných klíčů";
+
+/* No comment provided by engineer. */
+"Accepting a friend request should only happen from a local blockchain identity" = "Přijetí žádosti o přátelství by mělo proběhnout pouze z místní blockchain identity";
+
+/* No comment provided by engineer. */
+"You can only accept a friend request from blockchain identity who has sent you one, and none were found" = "Můžete přijmout pouze žádost o přátelství od blockchain identity, která vám jednu poslala, a žádné nebyly nalezeny";
+
+/* An error message for notifying that chain sync has timed out */
+"Synchronization Timeout" = "Časový limit synchronizace";
+
+/* No comment provided by engineer. */
+"Attempt to query DAPs for blockchain identity with no active keys" = "Pokus o získání DAP pro blockchain identitu bez aktivních klíčů";
+
+/* No comment provided by engineer. */
+"Node at host %@ does not service network" = "Node na hostiteli %@ neobsluhuje síť";
+
+/* No comment provided by engineer. */
+"Node at host %@ does not support bloom filtering" = "Node na hostiteli %@ nepodporuje bloom filtrování";
+
+/* No comment provided by engineer. */
+"The Axepay contract is not properly set up" = "Kontrakt Axepay není správně nastaven";
+
+/* No comment provided by engineer. */
+"Contract '%@' needs to first be locally registered or known" = "Kontrakt '%@' musí být nejprve lokálně zaregistrován nebo znám";
+
+/* No comment provided by engineer. */
+"A block could not be mined in the selected time interval." = "Blok se nepodařilo vytěžit v požadovaném časovém intervalu.";
+
+/* No comment provided by engineer. */
+"Could not create friendship derivation path" = "Nelze vytvořit derivační cestu pro přátelství";
+
+/* No comment provided by engineer. */
+"Incorrect key format after contact request decryption" = "Formát klíče byl po dešifrování žádosti o přidání mezi kontakty neplatný";

@@ -3,18 +3,18 @@
 //  AxeSync_Example
 //
 //  Created by Andrew Podkovyrin on 15/03/2019.
-//  Copyright © 2019 Dash Core Group. All rights reserved.
+//  Copyright © 2019 Axe Core Group. All rights reserved.
 //
 
-#import <UIKit/UIKit.h>
+#import "DSFetchedResultsTableViewController.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@class DSContactsModel;
+@class DSBlockchainIdentity;
 
-@interface DSIncomingContactsTableViewController : UITableViewController
+@interface DSIncomingContactsTableViewController : DSFetchedResultsTableViewController
 
-@property (strong, nonatomic) DSContactsModel *model;
+@property (strong, nonatomic) DSBlockchainIdentity *blockchainIdentity;
 
 @end
 

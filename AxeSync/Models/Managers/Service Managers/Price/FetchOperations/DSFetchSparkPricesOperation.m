@@ -1,6 +1,6 @@
 //
 //  Created by Andrew Podkovyrin
-//  Copyright © 2019 Dash Core Group. All rights reserved.
+//  Copyright © 2019 Axe Core Group. All rights reserved.
 //
 //  Licensed under the MIT License (the "License");
 //  you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-#define SPARK_TICKER_URL @"https://axerunners.com/list"
+#define SPARK_TICKER_URL @"https://api.get-spark.com/list"
 
 @interface DSFetchSparkPricesOperation ()
 
@@ -61,7 +61,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 + (NSString *)priceSourceInfo {
-    return @"axerunners.com";
+    return @"get-spark.com";
 }
 
 @end
