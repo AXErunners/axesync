@@ -31,7 +31,7 @@
 #import "NSString+Bitcoin.h"
 #import "BigIntTypes.h"
 
-#define AXE_PUBKEY_ADDRESS      76
+#define AXE_PUBKEY_ADDRESS      55
 #define AXE_SCRIPT_ADDRESS      16
 #define AXE_PUBKEY_ADDRESS_TEST 140
 #define AXE_SCRIPT_ADDRESS_TEST 19
